@@ -23,6 +23,24 @@ void main() {
     expect(question.questionType, QuestionType.text);
   });
 
+  test('question parsing keeps visual and voice metadata', () {
+    final question = QuizQuestion.fromJson({
+      'id': 'media',
+      'question': 'Pick it',
+      'answers': ['A', 'B'],
+      'correctAnswer': 0,
+      'questionType': 'sound',
+      'visualText': '💀',
+      'spokenPrompt': 'no cap',
+      'voicePitch': 1.2,
+      'voiceRate': 0.9,
+    });
+    expect(question.visualText, '💀');
+    expect(question.spokenPrompt, 'no cap');
+    expect(question.voicePitch, 1.2);
+    expect(question.voiceRate, 0.9);
+  });
+
   test('correct answer increases streak and score', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -219,24 +237,49 @@ void main() {
         hasLength(10),
         reason: '${mode.name} should not repeat questions in one round',
       );
-      expect(
-        questions.where((question) => question.questionType == QuestionType.sound),
-        isEmpty,
-        reason: '${mode.name} must not serve silent audio questions',
-      );
+      for (final question in questions.where(
+        (question) => question.questionType == QuestionType.sound,
+      )) {
+        expect(
+          question.spokenPrompt?.trim().isNotEmpty == true ||
+              question.audioAsset?.trim().isNotEmpty == true,
+          isTrue,
+          reason: '${question.id} must contain playable voice data',
+        );
+      }
     }
   });
 
-  testWidgets('emoji mode contains real emoji questions instead of sound prompts', (
-    tester,
-  ) async {
+  testWidgets('voice challenge is actually voice-first', (tester) async {
     final questions = await QuestionRepository().questionsFor(
       GameMode.guessSound,
       count: 10,
     );
     expect(questions, hasLength(10));
     expect(
-      questions.every((question) => question.questionType == QuestionType.emoji),
+      questions.every((question) => question.questionType == QuestionType.sound),
+      isTrue,
+    );
+    expect(
+      questions.every(
+        (question) => question.spokenPrompt?.trim().isNotEmpty == true,
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets('character mode always has a visual', (tester) async {
+    final questions = await QuestionRepository().questionsFor(
+      GameMode.italianBrainrot,
+      count: 10,
+    );
+    expect(questions, hasLength(10));
+    expect(
+      questions.every(
+        (question) =>
+            question.imageAsset?.trim().isNotEmpty == true ||
+            question.visualText?.trim().isNotEmpty == true,
+      ),
       isTrue,
     );
   });
@@ -252,16 +295,21 @@ void main() {
     expect(questions.map((question) => question.id).toSet(), hasLength(40));
   });
 
-  testWidgets('mixed mode includes more than Italian character content', (
-    tester,
-  ) async {
+  testWidgets('mixed mode is media-heavy and broadly mixed', (tester) async {
     final questions = await QuestionRepository().questionsFor(
       GameMode.mix,
       count: 20,
     );
     final categories = questions.map((question) => question.category).toSet();
+    final mediaCount = questions.where((question) {
+      return question.questionType == QuestionType.sound ||
+          question.imageAsset?.trim().isNotEmpty == true ||
+          question.visualText?.trim().isNotEmpty == true;
+    }).length;
+
     expect(questions, hasLength(20));
     expect(categories.length, greaterThanOrEqualTo(4));
+    expect(mediaCount, greaterThanOrEqualTo(7));
   });
 }
 
