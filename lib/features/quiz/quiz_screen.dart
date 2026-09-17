@@ -28,6 +28,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   bool _loading = true;
   bool _flashVisible = true;
   bool _finishing = false;
+  bool _voiceUnavailable = false;
 
   @override
   void initState() {
@@ -39,12 +40,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   void dispose() {
     _rushTimer?.cancel();
     _flashTimer?.cancel();
+    ref.read(voiceServiceProvider).stop();
     super.dispose();
   }
 
   Future<void> _loadQuestions() async {
-    // Rush gets a much larger unique pool so a fast player does not loop the
-    // same handful of questions during a single 60-second run.
     final questionCount = widget.mode == GameMode.rush ? 40 : 10;
     late final List<QuizQuestion> questions;
 
@@ -63,7 +63,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     for (final asset in questions
         .map((question) => question.imageAsset)
         .whereType<String>()
-        .take(5)) {
+        .take(6)) {
       precacheImage(AssetImage(asset), context);
     }
 
@@ -80,13 +80,25 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       });
     }
 
+    _startQuestionMedia();
+  }
+
+  void _startQuestionMedia() {
     _startFlashTimer();
+    final session = ref.read(quizSessionProvider);
+    final question = session?.currentQuestion;
+    final settings = ref.read(progressProvider);
+    if (question?.questionType == QuestionType.sound &&
+        settings.voiceReactions) {
+      Future<void>.delayed(const Duration(milliseconds: 260), () {
+        if (mounted && !_finishing) _playVoice();
+      });
+    }
   }
 
   void _startFlashTimer() {
     _flashTimer?.cancel();
-    final session = ref.read(quizSessionProvider);
-    final question = session?.currentQuestion;
+    final question = ref.read(quizSessionProvider)?.currentQuestion;
 
     if (question == null ||
         question.questionType != QuestionType.flash ||
@@ -109,6 +121,24 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         _ => const Duration(milliseconds: 1100),
       };
 
+  Future<void> _playVoice() async {
+    final session = ref.read(quizSessionProvider);
+    final question = session?.currentQuestion;
+    if (question == null || question.questionType != QuestionType.sound) return;
+    final spoken = question.spokenPrompt?.trim();
+    if (spoken == null || spoken.isEmpty) return;
+
+    final played = await ref.read(voiceServiceProvider).speak(
+          spoken,
+          pitch: question.voicePitch,
+          rate: question.voiceRate,
+        );
+    if (!mounted) return;
+    if (_voiceUnavailable == played) {
+      setState(() => _voiceUnavailable = !played);
+    }
+  }
+
   void _onAnswer(int index) {
     final session = ref.read(quizSessionProvider);
     if (session == null || session.isAnswered) return;
@@ -130,7 +160,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     }
 
     final answeredIndex = session.currentIndex;
-    Future<void>.delayed(const Duration(milliseconds: 1150), () {
+    Future<void>.delayed(const Duration(milliseconds: 1000), () {
       if (!mounted || _finishing) return;
       final latest = ref.read(quizSessionProvider);
       if (latest == null ||
@@ -141,8 +171,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
       if (widget.mode == GameMode.rush ||
           answeredIndex < latest.questions.length - 1) {
+        ref.read(voiceServiceProvider).stop();
         ref.read(quizSessionProvider.notifier).next();
-        _startFlashTimer();
+        if (mounted) setState(() => _voiceUnavailable = false);
+        _startQuestionMedia();
       } else {
         _finish();
       }
@@ -154,6 +186,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     _finishing = true;
     _rushTimer?.cancel();
     _flashTimer?.cancel();
+    ref.read(voiceServiceProvider).stop();
 
     final session = ref.read(quizSessionProvider);
     if (session == null) return;
@@ -163,6 +196,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           correct: session.correctAnswers,
           bestStreak: session.bestStreak,
           daily: widget.mode == GameMode.daily,
+          questionCount: session.questions.length,
+          isRush: session.isRush,
         );
     ref.read(analyticsServiceProvider).track('quiz_completed', {
       'mode': widget.mode.name,
@@ -172,10 +207,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     context.go('/results');
   }
 
-  bool _hasVisual(QuizQuestion question) {
-    if (question.imageAsset == null || question.imageAsset!.trim().isEmpty) {
-      return false;
-    }
+  bool _hasMedia(QuizQuestion question) {
+    if (question.questionType == QuestionType.sound) return true;
+    if (question.visualText?.trim().isNotEmpty == true) return true;
+    if (question.imageAsset?.trim().isEmpty ?? true) return false;
     return question.questionType == QuestionType.imageChoice ||
         question.questionType == QuestionType.flash ||
         question.questionType == QuestionType.silhouette ||
@@ -188,7 +223,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
     final session = ref.watch(quizSessionProvider);
     if (session == null || session.questions.isEmpty) {
-      return const SizedBox.shrink();
+      return const Scaffold(body: Center(child: Text('No questions available.')));
     }
 
     final question = session.currentQuestion;
@@ -215,7 +250,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     widget.mode == GameMode.rush ? session.secondsLeft : null,
                 onExit: _confirmExit,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   _QuestionTag(question: question),
@@ -231,30 +266,32 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_hasVisual(question)) ...[
+                      if (_hasMedia(question)) ...[
                         _QuestionMedia(
                           question: question,
                           flashVisible: _flashVisible,
+                          voiceUnavailable: _voiceUnavailable,
+                          onPlayVoice: _playVoice,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                       ],
                       Text(
                         question.question,
-                        style: const TextStyle(
-                          fontSize: 25,
+                        style: TextStyle(
+                          fontSize: _hasMedia(question) ? 21 : 25,
                           height: 1.08,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -.7,
+                          letterSpacing: -.6,
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
                       for (var index = 0;
                           index < question.answers.length;
                           index++) ...[
@@ -326,7 +363,123 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     );
 
     if (!mounted || leave != true) return;
-    context.go('/');
+    await ref.read(voiceServiceProvider).stop();
+    if (mounted) context.go('/');
+  }
+}
+
+class _QuestionMedia extends StatelessWidget {
+  const _QuestionMedia({
+    required this.question,
+    required this.flashVisible,
+    required this.voiceUnavailable,
+    required this.onPlayVoice,
+  });
+
+  final QuizQuestion question;
+  final bool flashVisible;
+  final bool voiceUnavailable;
+  final VoidCallback onPlayVoice;
+
+  @override
+  Widget build(BuildContext context) {
+    if (question.questionType == QuestionType.sound) {
+      return Container(
+        width: double.infinity,
+        height: 178,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.graphic_eq_rounded, size: 44, color: AppColors.cyan),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onPlayVoice,
+              icon: const Icon(Icons.volume_up_rounded, size: 19),
+              label: const Text('PLAY VOICE'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              voiceUnavailable
+                  ? question.spokenPrompt ?? 'Voice unavailable'
+                  : 'Listen. Then pick the phrase.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: voiceUnavailable ? AppColors.ink : AppColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final visualText = question.visualText?.trim();
+    if (visualText != null && visualText.isNotEmpty) {
+      return Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 178),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          visualText,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: visualText.length <= 4 ? 72 : 45,
+            height: 1.05,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.5,
+          ),
+        ),
+      );
+    }
+
+    if (question.questionType == QuestionType.flash && !flashVisible) {
+      return Container(
+        height: 190,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.visibility_off_rounded,
+              size: 34,
+              color: AppColors.subtle,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Image hidden — answer from memory',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return BrainrotImage(
+      assetPath: question.imageAsset,
+      height: 220,
+      semanticLabel: 'Quiz image',
+    );
   }
 }
 
@@ -384,7 +537,7 @@ class _QuizHeader extends StatelessWidget {
                   Text(
                     secondsLeft == null
                         ? '$questionNumber of $questionCount'
-                        : widgetLabel(mode),
+                        : mode.title,
                     style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 11,
@@ -420,8 +573,6 @@ class _QuizHeader extends StatelessWidget {
       ],
     );
   }
-
-  static String widgetLabel(GameMode mode) => mode.title;
 }
 
 class _QuestionTag extends StatelessWidget {
@@ -435,11 +586,11 @@ class _QuestionTag extends StatelessWidget {
       QuestionType.imageChoice => 'IMAGE',
       QuestionType.flash => 'FLASH',
       QuestionType.finishMeme => 'FINISH IT',
-      QuestionType.emoji => 'EMOJI',
+      QuestionType.emoji => 'VISUAL',
       QuestionType.slang => 'SLANG',
       QuestionType.silhouette => 'SILHOUETTE',
       QuestionType.zoom => 'ZOOM',
-      QuestionType.sound => 'AUDIO',
+      QuestionType.sound => 'VOICE',
       QuestionType.text => question.category.toUpperCase(),
     };
 
@@ -534,53 +685,6 @@ class _FeedbackBar extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _QuestionMedia extends StatelessWidget {
-  const _QuestionMedia({required this.question, required this.flashVisible});
-
-  final QuizQuestion question;
-  final bool flashVisible;
-
-  @override
-  Widget build(BuildContext context) {
-    if (question.questionType == QuestionType.flash && !flashVisible) {
-      return Container(
-        height: 190,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.visibility_off_rounded,
-              size: 34,
-              color: AppColors.subtle,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Image hidden — answer from memory',
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return BrainrotImage(
-      assetPath: question.imageAsset,
-      height: 200,
-      semanticLabel: 'Quiz image',
     );
   }
 }

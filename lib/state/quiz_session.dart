@@ -20,6 +20,8 @@ class QuizSession {
     this.isAnswered = false,
     this.lastWasCorrect,
     this.secondsLeft = 60,
+    this.resultProcessed = false,
+    this.rewardedBonusClaimed = false,
   });
 
   final GameMode mode;
@@ -33,6 +35,8 @@ class QuizSession {
   final bool isAnswered;
   final bool? lastWasCorrect;
   final int secondsLeft;
+  final bool resultProcessed;
+  final bool rewardedBonusClaimed;
 
   QuizQuestion get currentQuestion => questions[currentIndex];
   bool get isRush => mode == GameMode.rush;
@@ -62,6 +66,8 @@ class QuizSession {
     bool? lastWasCorrect,
     bool clearFeedback = false,
     int? secondsLeft,
+    bool? resultProcessed,
+    bool? rewardedBonusClaimed,
   }) {
     return QuizSession(
       mode: mode,
@@ -79,6 +85,9 @@ class QuizSession {
           ? null
           : lastWasCorrect ?? this.lastWasCorrect,
       secondsLeft: secondsLeft ?? this.secondsLeft,
+      resultProcessed: resultProcessed ?? this.resultProcessed,
+      rewardedBonusClaimed:
+          rewardedBonusClaimed ?? this.rewardedBonusClaimed,
     );
   }
 }
@@ -138,8 +147,6 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
 
     if (session.isRush) {
       if (session.currentIndex >= session.questions.length - 1) {
-        // Do not wrap to question one. Ending the run is better than showing a
-        // duplicate after the player exhausts the unique Rush pool.
         state = session.copyWith(secondsLeft: 0);
         return;
       }
@@ -172,5 +179,19 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
     final session = state;
     if (session == null) return;
     state = session.copyWith(secondsLeft: 0);
+  }
+
+  bool markResultProcessed() {
+    final session = state;
+    if (session == null || session.resultProcessed) return false;
+    state = session.copyWith(resultProcessed: true);
+    return true;
+  }
+
+  bool markRewardedBonusClaimed() {
+    final session = state;
+    if (session == null || session.rewardedBonusClaimed) return false;
+    state = session.copyWith(rewardedBonusClaimed: true);
+    return true;
   }
 }

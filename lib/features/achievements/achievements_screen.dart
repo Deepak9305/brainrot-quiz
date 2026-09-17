@@ -11,7 +11,7 @@ class AchievementsScreen extends ConsumerWidget {
   static const _items = [
     ('first_brain_cell', 'First Brain Cell', 'Complete your first quiz.', Icons.lightbulb_outline_rounded),
     ('locked_in', 'Locked In', 'Get 10 correct answers in a row.', Icons.local_fire_department_outlined),
-    ('touch_grass', 'Touch Grass', 'Play for 7 consecutive days.', Icons.spa_outlined),
+    ('touch_grass', 'Touch Grass', 'Complete the Daily challenge 7 days in a row.', Icons.spa_outlined),
     ('terminally_online', 'Terminally Online', 'Complete 100 quizzes.', Icons.public_rounded),
     ('aura_farmer', 'Aura Farmer', 'Earn 10,000 Brain Coins.', Icons.bolt_outlined),
     ('zero', 'No Braincells Left', 'Score 0/10.', Icons.sentiment_dissatisfied_outlined),
@@ -21,7 +21,9 @@ class AchievementsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unlocked = ref.watch(progressProvider).achievements;
-    final count = unlocked.values.where((value) => value).length;
+    final count = _items
+        .where((item) => unlocked[item.$1] == true)
+        .length;
 
     return Scaffold(
       appBar: const BrainrotAppBar(title: 'Achievements'),

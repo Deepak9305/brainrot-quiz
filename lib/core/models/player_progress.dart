@@ -115,40 +115,83 @@ class PlayerProgress {
   };
 
   factory PlayerProgress.fromJson(Map<String, dynamic> json) {
-    final owned = (json['ownedThemes'] as List<dynamic>? ?? const ['acid'])
-        .map((value) => value.toString())
-        .toSet()
-        .toList(growable: false);
+    final rawOwned = json['ownedThemes'];
+    final owned = rawOwned is List
+        ? rawOwned
+            .map((value) => value.toString().trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList(growable: false)
+        : <String>['acid'];
     final normalizedOwned = owned.contains('acid')
         ? owned
         : <String>['acid', ...owned];
     final requestedTheme = json['equippedTheme']?.toString() ?? 'acid';
 
+    final achievements = <String, bool>{};
+    final rawAchievements = json['achievements'];
+    if (rawAchievements is Map) {
+      for (final entry in rawAchievements.entries) {
+        final key = entry.key.toString();
+        final value = entry.value;
+        final parsed = switch (value) {
+          bool flag => flag,
+          num number => number != 0,
+          String text => text.toLowerCase() == 'true' || text == '1',
+          _ => false,
+        };
+        achievements[key] = parsed;
+      }
+    }
+
     return PlayerProgress(
-      coins: (json['coins'] as num?)?.toInt() ?? 0,
-      xp: (json['xp'] as num?)?.toInt() ?? 0,
-      level: (json['level'] as num?)?.toInt() ?? 1,
-      currentStreak: (json['currentStreak'] as num?)?.toInt() ?? 0,
-      bestScore: (json['bestScore'] as num?)?.toInt() ?? 0,
-      dailyStreak: (json['dailyStreak'] as num?)?.toInt() ?? 0,
+      coins: _nonNegativeInt(json['coins']),
+      xp: _nonNegativeInt(json['xp']),
+      level: _positiveInt(json['level'], fallback: 1),
+      currentStreak: _nonNegativeInt(json['currentStreak']),
+      bestScore: _nonNegativeInt(json['bestScore']),
+      dailyStreak: _nonNegativeInt(json['dailyStreak']),
       lastPlayedDate: json['lastPlayedDate']?.toString(),
-      seenIntro: json['seenIntro'] as bool? ?? false,
-      soundEffects: json['soundEffects'] as bool? ?? true,
-      voiceReactions: json['voiceReactions'] as bool? ?? true,
-      music: json['music'] as bool? ?? true,
-      haptics: json['haptics'] as bool? ?? true,
-      reduceMotion: json['reduceMotion'] as bool? ?? false,
+      seenIntro: _boolValue(json['seenIntro'], fallback: false),
+      soundEffects: _boolValue(json['soundEffects'], fallback: true),
+      voiceReactions: _boolValue(json['voiceReactions'], fallback: true),
+      music: _boolValue(json['music'], fallback: true),
+      haptics: _boolValue(json['haptics'], fallback: true),
+      reduceMotion: _boolValue(json['reduceMotion'], fallback: false),
       dailyCompletedDate: json['dailyCompletedDate']?.toString(),
-      dailyScore: (json['dailyScore'] as num?)?.toInt(),
-      completedQuizzes: (json['completedQuizzes'] as num?)?.toInt() ?? 0,
-      lifetimeCoinsEarned: (json['lifetimeCoinsEarned'] as num?)?.toInt() ?? 0,
-      achievements: Map<String, bool>.from(
-        json['achievements'] as Map? ?? const {},
-      ),
+      dailyScore: json['dailyScore'] == null
+          ? null
+          : _nonNegativeInt(json['dailyScore']),
+      completedQuizzes: _nonNegativeInt(json['completedQuizzes']),
+      lifetimeCoinsEarned: _nonNegativeInt(json['lifetimeCoinsEarned']),
+      achievements: achievements,
       ownedThemes: normalizedOwned,
       equippedTheme: normalizedOwned.contains(requestedTheme)
           ? requestedTheme
           : 'acid',
     );
+  }
+
+  static int _nonNegativeInt(Object? value) {
+    final number = value is num ? value.toInt() : int.tryParse('$value');
+    if (number == null || number < 0) return 0;
+    return number;
+  }
+
+  static int _positiveInt(Object? value, {required int fallback}) {
+    final number = value is num ? value.toInt() : int.tryParse('$value');
+    if (number == null || number < 1) return fallback;
+    return number;
+  }
+
+  static bool _boolValue(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.toLowerCase().trim();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return fallback;
   }
 }

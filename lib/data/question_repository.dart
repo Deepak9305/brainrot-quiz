@@ -7,37 +7,42 @@ import '../core/models/game_mode.dart';
 import '../core/models/question.dart';
 
 class QuestionRepository {
-  QuestionRepository({AssetBundle? bundle}) : _bundle = bundle ?? rootBundle;
+  QuestionRepository({AssetBundle? bundle, DateTime Function()? now})
+      : _bundle = bundle ?? rootBundle,
+        _now = now ?? DateTime.now;
 
   final AssetBundle _bundle;
+  final DateTime Function() _now;
   final Map<String, List<QuizQuestion>> _cache = {};
 
-  // Remember recent questions for the current app session so replaying a mode
-  // does not immediately serve the same round again.
   static final List<String> _recentQuestionIds = <String>[];
 
+  // Put the strongest media-first packs first and keep them represented in
+  // every balanced mixed round. Text trivia still exists, but it is no longer
+  // the dominant experience.
   static const _mixPacks = <String>[
-    'brainrot_mix',
     'characters',
-    'slang',
+    'voice',
     'emoji',
+    'brainrot_mix',
+    'quickfire',
     'finish_memes',
     'og_memes',
-    'quickfire',
   ];
 
   static const _rushPacks = <String>[
-    'quickfire',
-    'slang',
+    'voice',
     'emoji',
+    'characters',
+    'quickfire',
     'brainrot_mix',
   ];
 
   static const _dailyPacks = <String>[
-    'brainrot_mix',
     'characters',
-    'slang',
+    'voice',
     'emoji',
+    'brainrot_mix',
     'finish_memes',
     'og_memes',
   ];
@@ -47,9 +52,10 @@ class QuestionRepository {
     int count = 10,
   }) async {
     final safeCount = count.clamp(1, 50).toInt();
+    final now = _now();
     final seed = mode == GameMode.daily
-        ? DateTime.now().toUtc().difference(DateTime.utc(2024, 1, 1)).inDays
-        : DateTime.now().microsecondsSinceEpoch;
+        ? (now.year * 10000) + (now.month * 100) + now.day
+        : now.microsecondsSinceEpoch;
 
     final packNames = switch (mode) {
       GameMode.mix => _mixPacks,
@@ -98,18 +104,21 @@ class QuestionRepository {
       return false;
     }
 
-    // Never expose a fake audio prompt. Sound questions are allowed only when
-    // a real clip is explicitly bundled.
     if (question.questionType == QuestionType.sound) {
-      return question.audioAsset?.trim().isNotEmpty == true;
+      return question.spokenPrompt?.trim().isNotEmpty == true ||
+          question.audioAsset?.trim().isNotEmpty == true;
     }
 
-    // Visual question types must actually contain an image.
     if (question.questionType == QuestionType.imageChoice ||
         question.questionType == QuestionType.flash ||
         question.questionType == QuestionType.silhouette ||
         question.questionType == QuestionType.zoom) {
       return question.imageAsset?.trim().isNotEmpty == true;
+    }
+
+    if (question.questionType == QuestionType.emoji) {
+      return question.visualText?.trim().isNotEmpty == true ||
+          question.question.trim().isNotEmpty;
     }
 
     return true;
@@ -244,7 +253,7 @@ class QuestionRepository {
   }) {
     final safeCount = count.clamp(1, _fallbackBank.length).toInt();
     final questions = [..._fallbackBank]
-      ..shuffle(Random(seed ?? DateTime.now().microsecondsSinceEpoch));
+      ..shuffle(Random(seed ?? _now().microsecondsSinceEpoch));
     return questions.take(safeCount).toList(growable: false);
   }
 
@@ -299,7 +308,8 @@ class QuestionRepository {
       category: 'emoji',
       difficulty: 'easy',
       questionType: QuestionType.emoji,
-      question: 'What does 💀 usually mean in comments?',
+      question: 'What reaction is this?',
+      visualText: '💀',
       answers: ['I am angry', 'That was so funny I am dead', 'I am rich', 'I am sleepy'],
       correctAnswer: 1,
     ),
@@ -380,7 +390,8 @@ class QuestionRepository {
       category: 'emoji',
       difficulty: 'easy',
       questionType: QuestionType.emoji,
-      question: 'What does 👀 usually suggest online?',
+      question: 'What reaction is this?',
+      visualText: '👀',
       answers: ['I am asleep', 'I am watching or interested', 'I forgot', 'I am leaving'],
       correctAnswer: 1,
     ),
@@ -425,7 +436,8 @@ class QuestionRepository {
       category: 'emoji',
       difficulty: 'medium',
       questionType: QuestionType.emoji,
-      question: 'What does 🚩 usually mean in relationship talk?',
+      question: 'What does this signal?',
+      visualText: '🚩',
       answers: ['A date idea', 'A compliment', 'A warning sign', 'A joke'],
       correctAnswer: 2,
     ),

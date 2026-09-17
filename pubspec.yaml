@@ -1,7 +1,7 @@
 name: brainrot_quiz
 description: "A fast, funny, offline-first internet culture quiz game."
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.2.0+4
 
 environment:
   sdk: ^3.13.3

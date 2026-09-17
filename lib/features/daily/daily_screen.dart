@@ -34,17 +34,6 @@ class DailyScreen extends ConsumerWidget {
                 icon: Icons.play_arrow_rounded,
                 onPressed: () => context.push('/quiz', extra: GameMode.daily),
               ),
-            if (completed) ...[
-              const SizedBox(height: 10),
-              BrainrotButton(
-                label: 'Replay',
-                icon: Icons.replay_rounded,
-                outlined: true,
-                color: AppColors.ink,
-                foreground: AppColors.ink,
-                onPressed: () => context.push('/quiz', extra: GameMode.daily),
-              ),
-            ],
           ],
         ),
       ),
@@ -240,7 +229,7 @@ class _CompletedCard extends StatelessWidget {
             ),
           ),
           const Text(
-            'Done',
+            'Come back tomorrow',
             style: TextStyle(
               color: AppColors.muted,
               fontSize: 11,

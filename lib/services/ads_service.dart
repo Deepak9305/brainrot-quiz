@@ -48,27 +48,56 @@ class AdMobAdsService implements AdsService {
   DateTime? _lastInterstitialAt;
   int _completedRounds = 0;
   bool _initialized = false;
+  bool _rewardedLoading = false;
+  Future<void>? _initializationFuture;
 
   String get _rewardedUnitId => 'ca-app-pub-3940256099942544/5224354917';
 
   String get _interstitialUnitId => 'ca-app-pub-3940256099942544/1033173712';
 
   @override
-  Future<void> initialize() async {
-    if (kIsWeb || !config.adsEnabled || _initialized) return;
-    _initialized = true;
-    await MobileAds.instance.initialize();
-    _loadRewarded();
+  Future<void> initialize() {
+    if (kIsWeb || !config.adsEnabled || _initialized) {
+      return Future.value();
+    }
+    return _initializationFuture ??= _initializeOnce();
+  }
+
+  Future<void> _initializeOnce() async {
+    try {
+      await MobileAds.instance.initialize();
+      _initialized = true;
+      _loadRewarded();
+    } catch (_) {
+      _initialized = false;
+    } finally {
+      _initializationFuture = null;
+    }
   }
 
   void _loadRewarded() {
-    if (kIsWeb || !config.adsEnabled || !config.rewardedEnabled) return;
+    if (kIsWeb ||
+        !_initialized ||
+        !config.adsEnabled ||
+        !config.rewardedEnabled ||
+        _rewardedAd != null ||
+        _rewardedLoading) {
+      return;
+    }
+
+    _rewardedLoading = true;
     RewardedAd.load(
       adUnitId: _rewardedUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) => _rewardedAd = ad,
-        onAdFailedToLoad: (_) => _rewardedAd = null,
+        onAdLoaded: (ad) {
+          _rewardedLoading = false;
+          _rewardedAd = ad;
+        },
+        onAdFailedToLoad: (_) {
+          _rewardedLoading = false;
+          _rewardedAd = null;
+        },
       ),
     );
   }
@@ -79,25 +108,41 @@ class AdMobAdsService implements AdsService {
   @override
   Future<void> showInterstitialIfEligible() async {
     if (kIsWeb || !config.adsEnabled || !config.interstitialEnabled) return;
+    await initialize();
+    if (!_initialized) return;
+
     if (config.firstSessionInterstitialDisabled && _completedRounds <= 1) {
       return;
     }
     if (_completedRounds < config.minRoundsBetweenInterstitials) return;
+
     final now = DateTime.now();
     if (_lastInterstitialAt != null &&
         now.difference(_lastInterstitialAt!).inSeconds <
             config.minSecondsBetweenInterstitials) {
       return;
     }
+
     final completer = Completer<void>();
+    var abandoned = false;
+
     InterstitialAd.load(
       adUnitId: _interstitialUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-          _completedRounds = 0;
-          _lastInterstitialAt = now;
+          if (abandoned) {
+            ad.dispose();
+            return;
+          }
+
           ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (_) {
+              // Only consume the round counter/cooldown after the ad really
+              // appears. A load/show failure should not delay the next try.
+              _completedRounds = 0;
+              _lastInterstitialAt = DateTime.now();
+            },
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
               if (!completer.isCompleted) completer.complete();
@@ -114,24 +159,30 @@ class AdMobAdsService implements AdsService {
         },
       ),
     );
+
     await completer.future.timeout(
       const Duration(seconds: 8),
-      onTimeout: () {},
+      onTimeout: () {
+        abandoned = true;
+      },
     );
   }
 
   @override
   Future<bool> showRewarded(RewardKind kind) async {
-    if (kIsWeb ||
-        !config.adsEnabled ||
-        !config.rewardedEnabled ||
-        _rewardedAd == null) {
+    if (kIsWeb || !config.adsEnabled || !config.rewardedEnabled) return false;
+    await initialize();
+    if (!_initialized) return false;
+
+    if (_rewardedAd == null) {
       _loadRewarded();
       return false;
     }
+
     final ad = _rewardedAd!;
     _rewardedAd = null;
     final completer = Completer<bool>();
+
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
@@ -144,11 +195,13 @@ class AdMobAdsService implements AdsService {
         if (!completer.isCompleted) completer.complete(false);
       },
     );
+
     ad.show(
       onUserEarnedReward: (ad, reward) {
         if (!completer.isCompleted) completer.complete(true);
       },
     );
+
     return completer.future.timeout(
       const Duration(seconds: 45),
       onTimeout: () => false,

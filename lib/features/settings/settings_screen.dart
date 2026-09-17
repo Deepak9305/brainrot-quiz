@@ -32,6 +32,15 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const _RowDivider(),
                 _SettingSwitch(
+                  label: 'Voice prompts',
+                  icon: Icons.graphic_eq_rounded,
+                  value: progress.voiceReactions,
+                  onChanged: (value) => ref
+                      .read(progressProvider.notifier)
+                      .setSetting('voiceReactions', value),
+                ),
+                const _RowDivider(),
+                _SettingSwitch(
                   label: 'Haptics',
                   icon: Icons.vibration_rounded,
                   value: progress.haptics,
@@ -77,11 +86,11 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsLink(
                   label: 'Version',
                   icon: Icons.info_outline_rounded,
-                  trailing: '1.0.0',
+                  trailing: '1.2.0',
                   onTap: () => _showInfo(
                     context,
-                    'Brainrot Quiz',
-                    'Fast internet-culture quizzes with no login required.',
+                    'Brainrot Quiz 1.2.0',
+                    'Image-first and voice-first internet culture quizzes with no login required.',
                   ),
                 ),
               ],

@@ -5,6 +5,7 @@ import '../services/ads_service.dart';
 import '../services/analytics_service.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
+import '../services/voice_service.dart';
 
 final storageServiceProvider = Provider<StorageService>((ref) {
   throw UnimplementedError('StorageService must be overridden in main.dart');
@@ -14,6 +15,7 @@ final analyticsServiceProvider = Provider<AnalyticsService>(
   (ref) => LocalAnalyticsService(),
 );
 final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
+final voiceServiceProvider = Provider<VoiceService>((ref) => VoiceService());
 final adsServiceProvider = Provider<AdsService>((ref) => AdMobAdsService());
 
 final progressProvider = NotifierProvider<ProgressNotifier, PlayerProgress>(
@@ -48,10 +50,26 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     required int correct,
     required int bestStreak,
     bool daily = false,
+    int? questionCount,
+    bool isRush = false,
   }) {
     final now = DateTime.now();
     final today = _dateKey(now);
     final yesterday = _dateKey(now.subtract(const Duration(days: 1)));
+
+    // The Daily challenge is a once-per-day progression reward. Re-entering
+    // the route or replaying an already completed Daily must not mint coins,
+    // XP, quiz completions, or streak days again.
+    if (daily && state.dailyCompletedDate == today) {
+      final previousDailyScore = state.dailyScore ?? 0;
+      _update(
+        state.copyWith(
+          bestScore: score > state.bestScore ? score : state.bestScore,
+          dailyScore: correct > previousDailyScore ? correct : previousDailyScore,
+        ),
+      );
+      return;
+    }
 
     final nextCurrentStreak = state.lastPlayedDate == today
         ? state.currentStreak
@@ -61,11 +79,9 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
 
     final nextDailyStreak = !daily
         ? state.dailyStreak
-        : state.dailyCompletedDate == today
-            ? state.dailyStreak
-            : state.dailyCompletedDate == yesterday
-                ? state.dailyStreak + 1
-                : 1;
+        : state.dailyCompletedDate == yesterday
+            ? state.dailyStreak + 1
+            : 1;
 
     final coinReward = 80 + (correct * 35) + (bestStreak * 10);
     final xpReward = 100 + (correct * 45);
@@ -82,10 +98,13 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     final completedQuizzes = state.completedQuizzes + 1;
     final lifetimeCoinsEarned = state.lifetimeCoinsEarned + coinReward;
     final nextAchievements = {...state.achievements};
+    final isTenQuestionRound = !isRush && (questionCount ?? 10) == 10;
 
     if (completedQuizzes >= 1) nextAchievements['first_brain_cell'] = true;
-    if (correct >= 10) nextAchievements['perfect'] = true;
-    if (correct == 0) nextAchievements['zero'] = true;
+    if (isTenQuestionRound && correct == 10) {
+      nextAchievements['perfect'] = true;
+    }
+    if (isTenQuestionRound && correct == 0) nextAchievements['zero'] = true;
     if (bestStreak >= 10) nextAchievements['locked_in'] = true;
     if (nextDailyStreak >= 7) nextAchievements['touch_grass'] = true;
     if (completedQuizzes >= 100) nextAchievements['terminally_online'] = true;

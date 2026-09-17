@@ -33,6 +33,10 @@ class QuizQuestion {
     required this.correctAnswer,
     this.imageAsset,
     this.audioAsset,
+    this.visualText,
+    this.spokenPrompt,
+    this.voicePitch = 1,
+    this.voiceRate = 1,
     this.explanation,
     this.tags = const [],
     this.weight = 1,
@@ -48,6 +52,10 @@ class QuizQuestion {
   final int correctAnswer;
   final String? imageAsset;
   final String? audioAsset;
+  final String? visualText;
+  final String? spokenPrompt;
+  final double voicePitch;
+  final double voiceRate;
   final String? explanation;
   final List<String> tags;
   final int weight;
@@ -73,6 +81,10 @@ class QuizQuestion {
       ),
       imageAsset: json['imageAsset']?.toString(),
       audioAsset: json['audioAsset']?.toString(),
+      visualText: json['visualText']?.toString(),
+      spokenPrompt: json['spokenPrompt']?.toString(),
+      voicePitch: (json['voicePitch'] as num?)?.toDouble() ?? 1,
+      voiceRate: (json['voiceRate'] as num?)?.toDouble() ?? 1,
       explanation: json['explanation']?.toString(),
       tags: (json['tags'] as List<dynamic>? ?? const [])
           .map((tag) => tag.toString())
@@ -92,6 +104,10 @@ class QuizQuestion {
     correctAnswer: correctAnswer,
     imageAsset: imageAsset,
     audioAsset: audioAsset,
+    visualText: visualText,
+    spokenPrompt: spokenPrompt,
+    voicePitch: voicePitch,
+    voiceRate: voiceRate,
     explanation: explanation,
     tags: tags,
     weight: weight,
