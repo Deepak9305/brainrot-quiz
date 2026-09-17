@@ -18,6 +18,8 @@ class PlayerProgress {
     this.completedQuizzes = 0,
     this.lifetimeCoinsEarned = 0,
     this.achievements = const {},
+    this.ownedThemes = const ['acid'],
+    this.equippedTheme = 'acid',
   });
 
   final int coins;
@@ -38,6 +40,8 @@ class PlayerProgress {
   final int completedQuizzes;
   final int lifetimeCoinsEarned;
   final Map<String, bool> achievements;
+  final List<String> ownedThemes;
+  final String equippedTheme;
 
   int get xpForNextLevel => 4000 + ((level - 1) * 500);
 
@@ -60,6 +64,8 @@ class PlayerProgress {
     int? completedQuizzes,
     int? lifetimeCoinsEarned,
     Map<String, bool>? achievements,
+    List<String>? ownedThemes,
+    String? equippedTheme,
   }) {
     return PlayerProgress(
       coins: coins ?? this.coins,
@@ -80,6 +86,8 @@ class PlayerProgress {
       completedQuizzes: completedQuizzes ?? this.completedQuizzes,
       lifetimeCoinsEarned: lifetimeCoinsEarned ?? this.lifetimeCoinsEarned,
       achievements: achievements ?? this.achievements,
+      ownedThemes: ownedThemes ?? this.ownedThemes,
+      equippedTheme: equippedTheme ?? this.equippedTheme,
     );
   }
 
@@ -102,28 +110,45 @@ class PlayerProgress {
     'completedQuizzes': completedQuizzes,
     'lifetimeCoinsEarned': lifetimeCoinsEarned,
     'achievements': achievements,
+    'ownedThemes': ownedThemes,
+    'equippedTheme': equippedTheme,
   };
 
-  factory PlayerProgress.fromJson(Map<String, dynamic> json) => PlayerProgress(
-    coins: (json['coins'] as num?)?.toInt() ?? 0,
-    xp: (json['xp'] as num?)?.toInt() ?? 0,
-    level: (json['level'] as num?)?.toInt() ?? 1,
-    currentStreak: (json['currentStreak'] as num?)?.toInt() ?? 0,
-    bestScore: (json['bestScore'] as num?)?.toInt() ?? 0,
-    dailyStreak: (json['dailyStreak'] as num?)?.toInt() ?? 0,
-    lastPlayedDate: json['lastPlayedDate']?.toString(),
-    seenIntro: json['seenIntro'] as bool? ?? false,
-    soundEffects: json['soundEffects'] as bool? ?? true,
-    voiceReactions: json['voiceReactions'] as bool? ?? true,
-    music: json['music'] as bool? ?? true,
-    haptics: json['haptics'] as bool? ?? true,
-    reduceMotion: json['reduceMotion'] as bool? ?? false,
-    dailyCompletedDate: json['dailyCompletedDate']?.toString(),
-    dailyScore: (json['dailyScore'] as num?)?.toInt(),
-    completedQuizzes: (json['completedQuizzes'] as num?)?.toInt() ?? 0,
-    lifetimeCoinsEarned: (json['lifetimeCoinsEarned'] as num?)?.toInt() ?? 0,
-    achievements: Map<String, bool>.from(
-      json['achievements'] as Map? ?? const {},
-    ),
-  );
+  factory PlayerProgress.fromJson(Map<String, dynamic> json) {
+    final owned = (json['ownedThemes'] as List<dynamic>? ?? const ['acid'])
+        .map((value) => value.toString())
+        .toSet()
+        .toList(growable: false);
+    final normalizedOwned = owned.contains('acid')
+        ? owned
+        : <String>['acid', ...owned];
+    final requestedTheme = json['equippedTheme']?.toString() ?? 'acid';
+
+    return PlayerProgress(
+      coins: (json['coins'] as num?)?.toInt() ?? 0,
+      xp: (json['xp'] as num?)?.toInt() ?? 0,
+      level: (json['level'] as num?)?.toInt() ?? 1,
+      currentStreak: (json['currentStreak'] as num?)?.toInt() ?? 0,
+      bestScore: (json['bestScore'] as num?)?.toInt() ?? 0,
+      dailyStreak: (json['dailyStreak'] as num?)?.toInt() ?? 0,
+      lastPlayedDate: json['lastPlayedDate']?.toString(),
+      seenIntro: json['seenIntro'] as bool? ?? false,
+      soundEffects: json['soundEffects'] as bool? ?? true,
+      voiceReactions: json['voiceReactions'] as bool? ?? true,
+      music: json['music'] as bool? ?? true,
+      haptics: json['haptics'] as bool? ?? true,
+      reduceMotion: json['reduceMotion'] as bool? ?? false,
+      dailyCompletedDate: json['dailyCompletedDate']?.toString(),
+      dailyScore: (json['dailyScore'] as num?)?.toInt(),
+      completedQuizzes: (json['completedQuizzes'] as num?)?.toInt() ?? 0,
+      lifetimeCoinsEarned: (json['lifetimeCoinsEarned'] as num?)?.toInt() ?? 0,
+      achievements: Map<String, bool>.from(
+        json['achievements'] as Map? ?? const {},
+      ),
+      ownedThemes: normalizedOwned,
+      equippedTheme: normalizedOwned.contains(requestedTheme)
+          ? requestedTheme
+          : 'acid',
+    );
+  }
 }
