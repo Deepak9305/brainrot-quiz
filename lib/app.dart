@@ -15,6 +15,9 @@ import 'features/shop/shop_screen.dart';
 import 'state/providers.dart';
 import 'widgets/common.dart';
 
+String _dateKey(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
@@ -22,6 +25,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (context, state) => const RootScreen()),
       GoRoute(
         path: '/quiz',
+        redirect: (context, state) {
+          final mode = state.extra as GameMode? ?? GameMode.mix;
+          if (mode == GameMode.daily &&
+              ref.read(progressProvider).dailyCompletedDate ==
+                  _dateKey(DateTime.now())) {
+            return '/daily';
+          }
+          return null;
+        },
         builder: (context, state) =>
             QuizScreen(mode: state.extra as GameMode? ?? GameMode.mix),
       ),
@@ -54,6 +66,13 @@ class BrainrotApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(accent: accent),
       routerConfig: ref.watch(routerProvider),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(disableAnimations: progress.reduceMotion),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }
@@ -169,7 +188,7 @@ class _CulturePreview extends StatelessWidget {
               ),
               const Spacer(),
               const Text(
-                'v1.1',
+                'v1.1.1',
                 style: TextStyle(
                   color: AppColors.subtle,
                   fontSize: 10,
