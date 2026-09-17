@@ -12,8 +12,8 @@ class QuestionRepository {
   final AssetBundle _bundle;
   final Map<String, List<QuizQuestion>> _cache = {};
 
-  // Kept in memory for the current app session so replaying a mode does not
-  // immediately serve the same ten questions again.
+  // Remember recent questions for the current app session so replaying a mode
+  // does not immediately serve the same round again.
   static final List<String> _recentQuestionIds = <String>[];
 
   static const _mixPacks = <String>[
@@ -90,17 +90,28 @@ class QuestionRepository {
 
   bool _isPlayable(QuizQuestion question) {
     if (!question.enabled ||
+        question.question.trim().isEmpty ||
         question.answers.length < 2 ||
+        question.answers.any((answer) => answer.trim().isEmpty) ||
         question.correctAnswer < 0 ||
         question.correctAnswer >= question.answers.length) {
       return false;
     }
 
-    // A sound question is only playable when a real clip is bundled. This
-    // prevents silent "guess the voice" questions from ever reaching users.
+    // Never expose a fake audio prompt. Sound questions are allowed only when
+    // a real clip is explicitly bundled.
     if (question.questionType == QuestionType.sound) {
       return question.audioAsset?.trim().isNotEmpty == true;
     }
+
+    // Visual question types must actually contain an image.
+    if (question.questionType == QuestionType.imageChoice ||
+        question.questionType == QuestionType.flash ||
+        question.questionType == QuestionType.silhouette ||
+        question.questionType == QuestionType.zoom) {
+      return question.imageAsset?.trim().isNotEmpty == true;
+    }
+
     return true;
   }
 
@@ -200,7 +211,7 @@ class QuestionRepository {
       _recentQuestionIds.remove(question.id);
       _recentQuestionIds.add(question.id);
     }
-    const maxRecent = 30;
+    const maxRecent = 40;
     if (_recentQuestionIds.length > maxRecent) {
       _recentQuestionIds.removeRange(
         0,
@@ -361,7 +372,7 @@ class QuestionRepository {
       difficulty: 'easy',
       questionType: QuestionType.text,
       question: 'What does a hashtag begin with?',
-      answers: ['#', '@', '$', '&'],
+      answers: ['#', '@', r'$', '&'],
       correctAnswer: 0,
     ),
     QuizQuestion(
@@ -387,7 +398,7 @@ class QuestionRepository {
       category: 'internet',
       difficulty: 'medium',
       questionType: QuestionType.text,
-      question: "What does 'AFK' stand for?",
+      question: 'What does AFK stand for?',
       answers: ['Ask for key', 'Active for keeps', 'Away from kids', 'Away from keyboard'],
       correctAnswer: 3,
     ),
