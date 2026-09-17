@@ -15,9 +15,6 @@ import 'features/shop/shop_screen.dart';
 import 'state/providers.dart';
 import 'widgets/common.dart';
 
-String _dateKey(DateTime date) =>
-    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
@@ -25,15 +22,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (context, state) => const RootScreen()),
       GoRoute(
         path: '/quiz',
-        redirect: (context, state) {
-          final mode = state.extra as GameMode? ?? GameMode.mix;
-          if (mode == GameMode.daily &&
-              ref.read(progressProvider).dailyCompletedDate ==
-                  _dateKey(DateTime.now())) {
-            return '/daily';
-          }
-          return null;
-        },
         builder: (context, state) =>
             QuizScreen(mode: state.extra as GameMode? ?? GameMode.mix),
       ),
@@ -60,19 +48,19 @@ class BrainrotApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(progressProvider);
     final accent = AppTheme.accentForTheme(progress.equippedTheme);
+    final mediaQuery = MediaQuery.maybeOf(context);
 
-    return MaterialApp.router(
+    final app = MaterialApp.router(
       title: 'Brainrot Quiz',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(accent: accent),
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) {
-        final media = MediaQuery.of(context);
-        return MediaQuery(
-          data: media.copyWith(disableAnimations: progress.reduceMotion),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
+    );
+
+    if (!progress.reduceMotion || mediaQuery == null) return app;
+    return MediaQuery(
+      data: mediaQuery.copyWith(disableAnimations: true),
+      child: app,
     );
   }
 }
@@ -105,25 +93,19 @@ class IntroScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Expanded(child: _CulturePreview(accent: accent)),
               const SizedBox(height: 18),
-              Text(
-                'HOW COOKED\nARE YOU?',
+              const Text(
+                'SEE IT.\nHEAR IT.\nKNOW IT.',
                 style: TextStyle(
                   color: AppColors.ink,
-                  fontSize: 40,
+                  fontSize: 38,
                   height: .9,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -2,
-                  shadows: [
-                    Shadow(
-                      color: accent.withValues(alpha: .16),
-                      blurRadius: 18,
-                    ),
-                  ],
                 ),
               ),
               const SizedBox(height: 10),
               const Text(
-                'Slang, memes, emoji reactions, characters and internet culture.',
+                'Images, voice prompts, emoji reactions and fast internet culture. Less reading. More instant recognition.',
                 style: TextStyle(
                   color: AppColors.muted,
                   fontSize: 12,
@@ -188,7 +170,7 @@ class _CulturePreview extends StatelessWidget {
               ),
               const Spacer(),
               const Text(
-                'v1.1.1',
+                'v1.2',
                 style: TextStyle(
                   color: AppColors.subtle,
                   fontSize: 10,
@@ -207,24 +189,24 @@ class _CulturePreview extends StatelessWidget {
               childAspectRatio: 1.15,
               children: const [
                 _CultureTile(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: 'SLANG',
-                  detail: 'rizz · delulu · aura',
+                  icon: Icons.image_search_rounded,
+                  title: 'IMAGES',
+                  detail: 'faces · zoom · flash',
+                ),
+                _CultureTile(
+                  icon: Icons.graphic_eq_rounded,
+                  title: 'VOICE',
+                  detail: 'listen · replay · pick',
                 ),
                 _CultureTile(
                   icon: Icons.emoji_emotions_outlined,
-                  title: 'EMOJI',
+                  title: 'REACTIONS',
                   detail: '💀 👀 🗿 🚩',
                 ),
                 _CultureTile(
-                  icon: Icons.history_rounded,
-                  title: 'MEMES',
-                  detail: 'Doge · Rickroll · OGs',
-                ),
-                _CultureTile(
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'CHARACTERS',
-                  detail: 'viral faces + brainrot',
+                  icon: Icons.flash_on_rounded,
+                  title: 'FAST',
+                  detail: '1-second · rush · daily',
                 ),
               ],
             ),
