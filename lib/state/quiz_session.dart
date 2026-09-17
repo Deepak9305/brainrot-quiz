@@ -43,14 +43,12 @@ class QuizSession {
       ? secondsLeft / 60
       : (currentIndex + (isAnswered ? 1 : 0)) / questions.length;
   String get multiplierLabel => streak >= 10
-      ? '10x'
+      ? '×3'
       : streak >= 5
-          ? '5x'
+          ? '×2'
           : streak >= 3
-              ? '3x'
-              : streak >= 2
-                  ? '2x'
-                  : '1x';
+              ? '×1.5'
+              : '×1';
 
   QuizSession copyWith({
     int? currentIndex,
@@ -116,9 +114,7 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
                 ? 1.5
                 : 1;
     final points = correct ? (100 * multiplier).round() : 0;
-    final penalizedSeconds = session.isRush && !correct
-        ? (session.secondsLeft - 2).clamp(0, 60)
-        : session.secondsLeft;
+    final penalizedSeconds = session.secondsLeft - 2;
 
     state = session.copyWith(
       selectedAnswer: index,
@@ -130,7 +126,9 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
       bestStreak: nextStreak > session.bestStreak
           ? nextStreak
           : session.bestStreak,
-      secondsLeft: penalizedSeconds,
+      secondsLeft: session.isRush && !correct
+          ? (penalizedSeconds < 0 ? 0 : penalizedSeconds)
+          : session.secondsLeft,
     );
   }
 
