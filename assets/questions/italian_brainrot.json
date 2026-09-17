@@ -1,7 +1,0 @@
-[
-  {"id":"it-001","category":"italian","difficulty":"easy","questionType":"imageChoice","question":"WHO IS THIS?","answers":["Tralalero Tralala","Bombardiro Crocodilo","Tung Tung Tung Sahur","Brr Brr Patapim"],"correctAnswer":0,"imageAsset":"assets/images/tralalero_tralala.webp"},
-  {"id":"it-002","category":"italian","difficulty":"medium","questionType":"imageChoice","question":"WHO PULLS UP IN THE BOMBER PLANE?","answers":["Bombardiro Crocodilo","Tralalero Tralala","Tung Tung Tung Sahur","Brr Brr Patapim"],"correctAnswer":0,"imageAsset":"assets/images/bombardiro_crocodilo.jpg"},
-  {"id":"it-003","category":"italian","difficulty":"medium","questionType":"emoji","question":"Boots + runway + absolute chaos = ?","answers":["Italian Brainrot","A fashion show","Airport mode","A new app update"],"correctAnswer":0},
-  {"id":"it-004","category":"italian","difficulty":"hard","questionType":"imageChoice","question":"WHO IS BRINGING THE SAHUR DRUM?","answers":["Tung Tung Tung Sahur","Tralalero Tralala","Bombardiro Crocodilo","Brr Brr Patapim"],"correctAnswer":0,"imageAsset":"assets/images/tung_tung_tung_sahur.webp"},
-  {"id":"it-005","category":"italian","difficulty":"easy","questionType":"imageChoice","question":"WHO HAS THE FOREST-FEET ENERGY?","answers":["Brr Brr Patapim","Tralalero Tralala","Bombardiro Crocodilo","Tung Tung Tung Sahur"],"correctAnswer":0,"imageAsset":"assets/images/brr_brr_patapim.jpg"}
-]
