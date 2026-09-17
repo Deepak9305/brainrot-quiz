@@ -20,8 +20,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     GameMode.slang,
     GameMode.guessSound,
     GameMode.finishMeme,
-    GameMode.italianBrainrot,
     GameMode.ogBrainrot,
+    GameMode.italianBrainrot,
     GameMode.impossible,
     GameMode.rush,
   ];
@@ -172,12 +172,12 @@ class _MainRoundCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'HOW\nCOOKED\nARE YOU?',
+                    'ALL OF\nINTERNET\nCULTURE',
                     style: TextStyle(
-                      fontSize: 29,
-                      height: .88,
+                      fontSize: 27,
+                      height: .9,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: -1.5,
+                      letterSpacing: -1.4,
                     ),
                   ),
                   const Spacer(),
@@ -194,18 +194,99 @@ class _MainRoundCard extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
+          const Expanded(
             flex: 9,
-            child: Hero(
-              tag: 'tralalero-tralala',
-              child: Image.asset(
-                'assets/images/tralalero_tralala.webp',
-                height: double.infinity,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                errorBuilder: (_, __, ___) =>
-                    const ColoredBox(color: AppColors.surfaceRaised),
+            child: _MixPreview(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MixPreview extends StatelessWidget {
+  const _MixPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.surfaceRaised,
+      child: Padding(
+        padding: EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _PreviewCell(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      label: 'SLANG',
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: _PreviewCell(
+                      icon: Icons.emoji_emotions_outlined,
+                      label: 'EMOJI',
+                    ),
+                  ),
+                ],
               ),
+            ),
+            SizedBox(height: 8),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _PreviewCell(
+                      icon: Icons.history_rounded,
+                      label: 'MEMES',
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: _PreviewCell(
+                      icon: Icons.auto_awesome_rounded,
+                      label: 'CHAOS',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewCell extends StatelessWidget {
+  const _PreviewCell({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 22, color: AppColors.ink),
+          const SizedBox(height: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .55,
             ),
           ),
         ],
@@ -324,7 +405,7 @@ class _DailyRow extends StatelessWidget {
                     Text(
                       completed
                           ? 'Come back tomorrow'
-                          : 'A fresh mixed round for today',
+                          : 'Fresh slang, memes, emoji and more',
                       style: const TextStyle(
                         color: AppColors.muted,
                         fontSize: 11,
@@ -409,7 +490,7 @@ class _ModeListItem extends StatelessWidget {
                         width: double.infinity,
                         height: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             Icon(mode.icon, color: mode.accent, size: 21),
                       )
                     : Icon(mode.icon, color: mode.accent, size: 21),

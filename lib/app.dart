@@ -84,45 +84,7 @@ class IntroScreen extends ConsumerWidget {
             children: [
               const BrainrotLogo(compact: true),
               const SizedBox(height: 16),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Hero(
-                        tag: 'tralalero-tralala',
-                        child: Image.asset(
-                          'assets/images/tralalero_tralala.webp',
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                          semanticLabel:
-                              'Tralalero Tralala, the Italian Brainrot shark with blue sneakers',
-                        ),
-                      ),
-                      Positioned(
-                        left: 12,
-                        top: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          color: Colors.black.withValues(alpha: .78),
-                          child: const Text(
-                            'ROUND 01',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              Expanded(child: _CulturePreview(accent: accent)),
               const SizedBox(height: 18),
               Text(
                 'HOW COOKED\nARE YOU?',
@@ -140,10 +102,20 @@ class IntroScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 10),
+              const Text(
+                'Slang, memes, emoji reactions, characters and internet culture.',
+                style: TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 12),
               const Row(
                 children: [
-                  _IntroMeta('10 QUESTIONS'),
+                  _IntroMeta('8 MODES'),
                   _MetaDot(),
                   _IntroMeta('OFFLINE'),
                   _MetaDot(),
@@ -152,7 +124,7 @@ class IntroScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 18),
               BrainrotButton(
-                label: 'Start round',
+                label: 'Enter quiz',
                 icon: Icons.arrow_forward_rounded,
                 onPressed: () {
                   ref.read(progressProvider.notifier).markIntroSeen();
@@ -162,6 +134,134 @@ class IntroScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CulturePreview extends StatelessWidget {
+  const _CulturePreview({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'INTERNET CULTURE TEST',
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                'v1.1',
+                style: TextStyle(
+                  color: AppColors.subtle,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 2,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.15,
+              children: const [
+                _CultureTile(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  title: 'SLANG',
+                  detail: 'rizz · delulu · aura',
+                ),
+                _CultureTile(
+                  icon: Icons.emoji_emotions_outlined,
+                  title: 'EMOJI',
+                  detail: '💀 👀 🗿 🚩',
+                ),
+                _CultureTile(
+                  icon: Icons.history_rounded,
+                  title: 'MEMES',
+                  detail: 'Doge · Rickroll · OGs',
+                ),
+                _CultureTile(
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'CHARACTERS',
+                  detail: 'viral faces + brainrot',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CultureTile extends StatelessWidget {
+  const _CultureTile({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Icon(icon, size: 22, color: AppColors.ink),
+          const Spacer(),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .7,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
