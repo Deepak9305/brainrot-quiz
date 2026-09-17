@@ -87,7 +87,7 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     if (correct >= 10) nextAchievements['perfect'] = true;
     if (correct == 0) nextAchievements['zero'] = true;
     if (bestStreak >= 10) nextAchievements['locked_in'] = true;
-    if (nextCurrentStreak >= 7) nextAchievements['touch_grass'] = true;
+    if (nextDailyStreak >= 7) nextAchievements['touch_grass'] = true;
     if (completedQuizzes >= 100) nextAchievements['terminally_online'] = true;
     if (lifetimeCoinsEarned >= 10000) nextAchievements['aura_farmer'] = true;
 
@@ -109,8 +109,32 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     );
   }
 
-  void addCoins(int amount) =>
-      _update(state.copyWith(coins: state.coins + amount));
+  void addCoins(int amount) {
+    final nextCoins = (state.coins + amount).clamp(0, 1 << 31);
+    _update(state.copyWith(coins: nextCoins));
+  }
+
+  bool buyTheme(String id, int price) {
+    if (state.ownedThemes.contains(id)) {
+      equipTheme(id);
+      return true;
+    }
+    if (price < 0 || state.coins < price) return false;
+
+    _update(
+      state.copyWith(
+        coins: state.coins - price,
+        ownedThemes: [...state.ownedThemes, id],
+        equippedTheme: id,
+      ),
+    );
+    return true;
+  }
+
+  void equipTheme(String id) {
+    if (!state.ownedThemes.contains(id) || state.equippedTheme == id) return;
+    _update(state.copyWith(equippedTheme: id));
+  }
 
   void unlockAchievement(String id) {
     if (state.achievements[id] == true) return;
