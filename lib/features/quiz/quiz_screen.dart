@@ -14,6 +14,7 @@ import '../../widgets/common.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key, required this.mode});
+
   final GameMode mode;
 
   @override
@@ -44,18 +45,19 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   Future<void> _loadQuestions() async {
     final questionCount = widget.mode == GameMode.rush ? 20 : 10;
     late final List<QuizQuestion> questions;
+
     try {
       questions = await _repository
           .questionsFor(widget.mode, count: questionCount)
           .timeout(const Duration(seconds: 4));
     } catch (_) {
-      // Core gameplay remains playable even when a browser/webview asset
-      // request is temporarily unavailable.
       questions = _repository.fallbackQuestions(count: questionCount);
     }
+
     if (!mounted) return;
     ref.read(quizSessionProvider.notifier).start(widget.mode, questions);
     setState(() => _loading = false);
+
     for (final asset
         in questions
             .map((question) => question.imageAsset)
@@ -63,6 +65,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             .take(3)) {
       precacheImage(AssetImage(asset), context);
     }
+
     if (widget.mode == GameMode.rush) {
       _rushTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         final session = ref.read(quizSessionProvider);
@@ -73,6 +76,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         }
       });
     }
+
     _startFlashTimer();
   }
 
@@ -80,9 +84,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     _flashTimer?.cancel();
     final session = ref.read(quizSessionProvider);
     if (session?.currentQuestion.questionType != QuestionType.flash) {
-      if (_flashVisible == false) setState(() => _flashVisible = true);
+      if (!_flashVisible) setState(() => _flashVisible = true);
       return;
     }
+
     setState(() => _flashVisible = true);
     _flashTimer = Timer(_flashDuration(session!.currentQuestion), () {
       if (mounted) setState(() => _flashVisible = false);
@@ -100,24 +105,23 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   void _onAnswer(int index) {
     final session = ref.read(quizSessionProvider);
     if (session == null || session.isAnswered) return;
+
     final settings = ref.read(progressProvider);
     final question = session.currentQuestion;
     ref.read(quizSessionProvider.notifier).answer(index);
+
     if (index == question.correctAnswer) {
-      ref
-          .read(audioServiceProvider)
-          .playCorrect(
+      ref.read(audioServiceProvider).playCorrect(
             hapticsEnabled: settings.haptics,
             soundEnabled: settings.soundEffects,
           );
     } else {
-      ref
-          .read(audioServiceProvider)
-          .playWrong(
+      ref.read(audioServiceProvider).playWrong(
             hapticsEnabled: settings.haptics,
             soundEnabled: settings.soundEffects,
           );
     }
+
     final answeredIndex = session.currentIndex;
     Future<void>.delayed(const Duration(milliseconds: 850), () {
       if (!mounted || _finishing) return;
@@ -127,6 +131,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           !latest.isAnswered) {
         return;
       }
+
       if (widget.mode == GameMode.rush ||
           answeredIndex < latest.questions.length - 1) {
         ref.read(quizSessionProvider.notifier).next();
@@ -141,11 +146,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     if (_finishing || !mounted) return;
     _finishing = true;
     _rushTimer?.cancel();
+
     final session = ref.read(quizSessionProvider);
     if (session == null) return;
-    ref
-        .read(progressProvider.notifier)
-        .completeQuiz(
+
+    ref.read(progressProvider.notifier).completeQuiz(
           score: session.score,
           correct: session.correctAnswers,
           bestStreak: session.bestStreak,
@@ -160,211 +165,140 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return _QuizLoading(mode: widget.mode);
-    }
+    if (_loading) return _QuizLoading(mode: widget.mode);
+
     final session = ref.watch(quizSessionProvider);
     if (session == null) return const SizedBox.shrink();
+
     final question = session.currentQuestion;
     final progress = widget.mode == GameMode.rush
         ? session.secondsLeft / 60
         : (session.currentIndex + (session.isAnswered ? 1 : 0)) /
-              session.questions.length;
+            session.questions.length;
     final isCorrect = session.isAnswered && session.lastWasCorrect == true;
-    final feedback = isCorrect
-        ? _positiveFeedback(session.streak)
-        : 'COOKED 💀';
+
     return Scaffold(
-      body: AppBackground(
-        accent: widget.mode.accent,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 9, 16, 18),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _HudIconButton(
-                      tooltip: 'Pause quiz',
-                      icon: Icons.pause_rounded,
-                      onPressed: _confirmExit,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: ProgressBar(
-                        value: progress,
-                        color: widget.mode.accent,
-                        height: 8,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (widget.mode == GameMode.rush)
-                      _TimerChip(seconds: session.secondsLeft),
-                    if (widget.mode != GameMode.rush)
-                      _CounterChip(
-                        label:
-                            '${session.currentIndex + 1}/${session.questions.length}',
-                      ),
-                    const SizedBox(width: 8),
-                    _MiniScore(value: session.score),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _ModeTag(mode: widget.mode),
-                    const Spacer(),
-                    _StreakChip(
-                      label: session.multiplierLabel,
-                      streak: session.streak,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      children: [
-                        _QuestionMedia(
-                          question: question,
-                          flashVisible: _flashVisible,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          question.question,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 23,
-                            height: 1.05,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -.5,
-                          ),
-                        ),
-                        const SizedBox(height: 17),
-                        for (
-                          var index = 0;
-                          index < question.answers.length;
-                          index++
-                        ) ...[
-                          AnswerCard(
-                            index: index,
-                            answer: question.answers[index],
-                            onTap: () => _onAnswer(index),
-                            selected: session.selectedAnswer == index,
-                            correct: question.correctAnswer == index,
-                            revealed: session.isAnswered,
-                          ),
-                          if (index != question.answers.length - 1)
-                            const SizedBox(height: 9),
-                        ],
-                        if (session.isAnswered) ...[
-                          const SizedBox(height: 16),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            child: Container(
-                              key: ValueKey(
-                                '$isCorrect-${session.currentIndex}',
-                              ),
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 13,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    (isCorrect ? AppColors.lime : AppColors.red)
-                                        .withValues(alpha: .12),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color:
-                                      (isCorrect
-                                              ? AppColors.lime
-                                              : AppColors.red)
-                                          .withValues(alpha: .5),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isCorrect
-                                        ? Icons.auto_awesome_rounded
-                                        : Icons.warning_amber_rounded,
-                                    color: isCorrect
-                                        ? AppColors.lime
-                                        : AppColors.red,
-                                    size: 21,
-                                  ),
-                                  const SizedBox(width: 9),
-                                  Expanded(
-                                    child: Text(
-                                      feedback,
-                                      style: TextStyle(
-                                        color: isCorrect
-                                            ? AppColors.lime
-                                            : AppColors.red,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: .7,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    isCorrect
-                                        ? '+${(100 * (session.streak >= 10
-                                                  ? 3
-                                                  : session.streak >= 5
-                                                  ? 2
-                                                  : session.streak >= 3
-                                                  ? 1.5
-                                                  : 1)).round()} AURA'
-                                        : '-500 AURA',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                if (session.isAnswered && widget.mode == GameMode.rush)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: Column(
+            children: [
+              _QuizHeader(
+                mode: widget.mode,
+                progress: progress,
+                questionNumber: session.currentIndex + 1,
+                questionCount: session.questions.length,
+                score: session.score,
+                secondsLeft:
+                    widget.mode == GameMode.rush ? session.secondsLeft : null,
+                onExit: _confirmExit,
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
                     child: Text(
-                      'Next one loading...',
-                      style: TextStyle(
+                      widget.mode.title.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         color: AppColors.muted,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
                       ),
                     ),
                   ),
-              ],
-            ),
+                  _StreakLabel(
+                    streak: session.streak,
+                    label: session.multiplierLabel,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _QuestionMedia(
+                        question: question,
+                        flashVisible: _flashVisible,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        question.question,
+                        style: const TextStyle(
+                          fontSize: 25,
+                          height: 1.08,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -.8,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      for (var index = 0;
+                          index < question.answers.length;
+                          index++) ...[
+                        AnswerCard(
+                          index: index,
+                          answer: question.answers[index],
+                          onTap: () => _onAnswer(index),
+                          selected: session.selectedAnswer == index,
+                          correct: question.correctAnswer == index,
+                          revealed: session.isAnswered,
+                        ),
+                        if (index != question.answers.length - 1)
+                          const SizedBox(height: 9),
+                      ],
+                      if (session.isAnswered) ...[
+                        const SizedBox(height: 14),
+                        _FeedbackBar(
+                          correct: isCorrect,
+                          label: isCorrect
+                              ? _positiveFeedback(session.streak)
+                              : 'COOKED',
+                          points: isCorrect
+                              ? '+${_earnedAura(session.streak)} AURA'
+                              : '-500 AURA',
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  int _earnedAura(int streak) =>
+      (100 *
+              (streak >= 10
+                  ? 3
+                  : streak >= 5
+                      ? 2
+                      : streak >= 3
+                          ? 1.5
+                          : 1))
+          .round();
+
   String _positiveFeedback(int streak) {
-    if (streak >= 10) return 'LOCKED IN 🔥';
+    if (streak >= 10) return 'LOCKED IN';
     if (streak >= 5) return 'ABSOLUTE CINEMA';
-    if (streak >= 3) return '+AURA ENERGY';
-    return 'BRAIN STILL FUNCTIONING';
+    if (streak >= 3) return 'AURA UP';
+    return 'STILL COOKING';
   }
 
   Future<void> _confirmExit() async {
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
         title: const Text(
-          'Pause the brainrot?',
+          'Leave this round?',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
         content: const Text('Your current round will not be saved.'),
@@ -375,18 +309,201 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('EXIT'),
+            child: const Text('LEAVE'),
           ),
         ],
       ),
     );
+
     if (!mounted || leave != true) return;
     context.go('/');
   }
 }
 
+class _QuizHeader extends StatelessWidget {
+  const _QuizHeader({
+    required this.mode,
+    required this.progress,
+    required this.questionNumber,
+    required this.questionCount,
+    required this.score,
+    required this.secondsLeft,
+    required this.onExit,
+  });
+
+  final GameMode mode;
+  final double progress;
+  final int questionNumber;
+  final int questionCount;
+  final int score;
+  final int? secondsLeft;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _HeaderButton(icon: Icons.close_rounded, onTap: onExit),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '$questionNumber/$questionCount',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (secondsLeft != null)
+                    Text(
+                      '0:${secondsLeft.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        color: secondsLeft! <= 10
+                            ? AppColors.red
+                            : AppColors.ink,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    )
+                  else
+                    Text(
+                      '$score AURA',
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              ProgressBar(value: progress, color: mode.accent, height: 5),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderButton extends StatelessWidget {
+  const _HeaderButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, size: 19, color: AppColors.muted),
+        ),
+      ),
+    );
+  }
+}
+
+class _StreakLabel extends StatelessWidget {
+  const _StreakLabel({required this.streak, required this.label});
+
+  final int streak;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = streak >= 2;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.local_fire_department_rounded,
+          size: 15,
+          color: active ? AppColors.orange : AppColors.subtle,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: active ? AppColors.orange : AppColors.muted,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FeedbackBar extends StatelessWidget {
+  const _FeedbackBar({
+    required this.correct,
+    required this.label,
+    required this.points,
+  });
+
+  final bool correct;
+  final String label;
+  final String points;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = correct ? AppColors.lime : AppColors.red;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .4,
+              ),
+            ),
+          ),
+          Text(
+            points,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _QuestionMedia extends StatelessWidget {
   const _QuestionMedia({required this.question, required this.flashVisible});
+
   final QuizQuestion question;
   final bool flashVisible;
 
@@ -395,43 +512,99 @@ class _QuestionMedia extends StatelessWidget {
     if (question.questionType == QuestionType.sound) {
       return AudioButton(audioAsset: question.audioAsset);
     }
+
     if (question.questionType == QuestionType.flash && !flashVisible) {
       return Container(
         height: 190,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(22),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.border),
         ),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.visibility_off_rounded,
-              size: 42,
-              color: AppColors.muted,
-            ),
-            SizedBox(height: 10),
+            Icon(Icons.visibility_off_rounded, size: 36, color: AppColors.muted),
+            SizedBox(height: 9),
             Text(
-              'MEMORY LOCKED',
+              'IMAGE GONE',
               style: TextStyle(
                 color: AppColors.muted,
+                fontSize: 11,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 1.6,
+                letterSpacing: 1.2,
               ),
             ),
           ],
         ),
       );
     }
+
     if (question.questionType == QuestionType.text ||
         question.questionType == QuestionType.slang ||
         question.questionType == QuestionType.finishMeme ||
         question.questionType == QuestionType.emoji) {
       return _PromptMedia(question: question);
     }
-    return BrainrotImage(assetPath: question.imageAsset, height: 190);
+
+    return BrainrotImage(assetPath: question.imageAsset, height: 200);
+  }
+}
+
+class _PromptMedia extends StatelessWidget {
+  const _PromptMedia({required this.question});
+
+  final QuizQuestion question;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, icon, visual) = switch (question.questionType) {
+      QuestionType.emoji => ('EMOJI ROUND', Icons.tag_faces_rounded, '🐊  ✈️  💣'),
+      QuestionType.slang => ('SLANG ROUND', Icons.chat_bubble_outline_rounded, 'FLUENT INTERNET?'),
+      QuestionType.finishMeme => ('FINISH IT', Icons.format_quote_rounded, 'BRO REALLY THOUGHT...'),
+      _ => ('BRAIN CHECK', Icons.psychology_alt_outlined, 'ONE BRAIN CELL'),
+    };
+
+    return Container(
+      height: 142,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppColors.muted, size: 17),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            visual,
+            style: TextStyle(
+              fontSize: question.questionType == QuestionType.emoji ? 30 : 21,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -.6,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -443,320 +616,53 @@ class _QuizLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AppBackground(
-        accent: mode.accent,
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const BrainrotLogo(center: true),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: 112,
-                    height: 112,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: Image.asset(
-                        mode.imageAsset ??
-                            'assets/images/tralalero_tralala.webp',
-                        fit: BoxFit.cover,
-                      ),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 96,
+                  height: 96,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      mode.imageAsset ?? 'assets/images/tralalero_tralala.webp',
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'LOADING ${mode.title.toUpperCase()}',
-                    style: TextStyle(
-                      color: mode.accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: 150,
-                    child: ProgressBar(
-                      value: .72,
-                      color: mode.accent,
-                      height: 6,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Waking up the brain cells...',
-                    style: TextStyle(
-                      color: AppColors.muted,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PromptMedia extends StatelessWidget {
-  const _PromptMedia({required this.question});
-
-  final QuizQuestion question;
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, icon, color, visual) = switch (question.questionType) {
-      QuestionType.emoji => (
-        'EMOJI DECODER',
-        Icons.tag_faces_rounded,
-        AppColors.orange,
-        '🐊  ✈️  💣',
-      ),
-      QuestionType.slang => (
-        'SLANG CHECK',
-        Icons.chat_bubble_rounded,
-        AppColors.purple,
-        'FLUENT INTERNET',
-      ),
-      QuestionType.finishMeme => (
-        'FINISH THE MEME',
-        Icons.auto_awesome_rounded,
-        AppColors.pink,
-        'BRO REALLY THOUGHT...',
-      ),
-      _ => (
-        'BRAIN CHECK',
-        Icons.psychology_alt_rounded,
-        AppColors.cyan,
-        'ONE BRAIN CELL',
-      ),
-    };
-    final promptAsset = switch (question.questionType) {
-      QuestionType.emoji => 'assets/images/bombardiro_crocodilo.jpg',
-      QuestionType.finishMeme => 'assets/images/brr_brr_patapim.jpg',
-      QuestionType.slang => 'assets/images/tralalero_tralala.webp',
-      _ => 'assets/images/tung_tung_tung_sahur.webp',
-    };
-    return Container(
-      height: 142,
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(promptAsset),
-          fit: BoxFit.cover,
-          opacity: .24,
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: .2), AppColors.surface],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: color.withValues(alpha: .55)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 7),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
                 ),
-              ),
-            ],
-          ),
-          Text(
-            visual,
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: question.questionType == QuestionType.emoji ? 30 : 21,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -.5,
+                const SizedBox(height: 20),
+                Text(
+                  mode.title.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .8,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 140,
+                  child: ProgressBar(value: .72, color: mode.accent, height: 5),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Loading round…',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
-}
-
-class _ModeTag extends StatelessWidget {
-  const _ModeTag({required this.mode});
-  final GameMode mode;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: mode.accent.withValues(alpha: .15),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(mode.icon, size: 14, color: mode.accent),
-        const SizedBox(width: 5),
-        Text(
-          mode.title.toUpperCase(),
-          style: TextStyle(
-            color: mode.accent,
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-            letterSpacing: .6,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _MiniScore extends StatelessWidget {
-  const _MiniScore({required this.value});
-  final int value;
-  @override
-  Widget build(BuildContext context) => _CounterChip(
-    icon: Icons.bolt_rounded,
-    iconColor: AppColors.lime,
-    label: '$value',
-  );
-}
-
-class _HudIconButton extends StatelessWidget {
-  const _HudIconButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 38,
-    height: 38,
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: IconButton(
-      tooltip: tooltip,
-      padding: EdgeInsets.zero,
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20),
-    ),
-  );
-}
-
-class _CounterChip extends StatelessWidget {
-  const _CounterChip({this.icon, this.iconColor, required this.label});
-
-  final IconData? icon;
-  final Color? iconColor;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 16, color: iconColor ?? AppColors.ink),
-          const SizedBox(width: 3),
-        ],
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
-      ],
-    ),
-  );
-}
-
-class _StreakChip extends StatelessWidget {
-  const _StreakChip({required this.label, required this.streak});
-
-  final String label;
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = streak >= 2;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: active
-            ? AppColors.orange.withValues(alpha: .16)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: active
-              ? AppColors.orange.withValues(alpha: .55)
-              : AppColors.border,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.local_fire_department_rounded,
-            size: 16,
-            color: active ? AppColors.orange : AppColors.muted,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: active ? AppColors.orange : AppColors.ink,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TimerChip extends StatelessWidget {
-  const _TimerChip({required this.seconds});
-  final int seconds;
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-    decoration: BoxDecoration(
-      color: seconds <= 10
-          ? AppColors.red.withValues(alpha: .2)
-          : AppColors.surface,
-      borderRadius: BorderRadius.circular(9),
-      border: Border.all(
-        color: seconds <= 10 ? AppColors.red : AppColors.border,
-      ),
-    ),
-    child: Text(
-      '0:${seconds.toString().padLeft(2, '0')}',
-      style: TextStyle(
-        color: seconds <= 10 ? AppColors.red : AppColors.ink,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
 }
