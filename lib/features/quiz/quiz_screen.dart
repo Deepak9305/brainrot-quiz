@@ -163,6 +163,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           correct: session.correctAnswers,
           bestStreak: session.bestStreak,
           daily: widget.mode == GameMode.daily,
+          questionCount: session.questions.length,
+          isRush: session.isRush,
         );
     ref.read(analyticsServiceProvider).track('quiz_completed', {
       'mode': widget.mode.name,
