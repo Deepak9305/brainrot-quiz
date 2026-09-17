@@ -180,7 +180,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
           child: Column(
             children: [
               _QuizHeader(
@@ -193,29 +193,33 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     widget.mode == GameMode.rush ? session.secondsLeft : null,
                 onExit: _confirmExit,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      widget.mode.title.toUpperCase(),
+                      widget.mode.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.muted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  _StreakLabel(
-                    streak: session.streak,
-                    label: session.multiplierLabel,
-                  ),
+                  if (session.streak >= 2)
+                    Text(
+                      '${session.streak} streak',
+                      style: const TextStyle(
+                        color: AppColors.orange,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -226,17 +230,17 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         question: question,
                         flashVisible: _flashVisible,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
                       Text(
                         question.question,
                         style: const TextStyle(
-                          fontSize: 25,
-                          height: 1.08,
+                          fontSize: 24,
+                          height: 1.1,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -.8,
+                          letterSpacing: -.65,
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 17),
                       for (var index = 0;
                           index < question.answers.length;
                           index++) ...[
@@ -249,18 +253,15 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                           revealed: session.isAnswered,
                         ),
                         if (index != question.answers.length - 1)
-                          const SizedBox(height: 9),
+                          const SizedBox(height: 8),
                       ],
                       if (session.isAnswered) ...[
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         _FeedbackBar(
                           correct: isCorrect,
-                          label: isCorrect
-                              ? _positiveFeedback(session.streak)
-                              : 'COOKED',
                           points: isCorrect
-                              ? '+${_earnedAura(session.streak)} AURA'
-                              : '-500 AURA',
+                              ? '+${_earnedPoints(session.streak)}'
+                              : null,
                         ),
                       ],
                       const SizedBox(height: 8),
@@ -275,7 +276,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     );
   }
 
-  int _earnedAura(int streak) =>
+  int _earnedPoints(int streak) =>
       (100 *
               (streak >= 10
                   ? 3
@@ -286,30 +287,23 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                           : 1))
           .round();
 
-  String _positiveFeedback(int streak) {
-    if (streak >= 10) return 'LOCKED IN';
-    if (streak >= 5) return 'ABSOLUTE CINEMA';
-    if (streak >= 3) return 'AURA UP';
-    return 'STILL COOKING';
-  }
-
   Future<void> _confirmExit() async {
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(
-          'Leave this round?',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          'Leave round?',
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        content: const Text('Your current round will not be saved.'),
+        content: const Text('This round will not be saved.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('KEEP PLAYING'),
+            child: const Text('Stay'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('LEAVE'),
+            child: const Text('Leave'),
           ),
         ],
       ),
@@ -343,7 +337,28 @@ class _QuizHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _HeaderButton(icon: Icons.close_rounded, onTap: onExit),
+        Material(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(11),
+          child: InkWell(
+            onTap: onExit,
+            borderRadius: BorderRadius.circular(11),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.close_rounded,
+                size: 19,
+                color: AppColors.muted,
+              ),
+            ),
+          ),
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -351,11 +366,11 @@ class _QuizHeader extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '$questionNumber/$questionCount',
+                    '$questionNumber of $questionCount',
                     style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 11,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const Spacer(),
@@ -363,20 +378,18 @@ class _QuizHeader extends StatelessWidget {
                     Text(
                       '0:${secondsLeft.toString().padLeft(2, '0')}',
                       style: TextStyle(
-                        color: secondsLeft! <= 10
-                            ? AppColors.red
-                            : AppColors.ink,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
+                        color: secondsLeft! <= 10 ? AppColors.red : AppColors.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
                       ),
                     )
                   else
                     Text(
-                      '$score AURA',
+                      '$score pts',
                       style: const TextStyle(
-                        color: AppColors.ink,
+                        color: AppColors.muted,
                         fontSize: 11,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                 ],
@@ -391,110 +404,50 @@ class _QuizHeader extends StatelessWidget {
   }
 }
 
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, size: 19, color: AppColors.muted),
-        ),
-      ),
-    );
-  }
-}
-
-class _StreakLabel extends StatelessWidget {
-  const _StreakLabel({required this.streak, required this.label});
-
-  final int streak;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = streak >= 2;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.local_fire_department_rounded,
-          size: 15,
-          color: active ? AppColors.orange : AppColors.subtle,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: active ? AppColors.orange : AppColors.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _FeedbackBar extends StatelessWidget {
-  const _FeedbackBar({
-    required this.correct,
-    required this.label,
-    required this.points,
-  });
+  const _FeedbackBar({required this.correct, this.points});
 
   final bool correct;
-  final String label;
-  final String points;
+  final String? points;
 
   @override
   Widget build(BuildContext context) {
     final color = correct ? AppColors.lime : AppColors.red;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          Icon(
+            correct ? Icons.check_rounded : Icons.close_rounded,
+            color: color,
+            size: 18,
           ),
-          const SizedBox(width: 9),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              label,
+              correct ? 'Correct' : 'Wrong',
               style: TextStyle(
                 color: color,
                 fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: .4,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          Text(
-            points,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
-          ),
+          if (points != null)
+            Text(
+              points!,
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
         ],
       ),
     );
@@ -519,21 +472,24 @@ class _QuestionMedia extends StatelessWidget {
         width: double.infinity,
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
         ),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.visibility_off_rounded, size: 36, color: AppColors.muted),
-            SizedBox(height: 9),
+            Icon(
+              Icons.visibility_off_rounded,
+              size: 34,
+              color: AppColors.subtle,
+            ),
+            SizedBox(height: 8),
             Text(
-              'IMAGE GONE',
+              'Image hidden',
               style: TextStyle(
                 color: AppColors.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -559,20 +515,27 @@ class _PromptMedia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, icon, visual) = switch (question.questionType) {
-      QuestionType.emoji => ('EMOJI ROUND', Icons.tag_faces_rounded, '🐊  ✈️  💣'),
-      QuestionType.slang => ('SLANG ROUND', Icons.chat_bubble_outline_rounded, 'FLUENT INTERNET?'),
-      QuestionType.finishMeme => ('FINISH IT', Icons.format_quote_rounded, 'BRO REALLY THOUGHT...'),
-      _ => ('BRAIN CHECK', Icons.psychology_alt_outlined, 'ONE BRAIN CELL'),
+    final (icon, label) = switch (question.questionType) {
+      QuestionType.emoji => (Icons.tag_faces_rounded, 'Emoji'),
+      QuestionType.slang => (Icons.chat_bubble_outline_rounded, 'Slang'),
+      QuestionType.finishMeme => (Icons.format_quote_rounded, 'Finish the meme'),
+      _ => (Icons.psychology_alt_outlined, 'Text'),
+    };
+
+    final visual = switch (question.questionType) {
+      QuestionType.emoji => '🐊  ✈️  💣',
+      QuestionType.slang => 'internet slang',
+      QuestionType.finishMeme => 'complete the line',
+      _ => 'quick check',
     };
 
     return Container(
-      height: 142,
+      height: 130,
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -582,14 +545,13 @@ class _PromptMedia extends StatelessWidget {
           Row(
             children: [
               Icon(icon, color: AppColors.muted, size: 17),
-              const SizedBox(width: 7),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
                   color: AppColors.muted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.1,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -597,9 +559,9 @@ class _PromptMedia extends StatelessWidget {
           Text(
             visual,
             style: TextStyle(
-              fontSize: question.questionType == QuestionType.emoji ? 30 : 21,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -.6,
+              fontSize: question.questionType == QuestionType.emoji ? 30 : 19,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.3,
             ),
           ),
         ],
@@ -624,38 +586,20 @@ class _QuizLoading extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 96,
-                  height: 96,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Image.asset(
-                      mode.imageAsset ?? 'assets/images/tralalero_tralala.webp',
-                      fit: BoxFit.cover,
-                    ),
+                  width: 30,
+                  height: 30,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: mode.accent,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Text(
-                  mode.title.toUpperCase(),
+                  'Loading ${mode.title}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: .8,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: 140,
-                  child: ProgressBar(value: .72, color: mode.accent, height: 5),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Loading round…',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
