@@ -13,7 +13,6 @@ import 'features/rush/rush_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/shop/shop_screen.dart';
 import 'state/providers.dart';
-import 'widgets/common.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -27,10 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/rush', builder: (context, state) => const RushScreen()),
       GoRoute(path: '/daily', builder: (context, state) => const DailyScreen()),
-      GoRoute(
-        path: '/results',
-        builder: (context, state) => const ResultsScreen(),
-      ),
+      GoRoute(path: '/results', builder: (context, state) => const ResultsScreen()),
       GoRoute(
         path: '/achievements',
         builder: (context, state) => const AchievementsScreen(),
@@ -74,255 +70,245 @@ class IntroScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: AppBackground(
-        accent: AppColors.pink,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const BrainrotLogo(compact: true),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(11),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.lock_open_rounded,
-                            color: AppColors.lime,
-                            size: 14,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'NO LOGIN',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: .7,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                const Text(
-                  'WELCOME TO THE INTERNET',
-                  style: TextStyle(
-                    color: AppColors.cyan,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.8,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+              child: Row(
+                children: [
+                  const _Wordmark(),
+                  const Spacer(),
+                  _RoundChip(
+                    icon: Icons.wifi_off_rounded,
+                    label: 'OFFLINE',
                   ),
-                ),
-                const SizedBox(height: 7),
-                const Text.rich(
-                  TextSpan(
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      TextSpan(
-                        text: 'HOW COOKED\n',
-                        style: TextStyle(color: AppColors.ink),
+                      Hero(
+                        tag: 'tralalero-tralala',
+                        child: Image.asset(
+                          'assets/images/tralalero_tralala.webp',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          semanticLabel:
+                              'Tralalero Tralala, the Italian Brainrot shark with blue sneakers',
+                        ),
                       ),
-                      TextSpan(
-                        text: 'ARE YOU?',
-                        style: TextStyle(color: AppColors.pink),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0x00000000),
+                              Color(0x18000000),
+                              Color(0xE6000000),
+                            ],
+                            stops: [0, .58, 1],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 18,
+                        right: 18,
+                        bottom: 18,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'FIRST UP',
+                                    style: TextStyle(
+                                      color: AppColors.lime,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    'TRALALERO\nTRALALA',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      height: .92,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -1.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Text(
+                                '01',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  style: TextStyle(
-                    fontSize: 38,
-                    height: .92,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.8,
-                  ),
                 ),
-                const SizedBox(height: 18),
-                Expanded(child: _IntroFeatureCard()),
-                const SizedBox(height: 16),
-                BrainrotButton(
-                  label: 'START PLAYING',
-                  icon: Icons.play_arrow_rounded,
-                  onPressed: () {
-                    ref.read(progressProvider.notifier).markIntroSeen();
-                    context.go('/');
-                  },
-                ),
-                const SizedBox(height: 10),
-                const Center(
-                  child: Text(
-                    '10 questions  •  real internet lore  •  offline ready',
-                    textAlign: TextAlign.center,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'HOW COOKED\nARE YOU?',
                     style: TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 42,
+                      height: .9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -2.1,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Ten fast questions. No account. No tutorial maze.',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 14,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: FilledButton(
+                      onPressed: () {
+                        ref.read(progressProvider.notifier).markIntroSeen();
+                        context.go('/');
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.lime,
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'START QUIZ',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: .4,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_rounded, size: 21),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _IntroFeatureCard extends StatelessWidget {
-  const _IntroFeatureCard();
+class _Wordmark extends StatelessWidget {
+  const _Wordmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'BRAINROT',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.7,
+          ),
+        ),
+        SizedBox(width: 5),
+        Text(
+          'QUIZ',
+          style: TextStyle(
+            color: AppColors.lime,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.7,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoundChip extends StatelessWidget {
+  const _RoundChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.pink.withValues(alpha: .55)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.pink.withValues(alpha: .14),
-            blurRadius: 32,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Stack(
-        fit: StackFit.expand,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Hero(
-            tag: 'tralalero-tralala',
-            child: Image.asset(
-              'assets/images/tralalero_tralala.webp',
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-              semanticLabel: 'Tralalero Tralala, the Italian Brainrot shark with blue sneakers',
-            ),
-          ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Color(0x18080B10),
-                  Color(0xF2080B10),
-                ],
-                stops: [0, .48, 1],
-              ),
-            ),
-          ),
-          Positioned(
-            top: 16,
-            left: 16,
-            child: _IntroTag(
-              icon: Icons.bolt_rounded,
-              label: 'FIRST ROUND FREE',
-              color: AppColors.lime,
-            ),
-          ),
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .55),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white24),
-              ),
-              child: const Text(
-                '01',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 18,
-            right: 18,
-            bottom: 18,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TRALALERO TRALALA',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.7,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'The algorithm has selected your first opponent.',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+          Icon(icon, size: 13, color: AppColors.muted),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .9,
             ),
           ),
         ],
       ),
     );
   }
-}
-
-class _IntroTag extends StatelessWidget {
-  const _IntroTag({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: .55),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: color.withValues(alpha: .6)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-            letterSpacing: .7,
-          ),
-        ),
-      ],
-    ),
-  );
 }
