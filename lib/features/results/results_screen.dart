@@ -66,10 +66,14 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       );
     }
 
-    final total = session.questions.length;
-    final percent = total == 0
+    // Normal rounds are scored against the fixed round size. Rush is timed,
+    // so accuracy must use only questions the player actually attempted.
+    final attempted = session.isRush
+        ? session.currentIndex + (session.isAnswered ? 1 : 0)
+        : session.questions.length;
+    final percent = attempted == 0
         ? 0
-        : ((session.correctAnswers / total) * 100).round().clamp(0, 100);
+        : ((session.correctAnswers / attempted) * 100).round().clamp(0, 100);
     final rank = _rankFor(percent);
     final coinsEarned = _coinReward(session);
 
@@ -81,10 +85,10 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'ROUND COMPLETE',
-                    style: TextStyle(
+                    session.isRush ? 'RUSH COMPLETE' : 'ROUND COMPLETE',
+                    style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -102,7 +106,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             const SizedBox(height: 10),
             _ResultHero(percent: percent, rank: rank),
             const SizedBox(height: 18),
-            _StatsStrip(session: session),
+            _StatsStrip(session: session, attempted: attempted),
             const SizedBox(height: 14),
             _RewardStrip(coins: coinsEarned),
             if (!kIsWeb) ...[
@@ -113,7 +117,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                     : _claimingBonus
                         ? 'Opening ad…'
                         : 'Watch ad · double coins',
-                icon: _bonusClaimed ? Icons.check_rounded : Icons.play_circle_outline_rounded,
+                icon: _bonusClaimed
+                    ? Icons.check_rounded
+                    : Icons.play_circle_outline_rounded,
                 outlined: true,
                 color: _bonusClaimed ? AppColors.muted : AppColors.orange,
                 foreground: AppColors.orange,
@@ -135,7 +141,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
               outlined: true,
               color: AppColors.ink,
               foreground: AppColors.ink,
-              onPressed: () => _share(session, percent, rank),
+              onPressed: () => _share(session, attempted, percent, rank),
             ),
             const SizedBox(height: 4),
             TextButton(
@@ -185,10 +191,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     }
   }
 
-  Future<void> _share(QuizSession session, int percent, _Rank rank) async {
+  Future<void> _share(
+    QuizSession session,
+    int attempted,
+    int percent,
+    _Rank rank,
+  ) async {
     ref.read(analyticsServiceProvider).track('share_clicked');
     final shared = await ShareService().shareText(
-      'Brainrot Quiz — $percent%\n${rank.title}\n${session.correctAnswers}/${session.questions.length} correct · best streak ${session.bestStreak}',
+      'Brainrot Quiz — $percent%\n${rank.title}\n${session.correctAnswers}/$attempted correct · best streak ${session.bestStreak}',
     );
 
     if (!mounted) return;
@@ -287,9 +298,10 @@ class _ResultHero extends StatelessWidget {
 }
 
 class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.session});
+  const _StatsStrip({required this.session, required this.attempted});
 
   final QuizSession session;
+  final int attempted;
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +316,7 @@ class _StatsStrip extends StatelessWidget {
       child: Row(
         children: [
           _Stat(
-            value: '${session.correctAnswers}/${session.questions.length}',
+            value: '${session.correctAnswers}/$attempted',
             label: 'CORRECT',
           ),
           const _StatDivider(),
