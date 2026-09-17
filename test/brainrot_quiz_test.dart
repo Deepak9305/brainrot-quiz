@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:brainrot_quiz/core/models/game_mode.dart';
+import 'package:brainrot_quiz/core/models/player_progress.dart';
 import 'package:brainrot_quiz/core/models/question.dart';
 import 'package:brainrot_quiz/data/question_repository.dart';
 import 'package:brainrot_quiz/state/quiz_session.dart';
@@ -60,6 +61,39 @@ void main() {
     notifier.answer(1);
     expect(container.read(quizSessionProvider)!.secondsLeft, 58);
     expect(container.read(quizSessionProvider)!.streak, 0);
+  });
+
+  test('rush time penalty never goes negative', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(quizSessionProvider.notifier);
+    notifier.start(GameMode.rush, const [
+      QuizQuestion(
+        id: '1',
+        category: 'mix',
+        difficulty: 'easy',
+        questionType: QuestionType.text,
+        question: 'Pick A',
+        answers: ['A', 'B'],
+        correctAnswer: 0,
+      ),
+    ]);
+    for (var i = 0; i < 59; i++) {
+      notifier.tick();
+    }
+    notifier.answer(1);
+    expect(container.read(quizSessionProvider)!.secondsLeft, 0);
+  });
+
+  test('purchased theme survives progress serialization', () {
+    final progress = const PlayerProgress().copyWith(
+      coins: 500,
+      ownedThemes: const ['acid', 'purple'],
+      equippedTheme: 'purple',
+    );
+    final restored = PlayerProgress.fromJson(progress.toJson());
+    expect(restored.ownedThemes, containsAll(['acid', 'purple']));
+    expect(restored.equippedTheme, 'purple');
   });
 
   testWidgets('bundled question assets load from the Flutter asset bundle', (

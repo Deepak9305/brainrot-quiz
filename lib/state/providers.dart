@@ -52,24 +52,37 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     final now = DateTime.now();
     final today = _dateKey(now);
     final yesterday = _dateKey(now.subtract(const Duration(days: 1)));
-    final nextDailyStreak = state.lastPlayedDate == today
-        ? state.dailyStreak
+
+    final nextCurrentStreak = state.lastPlayedDate == today
+        ? state.currentStreak
         : state.lastPlayedDate == yesterday
-        ? state.dailyStreak + 1
-        : 1;
+            ? state.currentStreak + 1
+            : 1;
+
+    final nextDailyStreak = !daily
+        ? state.dailyStreak
+        : state.dailyCompletedDate == today
+            ? state.dailyStreak
+            : state.dailyCompletedDate == yesterday
+                ? state.dailyStreak + 1
+                : 1;
+
     final coinReward = 80 + (correct * 35) + (bestStreak * 10);
     final xpReward = 100 + (correct * 45);
     var nextXp = state.xp + xpReward;
     var nextLevel = state.level;
     var levelThreshold = state.xpForNextLevel;
+
     while (nextXp >= levelThreshold) {
       nextXp -= levelThreshold;
       nextLevel += 1;
       levelThreshold = 4000 + ((nextLevel - 1) * 500);
     }
+
     final completedQuizzes = state.completedQuizzes + 1;
     final lifetimeCoinsEarned = state.lifetimeCoinsEarned + coinReward;
     final nextAchievements = {...state.achievements};
+
     if (completedQuizzes >= 1) nextAchievements['first_brain_cell'] = true;
     if (correct >= 10) nextAchievements['perfect'] = true;
     if (correct == 0) nextAchievements['zero'] = true;
@@ -77,13 +90,14 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     if (nextDailyStreak >= 7) nextAchievements['touch_grass'] = true;
     if (completedQuizzes >= 100) nextAchievements['terminally_online'] = true;
     if (lifetimeCoinsEarned >= 10000) nextAchievements['aura_farmer'] = true;
+
     _update(
       state.copyWith(
         coins: state.coins + coinReward,
         xp: nextXp,
         level: nextLevel,
         bestScore: score > state.bestScore ? score : state.bestScore,
-        currentStreak: nextDailyStreak,
+        currentStreak: nextCurrentStreak,
         dailyStreak: nextDailyStreak,
         lastPlayedDate: today,
         dailyCompletedDate: daily ? today : state.dailyCompletedDate,
@@ -95,8 +109,32 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
     );
   }
 
-  void addCoins(int amount) =>
-      _update(state.copyWith(coins: state.coins + amount));
+  void addCoins(int amount) {
+    final nextCoins = (state.coins + amount).clamp(0, 1 << 31).toInt();
+    _update(state.copyWith(coins: nextCoins));
+  }
+
+  bool buyTheme(String id, int price) {
+    if (state.ownedThemes.contains(id)) {
+      equipTheme(id);
+      return true;
+    }
+    if (price < 0 || state.coins < price) return false;
+
+    _update(
+      state.copyWith(
+        coins: state.coins - price,
+        ownedThemes: [...state.ownedThemes, id],
+        equippedTheme: id,
+      ),
+    );
+    return true;
+  }
+
+  void equipTheme(String id) {
+    if (!state.ownedThemes.contains(id) || state.equippedTheme == id) return;
+    _update(state.copyWith(equippedTheme: id));
+  }
 
   void unlockAchievement(String id) {
     if (state.achievements[id] == true) return;

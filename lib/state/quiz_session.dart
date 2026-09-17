@@ -43,14 +43,12 @@ class QuizSession {
       ? secondsLeft / 60
       : (currentIndex + (isAnswered ? 1 : 0)) / questions.length;
   String get multiplierLabel => streak >= 10
-      ? '10x'
+      ? '×3'
       : streak >= 5
-      ? '5x'
-      : streak >= 3
-      ? '3x'
-      : streak >= 2
-      ? '2x'
-      : '1x';
+          ? '×2'
+          : streak >= 3
+              ? '×1.5'
+              : '×1';
 
   QuizSession copyWith({
     int? currentIndex,
@@ -105,16 +103,19 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
         index >= session.currentQuestion.answers.length) {
       return;
     }
+
     final correct = index == session.currentQuestion.correctAnswer;
     final nextStreak = correct ? session.streak + 1 : 0;
     final multiplier = nextStreak >= 10
         ? 3
         : nextStreak >= 5
-        ? 2
-        : nextStreak >= 3
-        ? 1.5
-        : 1;
+            ? 2
+            : nextStreak >= 3
+                ? 1.5
+                : 1;
     final points = correct ? (100 * multiplier).round() : 0;
+    final penalizedSeconds = session.secondsLeft - 2;
+
     state = session.copyWith(
       selectedAnswer: index,
       isAnswered: true,
@@ -126,7 +127,7 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
           ? nextStreak
           : session.bestStreak,
       secondsLeft: session.isRush && !correct
-          ? session.secondsLeft - 2
+          ? (penalizedSeconds < 0 ? 0 : penalizedSeconds)
           : session.secondsLeft,
     );
   }
@@ -134,6 +135,7 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
   void next() {
     final session = state;
     if (session == null || !session.isAnswered) return;
+
     if (session.isRush) {
       state = session.copyWith(
         currentIndex: (session.currentIndex + 1) % session.questions.length,
@@ -143,6 +145,7 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
       );
       return;
     }
+
     if (session.currentIndex < session.questions.length - 1) {
       state = session.copyWith(
         currentIndex: session.currentIndex + 1,

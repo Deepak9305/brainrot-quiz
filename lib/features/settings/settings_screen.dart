@@ -11,189 +11,198 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(progressProvider);
+
     return Scaffold(
       appBar: const BrainrotAppBar(title: 'Settings'),
-      body: AppBackground(
-        accent: AppColors.cyan,
-        child: SafeArea(
-          child: ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 5, 18, 28),
-            children: [
-              const _SettingsHeader(title: 'Feel', icon: Icons.tune_rounded),
-              _SettingSwitch(
-                label: 'Music',
-                icon: Icons.music_note_rounded,
-                value: progress.music,
-                onChanged: (value) => ref
-                    .read(progressProvider.notifier)
-                    .setSetting('music', value),
-              ),
-              _SettingSwitch(
-                label: 'Sound Effects',
-                icon: Icons.volume_up_rounded,
-                value: progress.soundEffects,
-                onChanged: (value) => ref
-                    .read(progressProvider.notifier)
-                    .setSetting('soundEffects', value),
-              ),
-              _SettingSwitch(
-                label: 'Voice Reactions',
-                icon: Icons.record_voice_over_rounded,
-                value: progress.voiceReactions,
-                onChanged: (value) => ref
-                    .read(progressProvider.notifier)
-                    .setSetting('voiceReactions', value),
-              ),
-              _SettingSwitch(
-                label: 'Haptics',
-                icon: Icons.vibration_rounded,
-                value: progress.haptics,
-                onChanged: (value) => ref
-                    .read(progressProvider.notifier)
-                    .setSetting('haptics', value),
-              ),
-              _SettingSwitch(
-                label: 'Reduce Motion',
-                icon: Icons.motion_photos_off_rounded,
-                value: progress.reduceMotion,
-                onChanged: (value) => ref
-                    .read(progressProvider.notifier)
-                    .setSetting('reduceMotion', value),
-              ),
-              const SizedBox(height: 20),
-              const _SettingsHeader(
-                title: 'About',
-                icon: Icons.info_outline_rounded,
-              ),
-              _SettingsLink(
-                label: 'Privacy Policy',
-                icon: Icons.lock_outline_rounded,
-                onTap: () => _showInfo(
-                  context,
-                  'Privacy Policy',
-                  'Brainrot Quiz works without accounts. Progress stays on this device. Ads, when enabled, use Google test or production inventory according to your build configuration.',
+      body: SafeArea(
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
+          children: [
+            const _SectionLabel('Gameplay'),
+            _Group(
+              children: [
+                _SettingSwitch(
+                  label: 'Sound effects',
+                  icon: Icons.volume_up_outlined,
+                  value: progress.soundEffects,
+                  onChanged: (value) => ref
+                      .read(progressProvider.notifier)
+                      .setSetting('soundEffects', value),
                 ),
-              ),
-              _SettingsLink(
-                label: 'Terms of Service',
-                icon: Icons.description_outlined,
-                onTap: () => _showInfo(
-                  context,
-                  'Terms of Service',
-                  'Play fair, respect the memes, and do not redistribute content you do not own.',
+                const _RowDivider(),
+                _SettingSwitch(
+                  label: 'Haptics',
+                  icon: Icons.vibration_rounded,
+                  value: progress.haptics,
+                  onChanged: (value) => ref
+                      .read(progressProvider.notifier)
+                      .setSetting('haptics', value),
                 ),
-              ),
-              _SettingsLink(
-                label: 'About',
-                icon: Icons.info_outline_rounded,
-                trailing: 'v1.0.0',
-                onTap: () => _showInfo(
-                  context,
-                  'Brainrot Quiz',
-                  'How cooked are you? Built for fast rounds, big laughs, and zero login screens.',
+                const _RowDivider(),
+                _SettingSwitch(
+                  label: 'Reduce motion',
+                  icon: Icons.motion_photos_off_outlined,
+                  value: progress.reduceMotion,
+                  onChanged: (value) => ref
+                      .read(progressProvider.notifier)
+                      .setSetting('reduceMotion', value),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const _SettingsHeader(
-                title: 'Danger zone',
-                icon: Icons.warning_amber_rounded,
-              ),
-              _SettingsLink(
-                label: 'Reset Progress',
-                icon: Icons.restart_alt_rounded,
-                color: AppColors.red,
-                onTap: () => _confirmReset(context, ref),
-              ),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const _SectionLabel('About'),
+            _Group(
+              children: [
+                _SettingsLink(
+                  label: 'Privacy policy',
+                  icon: Icons.lock_outline_rounded,
+                  onTap: () => _showInfo(
+                    context,
+                    'Privacy policy',
+                    'Brainrot Quiz works without an account. Your game progress is stored on this device. Ads use the ad configuration included in the build.',
+                  ),
+                ),
+                const _RowDivider(),
+                _SettingsLink(
+                  label: 'Terms of service',
+                  icon: Icons.description_outlined,
+                  onTap: () => _showInfo(
+                    context,
+                    'Terms of service',
+                    'Use the app normally and do not redistribute content you do not own.',
+                  ),
+                ),
+                const _RowDivider(),
+                _SettingsLink(
+                  label: 'Version',
+                  icon: Icons.info_outline_rounded,
+                  trailing: '1.0.0',
+                  onTap: () => _showInfo(
+                    context,
+                    'Brainrot Quiz',
+                    'Fast internet-culture quizzes with no login required.',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const _SectionLabel('Data'),
+            _Group(
+              children: [
+                _SettingsLink(
+                  label: 'Reset progress',
+                  icon: Icons.restart_alt_rounded,
+                  color: AppColors.red,
+                  onTap: () => _confirmReset(context, ref),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _showInfo(BuildContext context, String title, String message) =>
-      showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          content: Text(
-            message,
-            style: const TextStyle(color: AppColors.muted, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('DONE'),
-            ),
-          ],
-        ),
-      );
-
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+  static void _showInfo(BuildContext context, String title, String message) {
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text(
-          'Reset everything?',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        content: const Text(
-          'Coins, XP, streaks, and achievements will be cleared.',
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.muted, height: 1.4),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('RESET'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
           ),
         ],
       ),
     );
+  }
+
+  static Future<void> _confirmReset(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Reset progress?',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        content: const Text('Scores, streaks and achievements will be cleared.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
     if (confirmed == true) {
       await ref.read(progressProvider.notifier).resetProgress();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Progress reset. Fresh brain cells unlocked.'),
-          ),
+          const SnackBar(content: Text('Progress reset.')),
         );
       }
     }
   }
 }
 
-class _SettingsHeader extends StatelessWidget {
-  const _SettingsHeader({required this.title, required this.icon});
-  final String title;
-  final IconData icon;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+
+  final String label;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 9),
-    child: Row(
-      children: [
-        Icon(icon, size: 17, color: AppColors.cyan),
-        const SizedBox(width: 7),
-        Text(
-          title,
+        padding: const EdgeInsets.only(left: 2, bottom: 8),
+        child: Text(
+          label,
           style: const TextStyle(
             color: AppColors.muted,
             fontSize: 12,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.1,
+            fontWeight: FontWeight.w700,
           ),
         ),
-      ],
-    ),
-  );
+      );
+}
+
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: children),
+      );
+}
+
+class _RowDivider extends StatelessWidget {
+  const _RowDivider();
+
+  @override
+  Widget build(BuildContext context) => const Divider(
+        height: 1,
+        indent: 58,
+      );
 }
 
 class _SettingSwitch extends StatelessWidget {
@@ -203,30 +212,28 @@ class _SettingSwitch extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
+
   final String label;
   final IconData icon;
   final bool value;
   final ValueChanged<bool> onChanged;
+
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: SwitchListTile.adaptive(
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: AppColors.lime,
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
-      secondary: Icon(
-        icon,
-        color: value ? AppColors.ink : AppColors.muted,
-        size: 20,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => SwitchListTile.adaptive(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        value: value,
+        onChanged: onChanged,
+        activeThumbColor: AppColors.lime,
+        title: Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+        secondary: Icon(
+          icon,
+          color: value ? AppColors.ink : AppColors.subtle,
+          size: 20,
+        ),
+      );
 }
 
 class _SettingsLink extends StatelessWidget {
@@ -237,35 +244,39 @@ class _SettingsLink extends StatelessWidget {
     this.trailing,
     this.color = AppColors.ink,
   });
+
   final String label;
   final IconData icon;
   final VoidCallback onTap;
   final String? trailing;
   final Color color;
+
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: ListTile(
-      onTap: onTap,
-      leading: Icon(icon, color: color, size: 20),
-      title: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w800),
-      ),
-      trailing: trailing != null
-          ? Text(
-              trailing!,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) => ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 1),
+        onTap: onTap,
+        leading: Icon(icon, color: color, size: 20),
+        title: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        trailing: trailing != null
+            ? Text(
+                trailing!,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.subtle,
+                size: 20,
               ),
-            )
-          : const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-    ),
-  );
+      );
 }

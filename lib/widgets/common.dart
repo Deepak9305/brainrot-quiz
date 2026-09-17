@@ -8,52 +8,17 @@ class AppBackground extends StatelessWidget {
   const AppBackground({
     super.key,
     required this.child,
-    this.accent = AppColors.cyan,
+    this.accent = AppColors.lime,
   });
 
   final Widget child;
   final Color accent;
 
   @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.background,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -100,
-            right: -90,
-            child: _Glow(color: accent.withValues(alpha: .16), size: 280),
-          ),
-          Positioned(
-            bottom: -160,
-            left: -120,
-            child: _Glow(
-              color: AppColors.pink.withValues(alpha: .09),
-              size: 300,
-            ),
-          ),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
-    ),
-  );
+  Widget build(BuildContext context) => ColoredBox(
+        color: AppColors.background,
+        child: child,
+      );
 }
 
 class BrainrotLogo extends StatelessWidget {
@@ -64,34 +29,21 @@ class BrainrotLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = Text.rich(
+    final accent = Theme.of(context).colorScheme.primary;
+    return Text.rich(
       TextSpan(
         children: [
-          TextSpan(
-            text: 'BRAINROT',
-            style: TextStyle(
-              color: AppColors.cyan,
-              fontSize: compact ? 20 : 27,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.3,
-              height: .9,
-            ),
-          ),
-          TextSpan(
-            text: '\nQUIZ',
-            style: TextStyle(
-              color: AppColors.pink,
-              fontSize: compact ? 18 : 25,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.1,
-              height: .94,
-            ),
-          ),
+          const TextSpan(text: 'BRAINROT '),
+          TextSpan(text: 'QUIZ', style: TextStyle(color: accent)),
         ],
       ),
       textAlign: center ? TextAlign.center : TextAlign.left,
+      style: TextStyle(
+        fontSize: compact ? 17 : 21,
+        fontWeight: FontWeight.w900,
+        letterSpacing: compact ? -.65 : -.9,
+      ),
     );
-    return title;
   }
 }
 
@@ -108,27 +60,24 @@ class BrainrotAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> actions;
 
   @override
-  Size get preferredSize => const Size.fromHeight(68);
+  Size get preferredSize => const Size.fromHeight(56);
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
       leading: showBack
           ? IconButton(
               tooltip: 'Go back',
               onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 19),
+              icon: const Icon(Icons.arrow_back_rounded, size: 21),
             )
           : null,
       title: Text(
         title,
         style: const TextStyle(
-          fontSize: 23,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -.5,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -.45,
         ),
       ),
       actions: actions,
@@ -153,27 +102,32 @@ class StatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-        decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: .86),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.border.withValues(alpha: .8)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 14),
+                const SizedBox(width: 5),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 3),
             Text(
               label,
               style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 10,
+                color: AppColors.subtle,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
+                letterSpacing: .5,
               ),
             ),
           ],
@@ -188,16 +142,16 @@ class BrainrotButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
-    this.color = AppColors.lime,
+    this.color,
     this.foreground = Colors.black,
     this.icon,
     this.outlined = false,
-    this.height = 58,
+    this.height = 52,
   });
 
   final String label;
   final VoidCallback? onPressed;
-  final Color color;
+  final Color? color;
   final Color foreground;
   final IconData? icon;
   final bool outlined;
@@ -205,9 +159,11 @@ class BrainrotButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = color ?? Theme.of(context).colorScheme.primary;
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(9),
     );
+
     return Semantics(
       button: true,
       enabled: onPressed != null,
@@ -217,29 +173,25 @@ class BrainrotButton extends StatelessWidget {
         width: double.infinity,
         child: ElevatedButton.icon(
           onPressed: onPressed,
-          icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 19),
+          icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 18),
           label: Text(
             label,
             style: const TextStyle(
-              fontSize: 17,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
-              letterSpacing: .5,
+              letterSpacing: .2,
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: outlined ? Colors.transparent : color,
-            foregroundColor: foreground,
+            backgroundColor: outlined ? Colors.transparent : accent,
+            foregroundColor: outlined ? accent : foreground,
             disabledBackgroundColor: AppColors.surfaceRaised,
-            disabledForegroundColor: AppColors.muted,
-            elevation: outlined ? 0 : 8,
-            shadowColor: outlined
-                ? Colors.transparent
-                : color.withValues(alpha: .25),
-            side: outlined
-                ? BorderSide(color: color, width: 1.2)
-                : BorderSide.none,
+            disabledForegroundColor: AppColors.subtle,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            side: outlined ? BorderSide(color: AppColors.border) : BorderSide.none,
             shape: shape,
-            padding: const EdgeInsets.symmetric(horizontal: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
           ),
         ),
       ),
@@ -254,6 +206,7 @@ class SectionTitle extends StatelessWidget {
     this.action,
     this.onAction,
   });
+
   final String title;
   final String? action;
   final VoidCallback? onAction;
@@ -262,19 +215,26 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        Expanded(
+          child: Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
         ),
-        const Spacer(),
         if (action != null)
           TextButton(
             onPressed: onAction,
             child: Text(
               action!,
               style: const TextStyle(
-                color: AppColors.cyan,
-                fontWeight: FontWeight.w800,
+                color: AppColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -285,108 +245,81 @@ class SectionTitle extends StatelessWidget {
 
 class ModeCard extends StatelessWidget {
   const ModeCard({super.key, required this.mode, required this.onTap});
+
   final GameMode mode;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final imageAsset = mode.imageAsset;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(10),
         child: Ink(
-          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: mode.accent.withValues(alpha: .16),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: mode.accent.withValues(alpha: .55)),
-            boxShadow: [
-              BoxShadow(
-                color: mode.accent.withValues(alpha: .08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 72,
-                width: double.infinity,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (imageAsset != null)
-                        Image.asset(
-                          imageAsset,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              ColoredBox(
-                                color: mode.accent.withValues(alpha: .25),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(9),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: mode.imageAsset != null
+                        ? Image.asset(
+                            mode.imageAsset!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const ColoredBox(
+                              color: AppColors.surfaceRaised,
+                            ),
+                          )
+                        : ColoredBox(
+                            color: AppColors.surfaceRaised,
+                            child: Center(
+                              child: Icon(
+                                mode.icon,
+                                color: mode.accent,
+                                size: 30,
                               ),
-                        )
-                      else
-                        ColoredBox(color: mode.accent.withValues(alpha: .24)),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: .02),
-                              Colors.black.withValues(alpha: .5),
-                            ],
+                            ),
                           ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mode.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Positioned(
-                        left: 8,
-                        top: 8,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: mode.accent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(mode.icon, color: Colors.black, size: 18),
+                      const SizedBox(height: 2),
+                      Text(
+                        mode.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      if (imageAsset == null)
-                        Center(
-                          child: Icon(mode.icon, color: mode.accent, size: 38),
-                        ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 9),
-              Text(
-                mode.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                mode.subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -398,22 +331,24 @@ class ProgressBar extends StatelessWidget {
   const ProgressBar({
     super.key,
     required this.value,
-    this.color = AppColors.cyan,
-    this.height = 8,
+    this.color,
+    this.height = 5,
   });
+
   final double value;
-  final Color color;
+  final Color? color;
   final double height;
 
   @override
   Widget build(BuildContext context) {
+    final accent = color ?? Theme.of(context).colorScheme.primary;
     return ClipRRect(
       borderRadius: BorderRadius.circular(height),
       child: LinearProgressIndicator(
         minHeight: height,
         value: value.clamp(0, 1),
         backgroundColor: AppColors.surfaceRaised,
-        color: color,
+        color: accent,
       ),
     );
   }
@@ -444,17 +379,18 @@ class AnswerCard extends StatelessWidget {
     final accent = isCorrectState
         ? AppColors.lime
         : isWrongState
-        ? AppColors.red
-        : selected
-        ? AppColors.cyan
-        : AppColors.muted;
-    final outline = isCorrectState
+            ? AppColors.red
+            : selected
+                ? AppColors.ink
+                : AppColors.subtle;
+    final border = isCorrectState
         ? AppColors.lime
         : isWrongState
-        ? AppColors.red
-        : selected
-        ? AppColors.cyan
-        : AppColors.border;
+            ? AppColors.red
+            : selected
+                ? AppColors.ink
+                : AppColors.border;
+
     return Semantics(
       button: true,
       enabled: !revealed && onTap != null,
@@ -463,65 +399,56 @@ class AnswerCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: revealed ? null : onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(9),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            duration: const Duration(milliseconds: 150),
+            minHeight: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
             decoration: BoxDecoration(
               color: isCorrectState
-                  ? AppColors.lime.withValues(alpha: .16)
+                  ? AppColors.lime.withValues(alpha: .07)
                   : isWrongState
-                  ? AppColors.red.withValues(alpha: .14)
-                  : AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: outline,
-                width: selected || isCorrectState ? 1.6 : 1,
-              ),
+                      ? AppColors.red.withValues(alpha: .07)
+                      : AppColors.surface,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: border),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 31,
-                  height: 31,
+                  width: 30,
+                  height: 30,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: .18),
-                    shape: BoxShape.circle,
+                    color: AppColors.surfaceRaised,
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     String.fromCharCode(65 + index),
                     style: TextStyle(
                       color: accent,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 11),
                 Expanded(
                   child: Text(
                     answer,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 14.5,
-                      height: 1.15,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      height: 1.18,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
                 if (isCorrectState)
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.lime,
-                    size: 22,
-                  ),
+                  const Icon(Icons.check_rounded, color: AppColors.lime, size: 20),
                 if (isWrongState)
-                  const Icon(
-                    Icons.cancel_rounded,
-                    color: AppColors.red,
-                    size: 22,
-                  ),
+                  const Icon(Icons.close_rounded, color: AppColors.red, size: 20),
               ],
             ),
           ),
@@ -539,6 +466,7 @@ class BrainrotImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.semanticLabel,
   });
+
   final String? assetPath;
   final double height;
   final BoxFit fit;
@@ -547,7 +475,7 @@ class BrainrotImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(10),
       child: SizedBox(
         height: height,
         width: double.infinity,
@@ -555,13 +483,13 @@ class BrainrotImage extends StatelessWidget {
           assetPath ?? 'assets/images/tralalero_tralala.webp',
           fit: fit,
           semanticLabel: semanticLabel,
-          errorBuilder: (context, error, stackTrace) => const ColoredBox(
+          errorBuilder: (_, __, ___) => const ColoredBox(
             color: AppColors.surfaceRaised,
             child: Center(
               child: Icon(
                 Icons.image_not_supported_outlined,
-                color: AppColors.muted,
-                size: 40,
+                color: AppColors.subtle,
+                size: 32,
               ),
             ),
           ),
@@ -573,6 +501,7 @@ class BrainrotImage extends StatelessWidget {
 
 class AudioButton extends StatefulWidget {
   const AudioButton({super.key, this.audioAsset});
+
   final String? audioAsset;
 
   @override
@@ -598,62 +527,31 @@ class _AudioButtonState extends State<AudioButton> {
       button: true,
       label: _playing ? 'Playing sound' : 'Play sound',
       child: Container(
-        height: 190,
+        height: 142,
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.cyan.withValues(alpha: .17), AppColors.surface],
-          ),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.cyan.withValues(alpha: .6)),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Material(
-                color: AppColors.cyan,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  onTap: _toggle,
-                  customBorder: const CircleBorder(),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    width: _playing ? 82 : 72,
-                    height: _playing ? 82 : 72,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.cyan,
-                    ),
-                    child: Icon(
-                      _playing
-                          ? Icons.graphic_eq_rounded
-                          : Icons.volume_up_rounded,
-                      color: Colors.black,
-                      size: 35,
-                    ),
-                  ),
-                ),
+          child: InkWell(
+            onTap: _toggle,
+            borderRadius: BorderRadius.circular(40),
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.ink,
               ),
-              const SizedBox(height: 12),
-              Text(
-                _playing ? 'LISTENING...' : 'TAP TO PLAY',
-                style: TextStyle(
-                  color: _playing ? AppColors.cyan : AppColors.muted,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.4,
-                  fontSize: 12,
-                ),
+              alignment: Alignment.center,
+              child: Icon(
+                _playing ? Icons.graphic_eq_rounded : Icons.volume_up_rounded,
+                color: Colors.black,
+                size: 28,
               ),
-              const SizedBox(height: 3),
-              const Text(
-                'sound cue',
-                style: TextStyle(color: AppColors.muted, fontSize: 10),
-              ),
-            ],
+            ),
           ),
         ),
       ),
