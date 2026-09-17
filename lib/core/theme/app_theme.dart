@@ -2,22 +2,22 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const background = Color(0xFF0B0C0E);
-  static const surface = Color(0xFF131519);
-  static const surfaceRaised = Color(0xFF1A1D22);
-  static const surfaceSoft = Color(0xFF20242A);
-  static const border = Color(0xFF2A2E35);
-  static const ink = Color(0xFFF5F5F3);
-  static const muted = Color(0xFF9A9EA6);
-  static const subtle = Color(0xFF6D727B);
+  static const background = Color(0xFF0B0B0C);
+  static const surface = Color(0xFF141416);
+  static const surfaceRaised = Color(0xFF1B1B1E);
+  static const surfaceSoft = Color(0xFF202024);
+  static const border = Color(0xFF2B2B30);
+  static const ink = Color(0xFFF6F6F2);
+  static const muted = Color(0xFFA0A0A8);
+  static const subtle = Color(0xFF707078);
 
-  // Keep the game playful, but use accents with restraint.
-  static const lime = Color(0xFFD7FF4A);
-  static const cyan = Color(0xFF7DDCFF);
-  static const pink = Color(0xFFFF6FAE);
-  static const orange = Color(0xFFFFB24D);
-  static const red = Color(0xFFFF667A);
-  static const purple = Color(0xFFA991FF);
+  // Acid lime is the product accent. The rest are semantic/game-mode accents.
+  static const lime = Color(0xFFD9FF53);
+  static const cyan = Color(0xFF7EC8E3);
+  static const pink = Color(0xFFE783A9);
+  static const orange = Color(0xFFE7A84F);
+  static const red = Color(0xFFEA6D78);
+  static const purple = Color(0xFFA493D6);
 }
 
 class AppTheme {
@@ -39,23 +39,29 @@ class AppTheme {
           .apply(bodyColor: AppColors.ink, displayColor: AppColors.ink)
           .copyWith(
             displayLarge: const TextStyle(
-              fontSize: 42,
+              fontSize: 40,
               height: .96,
-              letterSpacing: -2.1,
+              letterSpacing: -1.8,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
             ),
             headlineLarge: const TextStyle(
-              fontSize: 30,
-              height: 1,
-              letterSpacing: -1.2,
+              fontSize: 29,
+              height: 1.02,
+              letterSpacing: -1.0,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
             ),
             titleLarge: const TextStyle(
-              fontSize: 21,
-              height: 1.1,
-              letterSpacing: -.45,
+              fontSize: 20,
+              height: 1.12,
+              letterSpacing: -.35,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
+            titleMedium: const TextStyle(
+              fontSize: 16,
+              height: 1.2,
               fontWeight: FontWeight.w800,
               color: AppColors.ink,
             ),
@@ -67,8 +73,8 @@ class AppTheme {
             ),
             bodyMedium: const TextStyle(
               fontSize: 14,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
+              height: 1.38,
+              fontWeight: FontWeight.w500,
               color: AppColors.muted,
             ),
           ),
@@ -77,7 +83,7 @@ class AppTheme {
         titleSpacing: 0,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.ink,
       ),
@@ -92,12 +98,12 @@ class AppTheme {
           color: AppColors.ink,
           fontWeight: FontWeight.w700,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
