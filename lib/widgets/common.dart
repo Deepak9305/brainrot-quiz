@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../core/models/game_mode.dart';
 import '../core/theme/app_theme.dart';
@@ -274,7 +273,7 @@ class ModeCard extends StatelessWidget {
                         ? Image.asset(
                             mode.imageAsset!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const ColoredBox(
+                            errorBuilder: (_, _, _) => const ColoredBox(
                               color: AppColors.surfaceRaised,
                             ),
                           )
@@ -402,7 +401,7 @@ class AnswerCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(9),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            minHeight: 56,
+            constraints: const BoxConstraints(minHeight: 56),
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
             decoration: BoxDecoration(
               color: isCorrectState
@@ -436,8 +435,6 @@ class AnswerCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     answer,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 14,
                       height: 1.18,
@@ -445,10 +442,22 @@ class AnswerCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isCorrectState)
-                  const Icon(Icons.check_rounded, color: AppColors.lime, size: 20),
-                if (isWrongState)
-                  const Icon(Icons.close_rounded, color: AppColors.red, size: 20),
+                if (isCorrectState) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.check_rounded,
+                    color: AppColors.lime,
+                    size: 20,
+                  ),
+                ],
+                if (isWrongState) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.red,
+                    size: 20,
+                  ),
+                ],
               ],
             ),
           ),
@@ -483,73 +492,13 @@ class BrainrotImage extends StatelessWidget {
           assetPath ?? 'assets/images/tralalero_tralala.webp',
           fit: fit,
           semanticLabel: semanticLabel,
-          errorBuilder: (_, __, ___) => const ColoredBox(
+          errorBuilder: (_, _, _) => const ColoredBox(
             color: AppColors.surfaceRaised,
             child: Center(
               child: Icon(
                 Icons.image_not_supported_outlined,
                 color: AppColors.subtle,
                 size: 32,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class AudioButton extends StatefulWidget {
-  const AudioButton({super.key, this.audioAsset});
-
-  final String? audioAsset;
-
-  @override
-  State<AudioButton> createState() => _AudioButtonState();
-}
-
-class _AudioButtonState extends State<AudioButton> {
-  bool _playing = false;
-
-  Future<void> _toggle() async {
-    setState(() => _playing = !_playing);
-    if (_playing) {
-      await SystemSound.play(SystemSoundType.click);
-    }
-    Future<void>.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) setState(() => _playing = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: _playing ? 'Playing sound' : 'Play sound',
-      child: Container(
-        height: 142,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Center(
-          child: InkWell(
-            onTap: _toggle,
-            borderRadius: BorderRadius.circular(40),
-            child: Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.ink,
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                _playing ? Icons.graphic_eq_rounded : Icons.volume_up_rounded,
-                color: Colors.black,
-                size: 28,
               ),
             ),
           ),

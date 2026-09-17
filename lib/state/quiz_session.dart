@@ -137,8 +137,14 @@ class QuizSessionNotifier extends Notifier<QuizSession?> {
     if (session == null || !session.isAnswered) return;
 
     if (session.isRush) {
+      if (session.currentIndex >= session.questions.length - 1) {
+        // Do not wrap to question one. Ending the run is better than showing a
+        // duplicate after the player exhausts the unique Rush pool.
+        state = session.copyWith(secondsLeft: 0);
+        return;
+      }
       state = session.copyWith(
-        currentIndex: (session.currentIndex + 1) % session.questions.length,
+        currentIndex: session.currentIndex + 1,
         clearSelection: true,
         isAnswered: false,
         clearFeedback: true,

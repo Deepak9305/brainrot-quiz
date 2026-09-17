@@ -15,18 +15,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  static const _featuredModes = <GameMode>[
-    GameMode.italianBrainrot,
-    GameMode.oneSecond,
-    GameMode.rush,
-    GameMode.impossible,
-  ];
-
-  static const _allModes = <GameMode>[
-    GameMode.italianBrainrot,
+  static const _modes = <GameMode>[
     GameMode.oneSecond,
     GameMode.slang,
+    GameMode.guessSound,
     GameMode.finishMeme,
+    GameMode.italianBrainrot,
     GameMode.ogBrainrot,
     GameMode.impossible,
     GameMode.rush,
@@ -63,7 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
           children: [
             _TopBar(
               coins: progress.coins,
@@ -83,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               xp: progress.xp,
               bestScore: progress.bestScore,
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             _DailyRow(
               streak: progress.dailyStreak,
               completed: progress.dailyCompletedDate == _today(),
@@ -91,13 +85,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onTap: () => _play(GameMode.daily),
             ),
             const SizedBox(height: 24),
-            SectionTitle(
-              title: 'Modes',
-              action: 'All modes',
-              onAction: _showAllModes,
-            ),
+            const SectionTitle(title: 'Choose a mode'),
             const SizedBox(height: 4),
-            _ModeGroup(modes: _featuredModes, onPlay: _play),
+            _ModeList(modes: _modes, onPlay: _play),
           ],
         ),
       ),
@@ -107,61 +97,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _today() {
     final now = DateTime.now();
     return '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-  }
-
-  void _showAllModes() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(sheetContext).height * .68,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'ALL MODES',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -.3,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: _allModes.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final mode = _allModes[index];
-                      return _ModeListItem(
-                        mode: mode,
-                        onTap: () {
-                          Navigator.pop(sheetContext);
-                          _play(mode);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -227,7 +162,7 @@ class _MainRoundCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'MAIN ROUND',
+                    'MIXED ROUND',
                     style: TextStyle(
                       color: accent,
                       fontSize: 10,
@@ -249,7 +184,7 @@ class _MainRoundCard extends StatelessWidget {
                   SizedBox(
                     width: 132,
                     child: BrainrotButton(
-                      label: 'PLAY',
+                      label: 'PLAY MIX',
                       icon: Icons.play_arrow_rounded,
                       height: 46,
                       onPressed: onPlay,
@@ -362,7 +297,11 @@ class _DailyRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(width: 5, height: 68, color: completed ? AppColors.lime : accent),
+              Container(
+                width: 5,
+                height: 68,
+                color: completed ? AppColors.lime : accent,
+              ),
               const SizedBox(width: 13),
               Icon(
                 completed ? Icons.check_rounded : Icons.today_outlined,
@@ -383,7 +322,9 @@ class _DailyRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      completed ? 'Come back tomorrow' : 'One shared quiz today',
+                      completed
+                          ? 'Come back tomorrow'
+                          : 'A fresh mixed round for today',
                       style: const TextStyle(
                         color: AppColors.muted,
                         fontSize: 11,
@@ -400,7 +341,10 @@ class _DailyRow extends StatelessWidget {
                   size: 16,
                 ),
                 const SizedBox(width: 3),
-                Text('$streak', style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  '$streak',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(width: 8),
               ],
               const Icon(Icons.chevron_right_rounded, color: AppColors.subtle),
@@ -413,8 +357,8 @@ class _DailyRow extends StatelessWidget {
   }
 }
 
-class _ModeGroup extends StatelessWidget {
-  const _ModeGroup({required this.modes, required this.onPlay});
+class _ModeList extends StatelessWidget {
+  const _ModeList({required this.modes, required this.onPlay});
 
   final List<GameMode> modes;
   final ValueChanged<GameMode> onPlay;
@@ -424,8 +368,8 @@ class _ModeGroup extends StatelessWidget {
     return Column(
       children: [
         const Divider(height: 1),
-        for (var i = 0; i < modes.length; i++) ...[
-          _ModeListItem(mode: modes[i], onTap: () => onPlay(modes[i])),
+        for (final mode in modes) ...[
+          _ModeListItem(mode: mode, onTap: () => onPlay(mode)),
           const Divider(height: 1),
         ],
       ],
@@ -446,27 +390,29 @@ class _ModeListItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 11),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(7),
-                child: SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: mode.imageAsset != null
-                      ? Image.asset(
-                          mode.imageAsset!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: AppColors.surfaceRaised,
-                          ),
-                        )
-                      : ColoredBox(
-                          color: AppColors.surfaceRaised,
-                          child: Icon(mode.icon, color: mode.accent, size: 21),
-                        ),
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
                 ),
+                clipBehavior: Clip.antiAlias,
+                child: mode.imageAsset != null
+                    ? Image.asset(
+                        mode.imageAsset!,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Icon(mode.icon, color: mode.accent, size: 21),
+                      )
+                    : Icon(mode.icon, color: mode.accent, size: 21),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -494,7 +440,11 @@ class _ModeListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_rounded, color: AppColors.subtle, size: 18),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: AppColors.subtle,
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -525,9 +475,19 @@ class _CoinButton extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.bolt_rounded, color: AppColors.orange, size: 16),
+                const Icon(
+                  Icons.bolt_rounded,
+                  color: AppColors.orange,
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
-                Text('$coins', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                Text(
+                  '$coins',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ),
           ),
@@ -564,7 +524,7 @@ class _IconButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: AppColors.ink),
+            child: Icon(icon, color: AppColors.muted, size: 19),
           ),
         ),
       ),
@@ -578,7 +538,7 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: 1,
-        height: 28,
+        height: 30,
         color: AppColors.border,
       );
 }

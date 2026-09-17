@@ -1,0 +1,22 @@
+[
+  {"id":"finish-001","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'Why are you running? Why are you ___?'","answers":["running","typing","cooking","sleeping"],"correctAnswer":0},
+  {"id":"finish-002","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish the classic phrase: 'One does not simply ___.'","answers":["open the app","walk into Mordor","touch grass","skip breakfast"],"correctAnswer":1},
+  {"id":"finish-003","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'Keep calm and ___.'","answers":["refresh","log off","carry on","run away"],"correctAnswer":2},
+  {"id":"finish-004","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'It is what it ___.'","answers":["was","does","seems","is"],"correctAnswer":3},
+  {"id":"finish-005","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish the meme phrase: 'Bro really thought he was ___.'","answers":["him","late","offline","cooking"],"correctAnswer":0},
+  {"id":"finish-006","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish it: 'Sir, this is a ___.'","answers":["library","Wendy's","hospital","museum"],"correctAnswer":1},
+  {"id":"finish-007","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'Task failed ___.'","answers":["please retry","with no signal","successfully","at midnight"],"correctAnswer":2},
+  {"id":"finish-008","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish the phrase: 'Modern problems require modern ___.'","answers":["phones","memes","updates","solutions"],"correctAnswer":3},
+  {"id":"finish-009","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish it: 'This is ___.'","answers":["fine","viral","illegal","loading"],"correctAnswer":0},
+  {"id":"finish-010","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish the meme line: 'Look at me. I am the captain ___.'","answers":["again","now","today","online"],"correctAnswer":1},
+  {"id":"finish-011","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'They had us in the first half, not gonna ___.'","answers":["leave","sleep","lie","post"],"correctAnswer":2},
+  {"id":"finish-012","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish it: 'You guys are getting ___?'","answers":["likes","views","memes","paid"],"correctAnswer":3},
+  {"id":"finish-013","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish the meme phrase: 'Wait, it's all ___?'","answers":["Ohio","loading","fake","gone"],"correctAnswer":0},
+  {"id":"finish-014","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish it: 'Always has ___.'","answers":["gone","been","loaded","won"],"correctAnswer":1},
+  {"id":"finish-015","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'Nobody: Absolutely ___.'","answers":["everybody","somebody","nobody","online"],"correctAnswer":2},
+  {"id":"finish-016","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish the reaction phrase: 'Understandable, have a great ___.'","answers":["meme","scroll","week","day"],"correctAnswer":3},
+  {"id":"finish-017","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish it: 'I see this as an absolute ___.'","answers":["win","meme","problem","update"],"correctAnswer":0},
+  {"id":"finish-018","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish it: 'Ah yes, the negotiator.' Which word is missing? 'The ___.'","answers":["moderator","negotiator","creator","operator"],"correctAnswer":1},
+  {"id":"finish-019","category":"finish","difficulty":"easy","questionType":"finishMeme","question":"Finish the phrase: 'Visible confusion ___.'","answers":["starts","rises","intensifies","loads"],"correctAnswer":2},
+  {"id":"finish-020","category":"finish","difficulty":"medium","questionType":"finishMeme","question":"Finish it: 'Finally, some good ___.'","answers":["news","Wi-Fi","content","food"],"correctAnswer":3}
+]

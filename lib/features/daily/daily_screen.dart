@@ -64,65 +64,104 @@ class _ChallengeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.fromLTRB(17, 18, 17, 17),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 210,
-            width: double.infinity,
-            child: Image.asset(
-              'assets/images/tung_tung_tung_sahur.webp',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const ColoredBox(color: AppColors.surfaceRaised),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceRaised,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  completed ? Icons.check_rounded : Icons.shuffle_rounded,
+                  color: completed ? AppColors.lime : accent,
+                  size: 22,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                completed ? 'DONE TODAY' : 'FRESH TODAY',
+                style: TextStyle(
+                  color: completed ? AppColors.lime : AppColors.muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: .8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          const Text(
+            '10 mixed questions',
+            style: TextStyle(
+              fontSize: 27,
+              height: 1,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -.8,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  completed ? 'Completed today' : 'Today',
-                  style: TextStyle(
-                    color: completed ? AppColors.lime : AppColors.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  '10 questions',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.7,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'The same daily set for everyone. One score per day.',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    height: 1.35,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          const Text(
+            'Modern slang, memes, emoji reactions, viral characters and old-school internet culture.',
+            style: TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
             ),
+          ),
+          const SizedBox(height: 15),
+          const Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              _TopicChip('SLANG'),
+              _TopicChip('MEMES'),
+              _TopicChip('EMOJI'),
+              _TopicChip('CHARACTERS'),
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+class _TopicChip extends StatelessWidget {
+  const _TopicChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: .55,
+          ),
+        ),
+      );
 }
 
 class _StreakCard extends StatelessWidget {

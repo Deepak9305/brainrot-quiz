@@ -43,7 +43,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   }
 
   Future<void> _loadQuestions() async {
-    final questionCount = widget.mode == GameMode.rush ? 20 : 10;
+    // Rush gets a much larger unique pool so a fast player does not loop the
+    // same handful of questions during a single 60-second run.
+    final questionCount = widget.mode == GameMode.rush ? 40 : 10;
     late final List<QuizQuestion> questions;
 
     try {
@@ -58,11 +60,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     ref.read(quizSessionProvider.notifier).start(widget.mode, questions);
     setState(() => _loading = false);
 
-    for (final asset
-        in questions
-            .map((question) => question.imageAsset)
-            .whereType<String>()
-            .take(3)) {
+    for (final asset in questions
+        .map((question) => question.imageAsset)
+        .whereType<String>()
+        .take(5)) {
       precacheImage(AssetImage(asset), context);
     }
 
@@ -71,9 +72,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         final session = ref.read(quizSessionProvider);
         if (session == null || session.secondsLeft <= 0) {
           _finish();
-        } else {
-          ref.read(quizSessionProvider.notifier).tick();
+          return;
         }
+        ref.read(quizSessionProvider.notifier).tick();
+        final latest = ref.read(quizSessionProvider);
+        if (latest != null && latest.secondsLeft <= 0) _finish();
       });
     }
 
@@ -83,23 +86,27 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   void _startFlashTimer() {
     _flashTimer?.cancel();
     final session = ref.read(quizSessionProvider);
-    if (session?.currentQuestion.questionType != QuestionType.flash) {
-      if (!_flashVisible) setState(() => _flashVisible = true);
+    final question = session?.currentQuestion;
+
+    if (question == null ||
+        question.questionType != QuestionType.flash ||
+        question.imageAsset == null) {
+      if (!_flashVisible && mounted) setState(() => _flashVisible = true);
       return;
     }
 
-    setState(() => _flashVisible = true);
-    _flashTimer = Timer(_flashDuration(session!.currentQuestion), () {
+    if (mounted) setState(() => _flashVisible = true);
+    _flashTimer = Timer(_flashDuration(question), () {
       if (mounted) setState(() => _flashVisible = false);
     });
   }
 
   Duration _flashDuration(QuizQuestion question) =>
       switch (question.difficulty.toLowerCase()) {
-        'insane' => const Duration(milliseconds: 250),
-        'hard' => const Duration(milliseconds: 500),
-        'medium' => const Duration(milliseconds: 700),
-        _ => const Duration(milliseconds: 1000),
+        'insane' => const Duration(milliseconds: 350),
+        'hard' => const Duration(milliseconds: 550),
+        'medium' => const Duration(milliseconds: 800),
+        _ => const Duration(milliseconds: 1100),
       };
 
   void _onAnswer(int index) {
@@ -123,7 +130,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     }
 
     final answeredIndex = session.currentIndex;
-    Future<void>.delayed(const Duration(milliseconds: 850), () {
+    Future<void>.delayed(const Duration(milliseconds: 1150), () {
       if (!mounted || _finishing) return;
       final latest = ref.read(quizSessionProvider);
       if (latest == null ||
@@ -146,6 +153,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     if (_finishing || !mounted) return;
     _finishing = true;
     _rushTimer?.cancel();
+    _flashTimer?.cancel();
 
     final session = ref.read(quizSessionProvider);
     if (session == null) return;
@@ -159,8 +167,19 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     ref.read(analyticsServiceProvider).track('quiz_completed', {
       'mode': widget.mode.name,
       'score': session.score,
+      'correct': session.correctAnswers,
     });
     context.go('/results');
+  }
+
+  bool _hasVisual(QuizQuestion question) {
+    if (question.imageAsset == null || question.imageAsset!.trim().isEmpty) {
+      return false;
+    }
+    return question.questionType == QuestionType.imageChoice ||
+        question.questionType == QuestionType.flash ||
+        question.questionType == QuestionType.silhouette ||
+        question.questionType == QuestionType.zoom;
   }
 
   @override
@@ -168,7 +187,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     if (_loading) return _QuizLoading(mode: widget.mode);
 
     final session = ref.watch(quizSessionProvider);
-    if (session == null) return const SizedBox.shrink();
+    if (session == null || session.questions.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     final question = session.currentQuestion;
     final progress = widget.mode == GameMode.rush
@@ -176,6 +197,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         : (session.currentIndex + (session.isAnswered ? 1 : 0)) /
             session.questions.length;
     final isCorrect = session.isAnswered && session.lastWasCorrect == true;
+    final correctText = question.answers[question.correctAnswer];
 
     return Scaffold(
       body: SafeArea(
@@ -193,24 +215,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     widget.mode == GameMode.rush ? session.secondsLeft : null,
                 onExit: _confirmExit,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      widget.mode.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  _QuestionTag(question: question),
+                  const Spacer(),
                   if (session.streak >= 2)
                     Text(
-                      '${session.streak} streak',
+                      '${session.streak} streak · ${session.multiplierLabel}',
                       style: const TextStyle(
                         color: AppColors.orange,
                         fontSize: 11,
@@ -219,28 +231,30 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _QuestionMedia(
-                        question: question,
-                        flashVisible: _flashVisible,
-                      ),
-                      const SizedBox(height: 18),
+                      if (_hasVisual(question)) ...[
+                        _QuestionMedia(
+                          question: question,
+                          flashVisible: _flashVisible,
+                        ),
+                        const SizedBox(height: 18),
+                      ],
                       Text(
                         question.question,
                         style: const TextStyle(
-                          fontSize: 24,
-                          height: 1.1,
+                          fontSize: 25,
+                          height: 1.08,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -.65,
+                          letterSpacing: -.7,
                         ),
                       ),
-                      const SizedBox(height: 17),
+                      const SizedBox(height: 18),
                       for (var index = 0;
                           index < question.answers.length;
                           index++) ...[
@@ -259,12 +273,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         const SizedBox(height: 12),
                         _FeedbackBar(
                           correct: isCorrect,
+                          correctAnswer: correctText,
+                          explanation: question.explanation,
                           points: isCorrect
                               ? '+${_earnedPoints(session.streak)}'
                               : null,
                         ),
                       ],
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -366,7 +382,9 @@ class _QuizHeader extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '$questionNumber of $questionCount',
+                    secondsLeft == null
+                        ? '$questionNumber of $questionCount'
+                        : widgetLabel(mode),
                     style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 11,
@@ -379,8 +397,8 @@ class _QuizHeader extends StatelessWidget {
                       '0:${secondsLeft.toString().padLeft(2, '0')}',
                       style: TextStyle(
                         color: secondsLeft! <= 10 ? AppColors.red : AppColors.ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
                       ),
                     )
                   else
@@ -402,17 +420,63 @@ class _QuizHeader extends StatelessWidget {
       ],
     );
   }
+
+  static String widgetLabel(GameMode mode) => mode.title;
+}
+
+class _QuestionTag extends StatelessWidget {
+  const _QuestionTag({required this.question});
+
+  final QuizQuestion question;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (question.questionType) {
+      QuestionType.imageChoice => 'IMAGE',
+      QuestionType.flash => 'FLASH',
+      QuestionType.finishMeme => 'FINISH IT',
+      QuestionType.emoji => 'EMOJI',
+      QuestionType.slang => 'SLANG',
+      QuestionType.silhouette => 'SILHOUETTE',
+      QuestionType.zoom => 'ZOOM',
+      QuestionType.sound => 'AUDIO',
+      QuestionType.text => question.category.toUpperCase(),
+    };
+
+    return Text(
+      '$label · ${question.difficulty.toUpperCase()}',
+      style: const TextStyle(
+        color: AppColors.muted,
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+        letterSpacing: .65,
+      ),
+    );
+  }
 }
 
 class _FeedbackBar extends StatelessWidget {
-  const _FeedbackBar({required this.correct, this.points});
+  const _FeedbackBar({
+    required this.correct,
+    required this.correctAnswer,
+    this.explanation,
+    this.points,
+  });
 
   final bool correct;
+  final String correctAnswer;
+  final String? explanation;
   final String? points;
 
   @override
   Widget build(BuildContext context) {
     final color = correct ? AppColors.lime : AppColors.red;
+    final detail = explanation?.trim().isNotEmpty == true
+        ? explanation!.trim()
+        : correct
+            ? null
+            : 'Correct answer: $correctAnswer';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
@@ -422,6 +486,7 @@ class _FeedbackBar extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             correct ? Icons.check_rounded : Icons.close_rounded,
@@ -430,24 +495,43 @@ class _FeedbackBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              correct ? 'Correct' : 'Wrong',
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  correct ? 'Correct' : 'Not quite',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (detail != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    detail,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (points != null)
+          if (points != null) ...[
+            const SizedBox(width: 8),
             Text(
               points!,
               style: const TextStyle(
                 color: AppColors.muted,
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
+          ],
         ],
       ),
     );
@@ -462,10 +546,6 @@ class _QuestionMedia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (question.questionType == QuestionType.sound) {
-      return AudioButton(audioAsset: question.audioAsset);
-    }
-
     if (question.questionType == QuestionType.flash && !flashVisible) {
       return Container(
         height: 190,
@@ -485,7 +565,7 @@ class _QuestionMedia extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Image hidden',
+              'Image hidden — answer from memory',
               style: TextStyle(
                 color: AppColors.muted,
                 fontSize: 12,
@@ -497,75 +577,10 @@ class _QuestionMedia extends StatelessWidget {
       );
     }
 
-    if (question.questionType == QuestionType.text ||
-        question.questionType == QuestionType.slang ||
-        question.questionType == QuestionType.finishMeme ||
-        question.questionType == QuestionType.emoji) {
-      return _PromptMedia(question: question);
-    }
-
-    return BrainrotImage(assetPath: question.imageAsset, height: 200);
-  }
-}
-
-class _PromptMedia extends StatelessWidget {
-  const _PromptMedia({required this.question});
-
-  final QuizQuestion question;
-
-  @override
-  Widget build(BuildContext context) {
-    final (icon, label) = switch (question.questionType) {
-      QuestionType.emoji => (Icons.tag_faces_rounded, 'Emoji'),
-      QuestionType.slang => (Icons.chat_bubble_outline_rounded, 'Slang'),
-      QuestionType.finishMeme => (Icons.format_quote_rounded, 'Finish the meme'),
-      _ => (Icons.psychology_alt_outlined, 'Text'),
-    };
-
-    final visual = switch (question.questionType) {
-      QuestionType.emoji => '🐊  ✈️  💣',
-      QuestionType.slang => 'internet slang',
-      QuestionType.finishMeme => 'complete the line',
-      _ => 'quick check',
-    };
-
-    return Container(
-      height: 130,
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: AppColors.muted, size: 17),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            visual,
-            style: TextStyle(
-              fontSize: question.questionType == QuestionType.emoji ? 30 : 19,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -.3,
-            ),
-          ),
-        ],
-      ),
+    return BrainrotImage(
+      assetPath: question.imageAsset,
+      height: 200,
+      semanticLabel: 'Quiz image',
     );
   }
 }
@@ -595,7 +610,7 @@ class _QuizLoading extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Loading ${mode.title}',
+                  'Building a fresh ${mode.title} round…',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 15,
