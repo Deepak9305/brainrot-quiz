@@ -56,7 +56,7 @@ class AppTheme {
               fontSize: 21,
               height: 1.1,
               letterSpacing: -.45,
-              fontWeight: FontWeight.w850,
+              fontWeight: FontWeight.w800,
               color: AppColors.ink,
             ),
             bodyLarge: const TextStyle(
