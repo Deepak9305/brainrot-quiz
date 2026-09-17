@@ -46,10 +46,13 @@ class BrainrotApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(progressProvider);
+    final accent = AppTheme.accentForTheme(progress.equippedTheme);
+
     return MaterialApp.router(
       title: 'Brainrot Quiz',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
+      theme: AppTheme.dark(accent: accent),
       routerConfig: ref.watch(routerProvider),
     );
   }
@@ -70,54 +73,86 @@ class IntroScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final accent = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const BrainrotLogo(compact: true),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Hero(
-                    tag: 'tralalero-tralala',
-                    child: Image.asset(
-                      'assets/images/tralalero_tralala.webp',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      semanticLabel:
-                          'Tralalero Tralala, the Italian Brainrot shark with blue sneakers',
-                    ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Hero(
+                        tag: 'tralalero-tralala',
+                        child: Image.asset(
+                          'assets/images/tralalero_tralala.webp',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          semanticLabel:
+                              'Tralalero Tralala, the Italian Brainrot shark with blue sneakers',
+                        ),
+                      ),
+                      Positioned(
+                        left: 12,
+                        top: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 6,
+                          ),
+                          color: Colors.black.withValues(alpha: .78),
+                          child: const Text(
+                            'ROUND 01',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'How cooked are you?',
+              const SizedBox(height: 18),
+              Text(
+                'HOW COOKED\nARE YOU?',
                 style: TextStyle(
-                  fontSize: 36,
-                  height: .98,
+                  color: AppColors.ink,
+                  fontSize: 40,
+                  height: .9,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -1.6,
+                  letterSpacing: -2,
+                  shadows: [
+                    Shadow(
+                      color: accent.withValues(alpha: .16),
+                      blurRadius: 18,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 9),
-              const Text(
-                'Ten questions. Fast rounds. No account needed.',
-                style: TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 14,
-                  height: 1.35,
-                  fontWeight: FontWeight.w500,
-                ),
+              const SizedBox(height: 12),
+              const Row(
+                children: [
+                  _IntroMeta('10 QUESTIONS'),
+                  _MetaDot(),
+                  _IntroMeta('OFFLINE'),
+                  _MetaDot(),
+                  _IntroMeta('NO LOGIN'),
+                ],
               ),
               const SizedBox(height: 18),
               BrainrotButton(
-                label: 'Start',
+                label: 'Start round',
                 icon: Icons.arrow_forward_rounded,
                 onPressed: () {
                   ref.read(progressProvider.notifier).markIntroSeen();
@@ -130,4 +165,31 @@ class IntroScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _IntroMeta extends StatelessWidget {
+  const _IntroMeta(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.muted,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: .65,
+        ),
+      );
+}
+
+class _MetaDot extends StatelessWidget {
+  const _MetaDot();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: Text('·', style: TextStyle(color: AppColors.subtle)),
+      );
 }
