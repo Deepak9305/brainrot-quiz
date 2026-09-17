@@ -96,20 +96,69 @@ void main() {
     expect(restored.equippedTheme, 'purple');
   });
 
-  testWidgets('bundled question assets load from the Flutter asset bundle', (
+  testWidgets('every active mode loads a full unique round', (tester) async {
+    const modes = [
+      GameMode.mix,
+      GameMode.italianBrainrot,
+      GameMode.guessSound,
+      GameMode.oneSecond,
+      GameMode.slang,
+      GameMode.finishMeme,
+      GameMode.ogBrainrot,
+      GameMode.impossible,
+      GameMode.daily,
+    ];
+
+    for (final mode in modes) {
+      final questions = await QuestionRepository().questionsFor(mode, count: 10);
+      expect(questions, hasLength(10), reason: '${mode.name} should fill a round');
+      expect(
+        questions.map((question) => question.id).toSet(),
+        hasLength(10),
+        reason: '${mode.name} should not repeat questions in one round',
+      );
+      expect(
+        questions.where((question) => question.questionType == QuestionType.sound),
+        isEmpty,
+        reason: '${mode.name} must not serve silent audio questions',
+      );
+    }
+  });
+
+  testWidgets('emoji mode contains real emoji questions instead of sound prompts', (
+    tester,
+  ) async {
+    final questions = await QuestionRepository().questionsFor(
+      GameMode.guessSound,
+      count: 10,
+    );
+    expect(questions, hasLength(10));
+    expect(
+      questions.every((question) => question.questionType == QuestionType.emoji),
+      isTrue,
+    );
+  });
+
+  testWidgets('rush can supply forty unique questions without looping', (
+    tester,
+  ) async {
+    final questions = await QuestionRepository().questionsFor(
+      GameMode.rush,
+      count: 40,
+    );
+    expect(questions, hasLength(40));
+    expect(questions.map((question) => question.id).toSet(), hasLength(40));
+  });
+
+  testWidgets('mixed mode includes more than Italian character content', (
     tester,
   ) async {
     final questions = await QuestionRepository().questionsFor(
       GameMode.mix,
-      count: 15,
+      count: 20,
     );
-    expect(questions, hasLength(15));
-    expect(
-      questions.any(
-        (question) =>
-            question.imageAsset == 'assets/images/tralalero_tralala.webp',
-      ),
-      isTrue,
-    );
+    final categories = questions.map((question) => question.category).toSet();
+    expect(questions, hasLength(20));
+    expect(categories.length, greaterThanOrEqualTo(4));
   });
 }
