@@ -16,7 +16,7 @@ enum GameMode {
 extension GameModeDetails on GameMode {
   String get title => switch (this) {
     GameMode.mix => 'Brainrot Mix',
-    GameMode.italianBrainrot => 'Brainrot Characters',
+    GameMode.italianBrainrot => 'Viral Characters',
     GameMode.guessSound => 'Emoji Decode',
     GameMode.oneSecond => 'Quickfire',
     GameMode.slang => 'Slang Test',
@@ -29,7 +29,7 @@ extension GameModeDetails on GameMode {
 
   String get subtitle => switch (this) {
     GameMode.mix => 'Memes, slang, characters and internet culture',
-    GameMode.italianBrainrot => 'Name the viral characters',
+    GameMode.italianBrainrot => 'Doge, Pepe, viral faces and brainrot characters',
     GameMode.guessSound => 'Read the reaction without words',
     GameMode.oneSecond => 'Short questions. Fast decisions.',
     GameMode.slang => 'Do you speak fluent internet?',
@@ -42,7 +42,7 @@ extension GameModeDetails on GameMode {
 
   IconData get icon => switch (this) {
     GameMode.mix => Icons.psychology_alt_rounded,
-    GameMode.italianBrainrot => Icons.auto_awesome_rounded,
+    GameMode.italianBrainrot => Icons.people_alt_outlined,
     GameMode.guessSound => Icons.emoji_emotions_outlined,
     GameMode.oneSecond => Icons.bolt_rounded,
     GameMode.slang => Icons.chat_bubble_outline_rounded,
@@ -79,16 +79,5 @@ extension GameModeDetails on GameMode {
     GameMode.rush => 'quickfire',
   };
 
-  String? get imageAsset => switch (this) {
-    GameMode.mix => 'assets/images/tralalero_tralala.webp',
-    GameMode.italianBrainrot => 'assets/images/bombardiro_crocodilo.jpg',
-    GameMode.finishMeme => 'assets/images/brr_brr_patapim.jpg',
-    GameMode.ogBrainrot => null,
-    GameMode.impossible => null,
-    GameMode.daily => null,
-    GameMode.rush => null,
-    GameMode.guessSound => null,
-    GameMode.oneSecond => null,
-    GameMode.slang => null,
-  };
+  String? get imageAsset => null;
 }
