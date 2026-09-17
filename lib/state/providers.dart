@@ -5,6 +5,7 @@ import '../services/ads_service.dart';
 import '../services/analytics_service.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
+import '../services/voice_service.dart';
 
 final storageServiceProvider = Provider<StorageService>((ref) {
   throw UnimplementedError('StorageService must be overridden in main.dart');
@@ -14,6 +15,7 @@ final analyticsServiceProvider = Provider<AnalyticsService>(
   (ref) => LocalAnalyticsService(),
 );
 final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
+final voiceServiceProvider = Provider<VoiceService>((ref) => VoiceService());
 final adsServiceProvider = Provider<AdsService>((ref) => AdMobAdsService());
 
 final progressProvider = NotifierProvider<ProgressNotifier, PlayerProgress>(
