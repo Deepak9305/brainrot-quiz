@@ -71,29 +71,31 @@ class MainActivity : FlutterActivity() {
         if (tts != null) return
 
         textToSpeech = TextToSpeech(this) { status ->
-            val instance = textToSpeech ?: return@TextToSpeech
-            ttsReady = status == TextToSpeech.SUCCESS
-            if (!ttsReady) {
+            val instance = textToSpeech
+            if (status != TextToSpeech.SUCCESS || instance == null) {
+                ttsReady = false
                 pendingSpeech = null
-                return@TextToSpeech
-            }
-
-            instance.language = Locale.US
-            pendingSpeech?.let { (pendingText, pendingPitch, pendingRate) ->
-                instance.setPitch(pendingPitch)
-                instance.setSpeechRate(pendingRate)
-                instance.speak(
-                    pendingText,
-                    TextToSpeech.QUEUE_FLUSH,
-                    null,
-                    "brainrot_prompt",
-                )
-                pendingSpeech = null
+            } else {
+                ttsReady = true
+                instance.language = Locale.US
+                val pending = pendingSpeech
+                if (pending != null) {
+                    instance.setPitch(pending.second)
+                    instance.setSpeechRate(pending.third)
+                    instance.speak(
+                        pending.first,
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "brainrot_prompt"
+                    )
+                    pendingSpeech = null
+                }
             }
         }
     }
 
     override fun onDestroy() {
+        pendingSpeech = null
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
