@@ -17,14 +17,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const _featuredModes = <GameMode>[
     GameMode.italianBrainrot,
-    GameMode.guessSound,
     GameMode.oneSecond,
     GameMode.rush,
+    GameMode.impossible,
   ];
 
   static const _allModes = <GameMode>[
     GameMode.italianBrainrot,
-    GameMode.guessSound,
     GameMode.oneSecond,
     GameMode.slang,
     GameMode.finishMeme,
@@ -58,43 +57,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final progress = ref.watch(progressProvider);
+    final accent = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       body: SafeArea(
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 30),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
           children: [
             _TopBar(
+              coins: progress.coins,
+              onShop: () => context.push('/shop'),
               onAchievements: () => context.push('/achievements'),
               onSettings: () => context.push('/settings'),
             ),
             const SizedBox(height: 18),
-            _MainRoundCard(onPlay: () => _play(GameMode.mix)),
-            const SizedBox(height: 12),
+            _MainRoundCard(
+              accent: accent,
+              onPlay: () => _play(GameMode.mix),
+            ),
+            const SizedBox(height: 10),
             _ProgressRow(
               streak: progress.currentStreak,
               level: progress.level,
               xp: progress.xp,
               bestScore: progress.bestScore,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
             _DailyRow(
               streak: progress.dailyStreak,
               completed: progress.dailyCompletedDate == _today(),
+              accent: accent,
               onTap: () => _play(GameMode.daily),
             ),
-            const SizedBox(height: 26),
+            const SizedBox(height: 24),
             SectionTitle(
               title: 'Modes',
               action: 'All modes',
               onAction: _showAllModes,
             ),
-            const SizedBox(height: 8),
-            _ModeGroup(
-              modes: _featuredModes,
-              onPlay: _play,
-            ),
+            const SizedBox(height: 4),
+            _ModeGroup(modes: _featuredModes, onPlay: _play),
           ],
         ),
       ),
@@ -110,24 +113,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: SizedBox(
-          height: MediaQuery.sizeOf(sheetContext).height * .72,
+          height: MediaQuery.sizeOf(sheetContext).height * .68,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 2, 18, 20),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'All modes',
-                  style: TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.4,
-                  ),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'ALL MODES',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -.3,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const Divider(height: 1),
                 Expanded(
                   child: ListView.separated(
                     itemCount: _allModes.length,
@@ -154,8 +166,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onAchievements, required this.onSettings});
+  const _TopBar({
+    required this.coins,
+    required this.onShop,
+    required this.onAchievements,
+    required this.onSettings,
+  });
 
+  final int coins;
+  final VoidCallback onShop;
   final VoidCallback onAchievements;
   final VoidCallback onSettings;
 
@@ -164,12 +183,14 @@ class _TopBar extends StatelessWidget {
     return Row(
       children: [
         const Expanded(child: BrainrotLogo(compact: true)),
+        _CoinButton(coins: coins, onTap: onShop),
+        const SizedBox(width: 7),
         _IconButton(
           tooltip: 'Achievements',
           icon: Icons.emoji_events_outlined,
           onTap: onAchievements,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 7),
         _IconButton(
           tooltip: 'Settings',
           icon: Icons.settings_outlined,
@@ -181,76 +202,75 @@ class _TopBar extends StatelessWidget {
 }
 
 class _MainRoundCard extends StatelessWidget {
-  const _MainRoundCard({required this.onPlay});
+  const _MainRoundCard({required this.accent, required this.onPlay});
 
+  final Color accent;
   final VoidCallback onPlay;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      clipBehavior: Clip.antiAlias,
+      height: 226,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Row(
         children: [
-          SizedBox(
-            height: 205,
-            width: double.infinity,
+          Expanded(
+            flex: 11,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'MAIN ROUND',
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'HOW\nCOOKED\nARE YOU?',
+                    style: TextStyle(
+                      fontSize: 29,
+                      height: .88,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.5,
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 132,
+                    child: BrainrotButton(
+                      label: 'PLAY',
+                      icon: Icons.play_arrow_rounded,
+                      height: 46,
+                      onPressed: onPlay,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 9,
             child: Hero(
               tag: 'tralalero-tralala',
               child: Image.asset(
                 'assets/images/tralalero_tralala.webp',
+                height: double.infinity,
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
                 errorBuilder: (_, __, ___) =>
                     const ColoredBox(color: AppColors.surfaceRaised),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Main round',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'How cooked are you?',
-                  style: TextStyle(
-                    fontSize: 26,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.8,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                const Text(
-                  '10 mixed questions from across internet culture.',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    height: 1.35,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                BrainrotButton(
-                  label: 'Play round',
-                  icon: Icons.play_arrow_rounded,
-                  onPressed: onPlay,
-                ),
-              ],
             ),
           ),
         ],
@@ -279,11 +299,12 @@ class _ProgressRow extends StatelessWidget {
         : '$bestScore';
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 13),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
+        ),
       ),
       child: Row(
         children: [
@@ -298,7 +319,7 @@ class _ProgressRow extends StatelessWidget {
             icon: Icons.bolt_rounded,
             label: 'LEVEL $level',
             value: '$xp XP',
-            color: AppColors.lime,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const _Divider(),
           StatPill(
@@ -317,11 +338,13 @@ class _DailyRow extends StatelessWidget {
   const _DailyRow({
     required this.streak,
     required this.completed,
+    required this.accent,
     required this.onTap,
   });
 
   final int streak;
   final bool completed;
+  final Color accent;
   final VoidCallback onTap;
 
   @override
@@ -330,31 +353,23 @@ class _DailyRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(9),
         child: Ink(
-          padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(9),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  completed ? Icons.check_rounded : Icons.today_outlined,
-                  color: completed ? AppColors.lime : AppColors.ink,
-                  size: 21,
-                ),
+              Container(width: 5, height: 68, color: completed ? AppColors.lime : accent),
+              const SizedBox(width: 13),
+              Icon(
+                completed ? Icons.check_rounded : Icons.today_outlined,
+                color: completed ? AppColors.lime : AppColors.ink,
+                size: 21,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +377,7 @@ class _DailyRow extends StatelessWidget {
                     Text(
                       completed ? 'Daily complete' : 'Daily challenge',
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -382,20 +397,14 @@ class _DailyRow extends StatelessWidget {
                 const Icon(
                   Icons.local_fire_department_rounded,
                   color: AppColors.orange,
-                  size: 17,
+                  size: 16,
                 ),
                 const SizedBox(width: 3),
-                Text(
-                  '$streak',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
+                Text('$streak', style: const TextStyle(fontWeight: FontWeight.w800)),
                 const SizedBox(width: 8),
               ],
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.subtle,
-                size: 20,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.subtle),
+              const SizedBox(width: 9),
             ],
           ),
         ),
@@ -412,25 +421,14 @@ class _ModeGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < modes.length; i++) ...[
-            _ModeListItem(
-              mode: modes[i],
-              onTap: () => onPlay(modes[i]),
-            ),
-            if (i != modes.length - 1)
-              const Divider(height: 1, indent: 76),
-          ],
+    return Column(
+      children: [
+        const Divider(height: 1),
+        for (var i = 0; i < modes.length; i++) ...[
+          _ModeListItem(mode: modes[i], onTap: () => onPlay(modes[i])),
+          const Divider(height: 1),
         ],
-      ),
+      ],
     );
   }
 }
@@ -448,14 +446,14 @@ class _ModeListItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(7),
                 child: SizedBox(
-                  width: 52,
-                  height: 52,
+                  width: 48,
+                  height: 48,
                   child: mode.imageAsset != null
                       ? Image.asset(
                           mode.imageAsset!,
@@ -466,7 +464,7 @@ class _ModeListItem extends StatelessWidget {
                         )
                       : ColoredBox(
                           color: AppColors.surfaceRaised,
-                          child: Icon(mode.icon, color: mode.accent, size: 23),
+                          child: Icon(mode.icon, color: mode.accent, size: 21),
                         ),
                 ),
               ),
@@ -496,18 +494,45 @@ class _ModeListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.subtle,
-                size: 20,
-              ),
+              const Icon(Icons.arrow_forward_rounded, color: AppColors.subtle, size: 18),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _CoinButton extends StatelessWidget {
+  const _CoinButton({required this.coins, required this.onTap});
+
+  final int coins;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 9),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.bolt_rounded, color: AppColors.orange, size: 16),
+                const SizedBox(width: 4),
+                Text('$coins', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _IconButton extends StatelessWidget {
@@ -527,19 +552,19 @@ class _IconButton extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 19, color: AppColors.ink),
+            child: Icon(icon, size: 18, color: AppColors.ink),
           ),
         ),
       ),
@@ -553,7 +578,7 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: 1,
-        height: 30,
+        height: 28,
         color: AppColors.border,
       );
 }
