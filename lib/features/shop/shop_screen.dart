@@ -57,7 +57,6 @@ class ShopScreen extends ConsumerWidget {
             const Divider(height: 1),
             for (final theme in _themes) ...[
               _ThemeRow(
-                id: theme.$1,
                 name: theme.$2,
                 subtitle: theme.$3,
                 color: theme.$4,
@@ -118,7 +117,6 @@ class ShopScreen extends ConsumerWidget {
 
 class _ThemeRow extends StatelessWidget {
   const _ThemeRow({
-    required this.id,
     required this.name,
     required this.subtitle,
     required this.color,
@@ -128,7 +126,6 @@ class _ThemeRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final String id;
   final String name;
   final String subtitle;
   final Color color;
