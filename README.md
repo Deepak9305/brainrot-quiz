@@ -2,6 +2,10 @@
 
 Offline-first Flutter quiz game: **How cooked are you?**
 
+The app now ships with a broad local question bank covering modern brainrot slang, meme history, emoji reactions, viral characters, finish-the-meme prompts, quickfire internet culture, a daily mixed challenge, and a harder Impossible mode. Rounds are selected without duplicate questions, and Rush uses a larger unique pool instead of looping a tiny set.
+
+There is no fake voice/sound quiz. Audio-style questions are rejected unless a real bundled audio asset exists.
+
 ## Run locally
 
 From this folder:
@@ -13,9 +17,9 @@ From this folder:
 
 Open [http://localhost:4175](http://localhost:4175). Port 4173 is used by another local app in the workspace.
 
-## Real character media
+## Character media
 
-The intro, home hero, daily card, and image questions use bundled references of Tralalero Tralala, Bombardiro Crocodilo, Tung Tung Tung Sahur, and Brr Brr Patapim. Source and rights notes are in [THIRD_PARTY_MEDIA.md](THIRD_PARTY_MEDIA.md).
+Bundled image questions use references of Tralalero Tralala, Bombardiro Crocodilo, Tung Tung Tung Sahur, and Brr Brr Patapim. Character mode also includes text questions about broader meme characters rather than being Italian-brainrot-only. Source and rights notes are in [THIRD_PARTY_MEDIA.md](THIRD_PARTY_MEDIA.md).
 
 ## Checks
 
