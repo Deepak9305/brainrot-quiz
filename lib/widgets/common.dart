@@ -29,14 +29,12 @@ class BrainrotLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Text.rich(
       TextSpan(
         children: [
           const TextSpan(text: 'BRAINROT '),
-          TextSpan(
-            text: 'QUIZ',
-            style: const TextStyle(color: AppColors.lime),
-          ),
+          TextSpan(text: 'QUIZ', style: TextStyle(color: accent)),
         ],
       ),
       textAlign: center ? TextAlign.center : TextAlign.left,
@@ -62,7 +60,7 @@ class BrainrotAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> actions;
 
   @override
-  Size get preferredSize => const Size.fromHeight(58);
+  Size get preferredSize => const Size.fromHeight(56);
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +77,7 @@ class BrainrotAppBar extends StatelessWidget implements PreferredSizeWidget {
         style: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          letterSpacing: -.35,
+          letterSpacing: -.45,
         ),
       ),
       actions: actions,
@@ -105,18 +103,18 @@ class StatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: color, size: 15),
+                Icon(icon, color: color, size: 14),
                 const SizedBox(width: 5),
                 Text(
                   value,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -129,7 +127,7 @@ class StatPill extends StatelessWidget {
                 color: AppColors.subtle,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
-                letterSpacing: .45,
+                letterSpacing: .5,
               ),
             ),
           ],
@@ -144,16 +142,16 @@ class BrainrotButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
-    this.color = AppColors.lime,
+    this.color,
     this.foreground = Colors.black,
     this.icon,
     this.outlined = false,
-    this.height = 54,
+    this.height = 52,
   });
 
   final String label;
   final VoidCallback? onPressed;
-  final Color color;
+  final Color? color;
   final Color foreground;
   final IconData? icon;
   final bool outlined;
@@ -161,8 +159,9 @@ class BrainrotButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = color ?? Theme.of(context).colorScheme.primary;
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(9),
     );
 
     return Semantics(
@@ -178,14 +177,14 @@ class BrainrotButton extends StatelessWidget {
           label: Text(
             label,
             style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: .15,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .2,
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: outlined ? Colors.transparent : color,
-            foregroundColor: outlined ? color : foreground,
+            backgroundColor: outlined ? Colors.transparent : accent,
+            foregroundColor: outlined ? accent : foreground,
             disabledBackgroundColor: AppColors.surfaceRaised,
             disabledForegroundColor: AppColors.subtle,
             elevation: 0,
@@ -218,11 +217,12 @@ class SectionTitle extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            title,
+            title.toUpperCase(),
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -.3,
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -233,7 +233,7 @@ class SectionTitle extends StatelessWidget {
               action!,
               style: const TextStyle(
                 color: AppColors.muted,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -255,15 +255,15 @@ class ModeCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         child: Ink(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.border),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(9),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -284,14 +284,14 @@ class ModeCard extends StatelessWidget {
                               child: Icon(
                                 mode.icon,
                                 color: mode.accent,
-                                size: 32,
+                                size: 30,
                               ),
                             ),
                           ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(11, 9, 11, 11),
+                  padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -331,23 +331,24 @@ class ProgressBar extends StatelessWidget {
   const ProgressBar({
     super.key,
     required this.value,
-    this.color = AppColors.lime,
-    this.height = 6,
+    this.color,
+    this.height = 5,
   });
 
   final double value;
-  final Color color;
+  final Color? color;
   final double height;
 
   @override
   Widget build(BuildContext context) {
+    final accent = color ?? Theme.of(context).colorScheme.primary;
     return ClipRRect(
       borderRadius: BorderRadius.circular(height),
       child: LinearProgressIndicator(
         minHeight: height,
         value: value.clamp(0, 1),
         backgroundColor: AppColors.surfaceRaised,
-        color: color,
+        color: accent,
       ),
     );
   }
@@ -398,55 +399,56 @@ class AnswerCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: revealed ? null : onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(9),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            minHeight: 58,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            duration: const Duration(milliseconds: 150),
+            minHeight: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
             decoration: BoxDecoration(
               color: isCorrectState
-                  ? AppColors.lime.withValues(alpha: .08)
+                  ? AppColors.lime.withValues(alpha: .07)
                   : isWrongState
-                      ? AppColors.red.withValues(alpha: .08)
+                      ? AppColors.red.withValues(alpha: .07)
                       : AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(9),
               border: Border.all(color: border),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     String.fromCharCode(65 + index),
                     style: TextStyle(
                       color: accent,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 11),
                 Expanded(
                   child: Text(
                     answer,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 14.5,
-                      height: 1.2,
+                      fontSize: 14,
+                      height: 1.18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
                 if (isCorrectState)
-                  const Icon(Icons.check_rounded, color: AppColors.lime, size: 21),
+                  const Icon(Icons.check_rounded, color: AppColors.lime, size: 20),
                 if (isWrongState)
-                  const Icon(Icons.close_rounded, color: AppColors.red, size: 21),
+                  const Icon(Icons.close_rounded, color: AppColors.red, size: 20),
               ],
             ),
           ),
@@ -473,7 +475,7 @@ class BrainrotImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(10),
       child: SizedBox(
         height: height,
         width: double.infinity,
@@ -487,7 +489,7 @@ class BrainrotImage extends StatelessWidget {
               child: Icon(
                 Icons.image_not_supported_outlined,
                 color: AppColors.subtle,
-                size: 34,
+                size: 32,
               ),
             ),
           ),
@@ -525,11 +527,11 @@ class _AudioButtonState extends State<AudioButton> {
       button: true,
       label: _playing ? 'Playing sound' : 'Play sound',
       child: Container(
-        height: 150,
+        height: 142,
         width: double.infinity,
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.border),
         ),
         child: Center(
@@ -537,8 +539,8 @@ class _AudioButtonState extends State<AudioButton> {
             onTap: _toggle,
             borderRadius: BorderRadius.circular(40),
             child: Container(
-              width: 68,
-              height: 68,
+              width: 64,
+              height: 64,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.ink,
@@ -547,7 +549,7 @@ class _AudioButtonState extends State<AudioButton> {
               child: Icon(
                 _playing ? Icons.graphic_eq_rounded : Icons.volume_up_rounded,
                 color: Colors.black,
-                size: 30,
+                size: 28,
               ),
             ),
           ),
