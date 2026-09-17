@@ -169,7 +169,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title: Text(
                         mode.title,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w850,
+                          fontWeight: FontWeight.w800,
                           fontSize: 15,
                         ),
                       ),
@@ -390,11 +390,26 @@ class _ProgressStrip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _Metric(icon: Icons.local_fire_department_rounded, value: '$streak', label: 'STREAK', color: AppColors.orange),
+          _Metric(
+            icon: Icons.local_fire_department_rounded,
+            value: '$streak',
+            label: 'STREAK',
+            color: AppColors.orange,
+          ),
           const _MetricDivider(),
-          _Metric(icon: Icons.bolt_rounded, value: '$xp', label: 'LEVEL $level', color: AppColors.lime),
+          _Metric(
+            icon: Icons.bolt_rounded,
+            value: '$xp',
+            label: 'LEVEL $level',
+            color: AppColors.lime,
+          ),
           const _MetricDivider(),
-          _Metric(icon: Icons.emoji_events_rounded, value: score, label: 'BEST', color: AppColors.cyan),
+          _Metric(
+            icon: Icons.emoji_events_rounded,
+            value: score,
+            label: 'BEST',
+            color: AppColors.cyan,
+          ),
         ],
       ),
     );
@@ -426,7 +441,10 @@ class _Metric extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 value,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
@@ -456,7 +474,11 @@ class _MetricDivider extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.action, required this.onAction});
+  const _SectionHeader({
+    required this.title,
+    required this.action,
+    required this.onAction,
+  });
 
   final String title;
   final String action;
@@ -530,7 +552,9 @@ class _ModeCard extends StatelessWidget {
                       else
                         const ColoredBox(color: AppColors.surfaceRaised),
                       if (mode.imageAsset == null)
-                        Center(child: Icon(mode.icon, color: mode.accent, size: 38)),
+                        Center(
+                          child: Icon(mode.icon, color: mode.accent, size: 38),
+                        ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -714,7 +738,11 @@ class _ActionRow extends StatelessWidget {
 }
 
 class _SmallAction extends StatelessWidget {
-  const _SmallAction({required this.icon, required this.label, required this.onTap});
+  const _SmallAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -744,10 +772,17 @@ class _SmallAction extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.subtle, size: 18),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.subtle,
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -778,7 +813,10 @@ class _Pill extends StatelessWidget {
         children: [
           Icon(icon, color: iconColor, size: 16),
           const SizedBox(width: 5),
-          Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+          ),
         ],
       ),
     );
