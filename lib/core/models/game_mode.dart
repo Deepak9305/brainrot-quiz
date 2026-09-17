@@ -15,11 +15,11 @@ enum GameMode {
 
 extension GameModeDetails on GameMode {
   String get title => switch (this) {
-    GameMode.mix => 'Brainrot Mix',
-    GameMode.italianBrainrot => 'Viral Characters',
-    GameMode.guessSound => 'Emoji Decode',
-    GameMode.oneSecond => 'Quickfire',
-    GameMode.slang => 'Slang Test',
+    GameMode.mix => 'Visual Mix',
+    GameMode.italianBrainrot => 'Guess the Character',
+    GameMode.guessSound => 'Voice Challenge',
+    GameMode.oneSecond => '1-Second Flash',
+    GameMode.slang => 'Slang Snap',
     GameMode.finishMeme => 'Finish the Meme',
     GameMode.ogBrainrot => 'OG Internet',
     GameMode.impossible => 'Impossible Mode',
@@ -28,24 +28,24 @@ extension GameModeDetails on GameMode {
   };
 
   String get subtitle => switch (this) {
-    GameMode.mix => 'Memes, slang, characters and internet culture',
-    GameMode.italianBrainrot => 'Doge, Pepe, viral faces and brainrot characters',
-    GameMode.guessSound => 'Read the reaction without words',
-    GameMode.oneSecond => 'Short questions. Fast decisions.',
-    GameMode.slang => 'Do you speak fluent internet?',
-    GameMode.finishMeme => 'Complete the classic line',
+    GameMode.mix => 'Images, voices, emoji and fast internet culture',
+    GameMode.italianBrainrot => 'Recognize the face before the name',
+    GameMode.guessSound => 'Listen first. Pick what you heard.',
+    GameMode.oneSecond => 'See it fast. Answer from memory.',
+    GameMode.slang => 'Short slang. No paragraph reading.',
+    GameMode.finishMeme => 'Complete the line before it disappears',
     GameMode.ogBrainrot => 'Classic internet culture',
     GameMode.impossible => 'Hard mode for terminally online people',
-    GameMode.daily => 'A fresh mixed challenge every day',
+    GameMode.daily => 'A fresh visual and voice-heavy challenge',
     GameMode.rush => '60 seconds. Keep moving.',
   };
 
   IconData get icon => switch (this) {
-    GameMode.mix => Icons.psychology_alt_rounded,
-    GameMode.italianBrainrot => Icons.people_alt_outlined,
-    GameMode.guessSound => Icons.emoji_emotions_outlined,
-    GameMode.oneSecond => Icons.bolt_rounded,
-    GameMode.slang => Icons.chat_bubble_outline_rounded,
+    GameMode.mix => Icons.grid_view_rounded,
+    GameMode.italianBrainrot => Icons.image_search_rounded,
+    GameMode.guessSound => Icons.graphic_eq_rounded,
+    GameMode.oneSecond => Icons.flash_on_rounded,
+    GameMode.slang => Icons.bolt_rounded,
     GameMode.finishMeme => Icons.format_quote_rounded,
     GameMode.ogBrainrot => Icons.history_rounded,
     GameMode.impossible => Icons.dangerous_outlined,
@@ -69,7 +69,7 @@ extension GameModeDetails on GameMode {
   String get packName => switch (this) {
     GameMode.mix => 'brainrot_mix',
     GameMode.italianBrainrot => 'characters',
-    GameMode.guessSound => 'emoji',
+    GameMode.guessSound => 'voice',
     GameMode.oneSecond => 'quickfire',
     GameMode.slang => 'slang',
     GameMode.finishMeme => 'finish_memes',
