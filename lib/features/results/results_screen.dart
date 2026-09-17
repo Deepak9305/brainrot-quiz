@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../services/ads_service.dart';
 import '../../services/share_service.dart';
 import '../../state/providers.dart';
 import '../../state/quiz_session.dart';
@@ -17,6 +18,9 @@ class ResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultsScreenState extends ConsumerState<ResultsScreen> {
+  bool _bonusClaimed = false;
+  bool _claimingBonus = false;
+
   @override
   void initState() {
     super.initState();
@@ -67,49 +71,71 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         ? 0
         : ((session.correctAnswers / total) * 100).round().clamp(0, 100);
     final rank = _rankFor(percent);
+    final coinsEarned = _coinReward(session);
 
     return Scaffold(
       body: SafeArea(
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
           children: [
             Row(
               children: [
-                const Text(
-                  'Round complete',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.35,
+                const Expanded(
+                  child: Text(
+                    'ROUND COMPLETE',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
-                const Spacer(),
                 IconButton(
                   tooltip: 'Close',
                   onPressed: () => context.go('/'),
-                  icon: const Icon(Icons.close_rounded),
+                  icon: const Icon(Icons.close_rounded, size: 20),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _ResultCard(percent: percent, rank: rank),
-            const SizedBox(height: 12),
-            _StatsCard(session: session),
+            const SizedBox(height: 10),
+            _ResultHero(percent: percent, rank: rank),
+            const SizedBox(height: 18),
+            _StatsStrip(session: session),
+            const SizedBox(height: 14),
+            _RewardStrip(coins: coinsEarned),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 10),
+              BrainrotButton(
+                label: _bonusClaimed
+                    ? 'Bonus claimed'
+                    : _claimingBonus
+                        ? 'Opening ad…'
+                        : 'Watch ad · double coins',
+                icon: _bonusClaimed ? Icons.check_rounded : Icons.play_circle_outline_rounded,
+                outlined: true,
+                color: _bonusClaimed ? AppColors.muted : AppColors.orange,
+                foreground: AppColors.orange,
+                onPressed: _bonusClaimed || _claimingBonus
+                    ? null
+                    : () => _claimBonus(session, coinsEarned),
+              ),
+            ],
             const SizedBox(height: 20),
-            BrainrotButton(
-              label: 'Share result',
-              icon: Icons.share_outlined,
-              onPressed: () => _share(session, percent, rank),
-            ),
-            const SizedBox(height: 9),
             BrainrotButton(
               label: 'Play again',
               icon: Icons.replay_rounded,
+              onPressed: () => context.go('/quiz', extra: session.mode),
+            ),
+            const SizedBox(height: 9),
+            BrainrotButton(
+              label: 'Share result',
+              icon: Icons.share_outlined,
               outlined: true,
               color: AppColors.ink,
               foreground: AppColors.ink,
-              onPressed: () => context.go('/quiz', extra: session.mode),
+              onPressed: () => _share(session, percent, rank),
             ),
             const SizedBox(height: 4),
             TextButton(
@@ -126,6 +152,37 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         ),
       ),
     );
+  }
+
+  int _coinReward(QuizSession session) =>
+      80 + (session.correctAnswers * 35) + (session.bestStreak * 10);
+
+  Future<void> _claimBonus(QuizSession session, int reward) async {
+    if (_claimingBonus || _bonusClaimed) return;
+    setState(() => _claimingBonus = true);
+
+    final earned = await ref
+        .read(adsServiceProvider)
+        .showRewarded(RewardKind.doubleCoins);
+
+    if (!mounted) return;
+    if (earned) {
+      ref.read(progressProvider.notifier).addCoins(reward);
+      ref.read(analyticsServiceProvider).track('rewarded_bonus_claimed', {
+        'kind': 'doubleCoins',
+        'mode': session.mode.name,
+        'coins': reward,
+      });
+      setState(() {
+        _bonusClaimed = true;
+        _claimingBonus = false;
+      });
+    } else {
+      setState(() => _claimingBonus = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rewarded ad is not ready yet.')),
+      );
+    }
   }
 
   Future<void> _share(QuizSession session, int percent, _Rank rank) async {
@@ -148,114 +205,101 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
 
   _Rank _rankFor(int percent) {
     if (percent <= 20) {
-      return const _Rank('Touches grass', 'Still mostly normal.', AppColors.cyan);
+      return const _Rank('TOUCHES GRASS', 'Still mostly normal.', AppColors.cyan);
     }
     if (percent <= 40) {
-      return const _Rank('Casual scroller', 'You know enough.', AppColors.cyan);
+      return const _Rank('CASUAL SCROLLER', 'You know enough.', AppColors.cyan);
     }
     if (percent <= 60) {
       return const _Rank(
-        'Chronically online',
+        'CHRONICALLY ONLINE',
         'The algorithm knows you.',
         AppColors.purple,
       );
     }
     if (percent <= 80) {
       return const _Rank(
-        'Brainrot master',
+        'BRAINROT MASTER',
         'Fluent in internet culture.',
         AppColors.pink,
       );
     }
     if (percent <= 95) {
       return const _Rank(
-        'Terminally online',
+        'TERMINALLY ONLINE',
         'You have seen too much.',
         AppColors.orange,
       );
     }
-    return const _Rank('Beyond saving', 'Perfectly cooked.', AppColors.lime);
+    return const _Rank('BEYOND SAVING', 'Perfectly cooked.', AppColors.lime);
   }
 }
 
-class _ResultCard extends StatelessWidget {
-  const _ResultCard({required this.percent, required this.rank});
+class _ResultHero extends StatelessWidget {
+  const _ResultHero({required this.percent, required this.rank});
 
   final int percent;
   final _Rank rank;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 24, 18, 22),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: percent.toDouble()),
-            duration: const Duration(milliseconds: 650),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) => Text(
-              '${value.round()}%',
-              style: const TextStyle(
-                fontSize: 64,
-                height: .92,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -3.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: 28,
-            height: 4,
-            decoration: BoxDecoration(
-              color: rank.color,
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            rank.title,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: percent.toDouble()),
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) => Text(
+            '${value.round()}%',
             style: const TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -.4,
+              fontSize: 76,
+              height: .85,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -4.5,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            rank.subtitle,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
+        ),
+        const SizedBox(height: 14),
+        Container(width: 44, height: 5, color: rank.color),
+        const SizedBox(height: 11),
+        Text(
+          rank.title,
+          style: TextStyle(
+            color: rank.color,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.4,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          rank.subtitle,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.session});
+class _StatsStrip extends StatelessWidget {
+  const _StatsStrip({required this.session});
 
   final QuizSession session;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
+        ),
       ),
       child: Row(
         children: [
@@ -274,6 +318,34 @@ class _StatsCard extends StatelessWidget {
 
   String _format(int value) =>
       value >= 1000 ? '${(value / 1000).toStringAsFixed(1)}k' : '$value';
+}
+
+class _RewardStrip extends StatelessWidget {
+  const _RewardStrip({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          const Icon(Icons.bolt_rounded, color: AppColors.orange, size: 18),
+          const SizedBox(width: 7),
+          const Text(
+            'ROUND REWARD',
+            style: TextStyle(
+              color: AppColors.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .8,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '+$coins coins',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+          ),
+        ],
+      );
 }
 
 class _Stat extends StatelessWidget {
@@ -314,7 +386,7 @@ class _StatDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: 1,
-        height: 30,
+        height: 28,
         color: AppColors.border,
       );
 }
