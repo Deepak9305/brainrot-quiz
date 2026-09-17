@@ -110,7 +110,7 @@ class ProgressNotifier extends Notifier<PlayerProgress> {
   }
 
   void addCoins(int amount) {
-    final nextCoins = (state.coins + amount).clamp(0, 1 << 31);
+    final nextCoins = (state.coins + amount).clamp(0, 1 << 31).toInt();
     _update(state.copyWith(coins: nextCoins));
   }
 
