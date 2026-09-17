@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models/game_mode.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/ads_service.dart';
 import '../../services/share_service.dart';
@@ -18,13 +19,18 @@ class ResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultsScreenState extends ConsumerState<ResultsScreen> {
-  bool _bonusClaimed = false;
   bool _claimingBonus = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final firstView = ref
+          .read(quizSessionProvider.notifier)
+          .markResultProcessed();
+      if (!firstView) return;
+
       ref.read(adsServiceProvider).recordCompletedRound();
       ref.read(adsServiceProvider).showInterstitialIfEligible();
       ref.read(analyticsServiceProvider).track('result_viewed');
@@ -66,8 +72,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       );
     }
 
-    // Normal rounds are scored against the fixed round size. Rush is timed,
-    // so accuracy must use only questions the player actually attempted.
     final attempted = session.isRush
         ? session.currentIndex + (session.isAnswered ? 1 : 0)
         : session.questions.length;
@@ -76,6 +80,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         : ((session.correctAnswers / attempted) * 100).round().clamp(0, 100);
     final rank = _rankFor(percent);
     final coinsEarned = _coinReward(session);
+    final bonusClaimed = session.rewardedBonusClaimed;
 
     return Scaffold(
       body: SafeArea(
@@ -112,27 +117,35 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             if (!kIsWeb) ...[
               const SizedBox(height: 10),
               BrainrotButton(
-                label: _bonusClaimed
+                label: bonusClaimed
                     ? 'Bonus claimed'
                     : _claimingBonus
                         ? 'Opening ad…'
                         : 'Watch ad · double coins',
-                icon: _bonusClaimed
+                icon: bonusClaimed
                     ? Icons.check_rounded
                     : Icons.play_circle_outline_rounded,
                 outlined: true,
-                color: _bonusClaimed ? AppColors.muted : AppColors.orange,
+                color: bonusClaimed ? AppColors.muted : AppColors.orange,
                 foreground: AppColors.orange,
-                onPressed: _bonusClaimed || _claimingBonus
+                onPressed: bonusClaimed || _claimingBonus
                     ? null
                     : () => _claimBonus(session, coinsEarned),
               ),
             ],
             const SizedBox(height: 20),
             BrainrotButton(
-              label: 'Play again',
-              icon: Icons.replay_rounded,
-              onPressed: () => context.go('/quiz', extra: session.mode),
+              label: session.mode == GameMode.daily ? 'Back to daily' : 'Play again',
+              icon: session.mode == GameMode.daily
+                  ? Icons.today_outlined
+                  : Icons.replay_rounded,
+              onPressed: () {
+                if (session.mode == GameMode.daily) {
+                  context.go('/daily');
+                } else {
+                  context.go('/quiz', extra: session.mode);
+                }
+              },
             ),
             const SizedBox(height: 9),
             BrainrotButton(
@@ -164,7 +177,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       80 + (session.correctAnswers * 35) + (session.bestStreak * 10);
 
   Future<void> _claimBonus(QuizSession session, int reward) async {
-    if (_claimingBonus || _bonusClaimed) return;
+    if (_claimingBonus || session.rewardedBonusClaimed) return;
     setState(() => _claimingBonus = true);
 
     final earned = await ref
@@ -172,19 +185,27 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         .showRewarded(RewardKind.doubleCoins);
 
     if (!mounted) return;
-    if (earned) {
+
+    final current = ref.read(quizSessionProvider);
+    final sameRound = current != null &&
+        identical(current.questions, session.questions) &&
+        current.mode == session.mode;
+
+    if (earned &&
+        sameRound &&
+        ref.read(quizSessionProvider.notifier).markRewardedBonusClaimed()) {
       ref.read(progressProvider.notifier).addCoins(reward);
       ref.read(analyticsServiceProvider).track('rewarded_bonus_claimed', {
         'kind': 'doubleCoins',
         'mode': session.mode.name,
         'coins': reward,
       });
-      setState(() {
-        _bonusClaimed = true;
-        _claimingBonus = false;
-      });
-    } else {
       setState(() => _claimingBonus = false);
+      return;
+    }
+
+    setState(() => _claimingBonus = false);
+    if (!earned) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Rewarded ad is not ready yet.')),
       );
@@ -254,23 +275,36 @@ class _ResultHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final score = Text(
+      '$percent%',
+      style: const TextStyle(
+        fontSize: 76,
+        height: .85,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -4.5,
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: percent.toDouble()),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) => Text(
-            '${value.round()}%',
-            style: const TextStyle(
-              fontSize: 76,
-              height: .85,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -4.5,
+        if (MediaQuery.disableAnimationsOf(context))
+          score
+        else
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: percent.toDouble()),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) => Text(
+              '${value.round()}%',
+              style: const TextStyle(
+                fontSize: 76,
+                height: .85,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -4.5,
+              ),
             ),
           ),
-        ),
         const SizedBox(height: 14),
         Container(width: 44, height: 5, color: rank.color),
         const SizedBox(height: 11),
