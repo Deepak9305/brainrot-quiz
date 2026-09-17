@@ -1,0 +1,7 @@
+[
+  {"id":"og-001","category":"og","difficulty":"easy","questionType":"text","question":"What does the phrase 'it is what it is' communicate?","answers":["Acceptance","Panic","A recipe","A secret code"],"correctAnswer":0},
+  {"id":"og-002","category":"og","difficulty":"easy","questionType":"finishMeme","question":"Why are you running? Why are you ___?","answers":["walking","sleeping","running","cooking"],"correctAnswer":2},
+  {"id":"og-003","category":"og","difficulty":"medium","questionType":"text","question":"What does 'epic fail' usually describe?","answers":["A perfect win","A spectacular mistake","A cooking tutorial","A new update"],"correctAnswer":1},
+  {"id":"og-004","category":"og","difficulty":"medium","questionType":"emoji","question":"🐸 + tea + side eye = ?","answers":["Kermit energy","A weather report","A smoothie","A sports score"],"correctAnswer":0},
+  {"id":"og-005","category":"og","difficulty":"hard","questionType":"text","question":"The classic reaction image duo is usually…","answers":["Confused and confident","Happy and sad","Salt and pepper","All of the above"],"correctAnswer":3}
+]

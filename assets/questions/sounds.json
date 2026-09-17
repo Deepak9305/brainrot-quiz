@@ -1,0 +1,7 @@
+[
+  {"id":"sound-001","category":"sounds","difficulty":"easy","questionType":"sound","question":"WHAT SOUND IS THIS?","answers":["Skibidi energy","Vine boom","Rizz sound","A notification"],"correctAnswer":1},
+  {"id":"sound-002","category":"sounds","difficulty":"medium","questionType":"sound","question":"Your ears recognize this instantly. Probably.","answers":["Dramatic reveal","Keyboard smash","Cartoon fall","Silence"],"correctAnswer":0},
+  {"id":"sound-003","category":"sounds","difficulty":"hard","questionType":"sound","question":"Which button should you press for one more replay?","answers":["A","B","The glowing one","Touch grass"],"correctAnswer":2},
+  {"id":"sound-004","category":"sounds","difficulty":"easy","questionType":"sound","question":"Sound on. Brain off. This is…","answers":["Locked in","A vibe","A bug","A meeting"],"correctAnswer":1},
+  {"id":"sound-005","category":"sounds","difficulty":"medium","questionType":"sound","question":"If you know this sound, your algorithm is showing.","answers":["No idea","I fear I do","I am normal","Please stop"],"correctAnswer":1}
+]

@@ -1,0 +1,7 @@
+[
+  {"id":"im-001","category":"impossible","difficulty":"insane","questionType":"text","question":"What is the only correct response to 'absolute cinema'?","answers":["Cinema","More cinema","Touch grass","All answers are suspicious"],"correctAnswer":3},
+  {"id":"im-002","category":"impossible","difficulty":"insane","questionType":"emoji","question":"🧠 📉 🔥 is the mood of…","answers":["A productive day","Brainrot","A birthday","A weather forecast"],"correctAnswer":1},
+  {"id":"im-003","category":"impossible","difficulty":"insane","questionType":"text","question":"A perfect score in Brainrot Quiz means…","answers":["You are normal","You are beyond saving","You went outside","You read a book"],"correctAnswer":1},
+  {"id":"im-004","category":"impossible","difficulty":"insane","questionType":"text","question":"Which answer contains the most aura?","answers":["Maybe","Probably","Absolutely locked in","I need to think"],"correctAnswer":2},
+  {"id":"im-005","category":"impossible","difficulty":"insane","questionType":"text","question":"The final boss of scrolling is…","answers":["The loading spinner","The sun","Your battery at 1%","All of the above"],"correctAnswer":3}
+]

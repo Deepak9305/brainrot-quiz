@@ -1,0 +1,7 @@
+[
+  {"id":"slang-001","category":"slang","difficulty":"easy","questionType":"slang","question":"What does 'delulu' mean?","answers":["Delusional","Delicious","Delayed","Deeply online"],"correctAnswer":0},
+  {"id":"slang-002","category":"slang","difficulty":"easy","questionType":"slang","question":"If a post is 'mid', it is…","answers":["Average","Extremely good","Unreleased","Made of cheese"],"correctAnswer":0},
+  {"id":"slang-003","category":"slang","difficulty":"medium","questionType":"slang","question":"To 'mog' someone is to…","answers":["Outclass them","Invite them over","Mute them","Give them snacks"],"correctAnswer":0},
+  {"id":"slang-004","category":"slang","difficulty":"medium","questionType":"slang","question":"What is a 'glow up'?","answers":["A major improvement","A broken lamp","A new filter","A wake-up call"],"correctAnswer":0},
+  {"id":"slang-005","category":"slang","difficulty":"hard","questionType":"slang","question":"When someone says 'no cap', they mean…","answers":["No lie","Wear a hat","No internet","No chance"],"correctAnswer":0}
+]
