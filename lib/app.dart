@@ -179,14 +179,14 @@ class _CulturePreview extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          const Expanded(
+          Expanded(
             child: GridView.count(
               crossAxisCount: 2,
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
               childAspectRatio: 1.15,
-              children: [
+              children: const [
                 _CultureTile(
                   icon: Icons.chat_bubble_outline_rounded,
                   title: 'SLANG',
