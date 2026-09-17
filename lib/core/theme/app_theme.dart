@@ -2,34 +2,41 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const background = Color(0xFF0B0B0C);
-  static const surface = Color(0xFF141416);
-  static const surfaceRaised = Color(0xFF1B1B1E);
+  static const background = Color(0xFF09090A);
+  static const surface = Color(0xFF121214);
+  static const surfaceRaised = Color(0xFF1A1A1D);
   static const surfaceSoft = Color(0xFF202024);
   static const border = Color(0xFF2B2B30);
-  static const ink = Color(0xFFF6F6F2);
-  static const muted = Color(0xFFA0A0A8);
+  static const ink = Color(0xFFF7F7F2);
+  static const muted = Color(0xFFA1A1A8);
   static const subtle = Color(0xFF707078);
 
-  // Acid lime is the product accent. The rest are semantic/game-mode accents.
   static const lime = Color(0xFFD9FF53);
-  static const cyan = Color(0xFF7EC8E3);
-  static const pink = Color(0xFFE783A9);
-  static const orange = Color(0xFFE7A84F);
-  static const red = Color(0xFFEA6D78);
-  static const purple = Color(0xFFA493D6);
+  static const cyan = Color(0xFF6FD4F2);
+  static const pink = Color(0xFFFF79A8);
+  static const orange = Color(0xFFFFB34F);
+  static const red = Color(0xFFFF6678);
+  static const purple = Color(0xFFA998FF);
 }
 
 class AppTheme {
-  static ThemeData dark() {
+  static Color accentForTheme(String id) => switch (id) {
+        'cyan' => AppColors.cyan,
+        'pink' => AppColors.pink,
+        'orange' => AppColors.orange,
+        'purple' => AppColors.purple,
+        _ => AppColors.lime,
+      };
+
+  static ThemeData dark({Color accent = AppColors.lime}) {
     final base = ThemeData.dark(useMaterial3: true);
 
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.background,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         surface: AppColors.surface,
-        primary: AppColors.lime,
+        primary: accent,
         secondary: AppColors.cyan,
         error: AppColors.red,
       ),
@@ -39,41 +46,41 @@ class AppTheme {
           .apply(bodyColor: AppColors.ink, displayColor: AppColors.ink)
           .copyWith(
             displayLarge: const TextStyle(
-              fontSize: 40,
-              height: .96,
-              letterSpacing: -1.8,
+              fontSize: 42,
+              height: .92,
+              letterSpacing: -2.2,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
             ),
             headlineLarge: const TextStyle(
-              fontSize: 29,
-              height: 1.02,
-              letterSpacing: -1.0,
+              fontSize: 30,
+              height: .98,
+              letterSpacing: -1.2,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
             ),
             titleLarge: const TextStyle(
               fontSize: 20,
-              height: 1.12,
-              letterSpacing: -.35,
+              height: 1.08,
+              letterSpacing: -.45,
               fontWeight: FontWeight.w800,
               color: AppColors.ink,
             ),
             titleMedium: const TextStyle(
               fontSize: 16,
-              height: 1.2,
+              height: 1.18,
               fontWeight: FontWeight.w800,
               color: AppColors.ink,
             ),
             bodyLarge: const TextStyle(
               fontSize: 16,
-              height: 1.4,
+              height: 1.36,
               fontWeight: FontWeight.w600,
               color: AppColors.ink,
             ),
             bodyMedium: const TextStyle(
               fontSize: 14,
-              height: 1.38,
+              height: 1.36,
               fontWeight: FontWeight.w500,
               color: AppColors.muted,
             ),
@@ -93,22 +100,23 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.surfaceRaised,
+        backgroundColor: AppColors.ink,
         contentTextStyle: base.textTheme.bodyMedium?.copyWith(
-          color: AppColors.ink,
+          color: Colors.black,
           fontWeight: FontWeight.w700,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         modalBackgroundColor: AppColors.surface,
+        showDragHandle: false,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
