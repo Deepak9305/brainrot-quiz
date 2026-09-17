@@ -77,10 +77,10 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsLink(
                   label: 'Version',
                   icon: Icons.info_outline_rounded,
-                  trailing: '1.0.0',
+                  trailing: '1.1.1',
                   onTap: () => _showInfo(
                     context,
-                    'Brainrot Quiz',
+                    'Brainrot Quiz 1.1.1',
                     'Fast internet-culture quizzes with no login required.',
                   ),
                 ),
