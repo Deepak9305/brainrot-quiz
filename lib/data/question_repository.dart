@@ -7,9 +7,12 @@ import '../core/models/game_mode.dart';
 import '../core/models/question.dart';
 
 class QuestionRepository {
-  QuestionRepository({AssetBundle? bundle}) : _bundle = bundle ?? rootBundle;
+  QuestionRepository({AssetBundle? bundle, DateTime Function()? now})
+      : _bundle = bundle ?? rootBundle,
+        _now = now ?? DateTime.now;
 
   final AssetBundle _bundle;
+  final DateTime Function() _now;
   final Map<String, List<QuizQuestion>> _cache = {};
 
   // Remember recent questions for the current app session so replaying a mode
@@ -47,9 +50,13 @@ class QuestionRepository {
     int count = 10,
   }) async {
     final safeCount = count.clamp(1, 50).toInt();
+    final now = _now();
+    // Daily completion is tracked using the device's local calendar date, so
+    // the question seed must use that same calendar. UTC-based seeding caused
+    // the Daily set to change at a different time from the Daily completion.
     final seed = mode == GameMode.daily
-        ? DateTime.now().toUtc().difference(DateTime.utc(2024, 1, 1)).inDays
-        : DateTime.now().microsecondsSinceEpoch;
+        ? (now.year * 10000) + (now.month * 100) + now.day
+        : now.microsecondsSinceEpoch;
 
     final packNames = switch (mode) {
       GameMode.mix => _mixPacks,
@@ -244,7 +251,7 @@ class QuestionRepository {
   }) {
     final safeCount = count.clamp(1, _fallbackBank.length).toInt();
     final questions = [..._fallbackBank]
-      ..shuffle(Random(seed ?? DateTime.now().microsecondsSinceEpoch));
+      ..shuffle(Random(seed ?? _now().microsecondsSinceEpoch));
     return questions.take(safeCount).toList(growable: false);
   }
 
