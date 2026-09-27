@@ -43,12 +43,24 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
 }) => {
   const modes: ModeCardInfo[] = [
     {
+      id: 'mix',
+      title: 'Brainrot Mix',
+      badge: 'BEST START',
+      badgeColor: 'bg-pink-500 text-black',
+      icon: <Sparkles className="w-6 h-6 text-pink-300" />,
+      description: 'A replayable blend of local character clues, emoji, slang, quotes, and classic internet lore.',
+      highlight: '10 mixed questions',
+      glowColor: 'hover:shadow-[0_0_25px_rgba(236,72,153,0.4)]',
+      borderColor: 'border-pink-500/70',
+      accentBg: 'from-pink-950/50 via-zinc-900 to-black',
+    },
+    {
       id: 'daily',
       title: 'Daily Mode',
       badge: 'STREAK FUEL',
       badgeColor: 'bg-orange-500 text-black',
       icon: <Calendar className="w-6 h-6 text-orange-400" />,
-      description: '5 calibrated viral questions every day. Extends your daily streak & grants mega Aura!',
+      description: 'Five deterministic questions per calendar day. Complete it once to extend your streak.',
       highlight: `Streak: ${stats.streak} Days 🔥`,
       glowColor: 'hover:shadow-[0_0_25px_rgba(249,115,22,0.4)]',
       borderColor: 'border-orange-500/70',
@@ -57,11 +69,11 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     {
       id: 'image',
       title: 'Image Mode',
-      badge: 'AUTHENTIC MEMES',
+      badge: 'LOCAL MEDIA',
       badgeColor: 'bg-pink-500 text-black',
       icon: <ImageIcon className="w-6 h-6 text-pink-400" />,
-      description: 'Identify real meme images: Skibidi, GigaChad, Doge, The Rock, Chill Guy, Smurf Cat & CaseOh.',
-      highlight: 'Real Images + HD Art',
+      description: 'Identify sourced local references from the modern Italian Brainrot character family.',
+      highlight: 'No random stock photos',
       glowColor: 'hover:shadow-[0_0_25px_rgba(236,72,153,0.4)]',
       borderColor: 'border-pink-500/70',
       accentBg: 'from-pink-950/40 via-zinc-900 to-black',
@@ -93,11 +105,11 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     {
       id: 'sound',
       title: 'Sound Mode',
-      badge: 'OFFLINE SYNTH',
+      badge: 'SOUND RECREATION',
       badgeColor: 'bg-purple-400 text-black',
       icon: <Volume2 className="w-6 h-6 text-purple-400" />,
-      description: 'Listen to pure offline Web Audio synths of Vine Boom, Metal Pipe, Airhorn & Oof!',
-      highlight: 'Meme Audio Recognition',
+      description: 'Tap to hear original game recreations and identify the internet moment they reference.',
+      highlight: 'Fair recreation clues',
       glowColor: 'hover:shadow-[0_0_25px_rgba(192,132,252,0.4)]',
       borderColor: 'border-purple-500/70',
       accentBg: 'from-purple-950/40 via-zinc-900 to-black',
@@ -105,11 +117,11 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     {
       id: 'voice',
       title: 'Voice Mode',
-      badge: 'VOICE TTS',
+      badge: 'SYNTH NARRATION',
       badgeColor: 'bg-emerald-400 text-black',
       icon: <Mic className="w-6 h-6 text-emerald-400" />,
-      description: 'Offline speech synthesis speaks viral quotes. Guess who said it or the meme origin!',
-      highlight: 'Speech Synthesis Quotes',
+      description: 'A neutral browser narrator reads a quote. Guess the phrase, meme, or context—not an impersonation.',
+      highlight: 'Quote challenge',
       glowColor: 'hover:shadow-[0_0_25px_rgba(52,211,153,0.4)]',
       borderColor: 'border-emerald-500/70',
       accentBg: 'from-emerald-950/40 via-zinc-900 to-black',
@@ -159,7 +171,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
                 <span className="bg-amber-400 text-black font-black text-[10px] px-2 py-0.5 rounded tracking-wider uppercase">
                   DAILY STREAK CHECK-IN
                 </span>
-                <span className="text-zinc-400 text-xs font-mono">100% OFFLINE</span>
+                <span className="text-zinc-400 text-xs font-mono">CORE QUIZ OFFLINE</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
                 Keep the {stats.streak}-Day Streak Alive!
@@ -201,7 +213,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
             <Star className="w-5 h-5 text-pink-400 fill-pink-400" />
             SELECT GAME MODE
           </h3>
-          <p className="text-zinc-400 text-xs font-mono">8 CHAOTIC TEST MODES • PURE RETRO ARCADE</p>
+          <p className="text-zinc-400 text-xs font-mono">9 CHAOTIC TEST MODES • PURE RETRO ARCADE</p>
         </div>
         <div className="text-right font-mono text-xs text-zinc-400">
           COMPLETED: <span className="text-pink-400 font-bold">{stats.quizzesCompleted}</span> QUIZZES

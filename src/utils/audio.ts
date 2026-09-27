@@ -543,6 +543,14 @@ class SoundSynthesizer {
     }
   }
 
+  public stop() {
+    if (this.ctx) {
+      this.ctx.close().catch(() => {});
+      this.ctx = null;
+    }
+    this.stopSpeaking();
+  }
+
   public stopSpeaking() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();

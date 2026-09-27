@@ -1,4 +1,5 @@
 export type GameMode = 
+  | 'mix'
   | 'image'
   | 'emoji'
   | 'slang'
@@ -25,6 +26,19 @@ export type SoundEffectType =
   | 'windows_error'
   | 'dun_dun_dun';
 
+export type QuestionType =
+  | 'standard'
+  | 'image_identification'
+  | 'image_crop'
+  | 'silhouette'
+  | 'emoji_decode'
+  | 'sound_recreation'
+  | 'quote_identification'
+  | 'complete_phrase'
+  | 'origin';
+
+export type QuestionEra = 'classic' | '2025' | '2026' | 'italian_brainrot' | 'current';
+
 export interface Question {
   id: string;
   mode: GameMode;
@@ -33,7 +47,16 @@ export interface Question {
   // Visual content for image or emoji modes
   visualType?: 'image' | 'emoji' | 'ascii' | 'sound_test' | 'voice_clip';
   visualContent?: string; // image url/svg identifier, emoji string, ascii art, sound trigger key, etc.
-  imageUrl?: string; // Real accurate meme image URL
+  imageUrl?: string; // Legacy field; bundled media uses imageAsset instead.
+  imageAsset?: string;
+  imageVariant?: 'standard' | 'crop' | 'silhouette';
+  questionType?: QuestionType;
+  era?: QuestionEra;
+  tags?: string[];
+  eligibleForRush?: boolean;
+  eligibleForDaily?: boolean;
+  weight?: number;
+  sourceLabel?: string;
   options: string[];
   correctAnswer: number; // 0 to 3 index
   explanation: string;
@@ -53,6 +76,7 @@ export interface UserStats {
   lastDailyCompletedDate: string; // YYYY-MM-DD
   auraPoints: number;
   streakFreezes: number;
+  recentQuestionIds: string[];
   quizzesCompleted: number;
   totalCorrect: number;
   totalWrong: number;

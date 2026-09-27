@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Heart, 
@@ -54,6 +54,8 @@ export const QuizGame: React.FC<QuizGameProps> = ({
 
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [isSpeakingVoice, setIsSpeakingVoice] = useState<boolean>(false);
+  const mediaTimeoutRef = useRef<number | null>(null);
+  const advanceTimeoutRef = useRef<number | null>(null);
 
   const currentQ = session.questions[session.currentIndex] || session.questions[0];
 
@@ -62,25 +64,32 @@ export const QuizGame: React.FC<QuizGameProps> = ({
     if (q.mode === 'sound' && q.audioClip) {
       setIsPlayingAudio(true);
       soundManager.play(q.audioClip);
-      setTimeout(() => setIsPlayingAudio(false), 1200);
+      if (mediaTimeoutRef.current) window.clearTimeout(mediaTimeoutRef.current);
+      mediaTimeoutRef.current = window.setTimeout(() => setIsPlayingAudio(false), 1200);
     } else if (q.mode === 'voice' && q.voiceText) {
       setIsSpeakingVoice(true);
       soundManager.speakMemeText(
         q.voiceText,
-        q.voicePitch ?? 1.0,
-        q.voiceRate ?? 1.0,
-        q.speakerName,
+        1.0,
+        1.0,
+        undefined,
         () => setIsSpeakingVoice(false)
       );
     }
   }, []);
 
-  // When index changes, automatically play question audio/voice if applicable
+  // Stop narration and stale timers when questions change or the component unmounts.
   useEffect(() => {
-    if (currentQ && !session.isAnswered) {
-      triggerMediaForQuestion(currentQ);
-    }
-  }, [session.currentIndex, currentQ, triggerMediaForQuestion, session.isAnswered]);
+    setIsPlayingAudio(false);
+    setIsSpeakingVoice(false);
+    soundManager.stopSpeaking();
+    return () => {
+      soundManager.stopSpeaking();
+      soundManager.stop();
+      if (mediaTimeoutRef.current) window.clearTimeout(mediaTimeoutRef.current);
+      if (advanceTimeoutRef.current) window.clearTimeout(advanceTimeoutRef.current);
+    };
+  }, [currentQ?.id]);
 
   // Timer loop
   useEffect(() => {
@@ -135,12 +144,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({
       }
     } else {
       triggerScreenShake();
-      // Alternate meme sound
-      if (Math.random() > 0.5) {
-        soundManager.play('vine_boom');
-      } else {
-        soundManager.play('roblox_oof');
-      }
+      soundManager.play('wrong');
     }
 
     let nextLives = session.lives;
@@ -165,13 +169,13 @@ export const QuizGame: React.FC<QuizGameProps> = ({
 
     // If challenge mode and out of lives
     if (nextLives <= 0) {
-      setTimeout(() => {
+      advanceTimeoutRef.current = window.setTimeout(() => {
         soundManager.play('game_over');
         setSession((prev) => ({ ...prev, isFinished: true }));
       }, 1400);
     } else if (session.mode === 'rush' && session.timeLeft > 0) {
       // In rush mode, immediately advance after 400ms!
-      setTimeout(() => {
+      advanceTimeoutRef.current = window.setTimeout(() => {
         advanceQuestion(updatedSession);
       }, 450);
     }
@@ -315,8 +319,8 @@ export const QuizGame: React.FC<QuizGameProps> = ({
           <div className="my-4">
             <MemeArt 
               type={currentQ.visualContent} 
-              imageUrl={currentQ.imageUrl}
               altText={currentQ.question}
+              variant={currentQ.imageVariant}
             />
           </div>
         )}
@@ -375,7 +379,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({
           <div className="my-4 p-5 rounded-2xl bg-emerald-950/40 border-2 border-emerald-500 flex flex-col items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
             {currentQ.speakerName && (
               <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-900/80 text-emerald-300 border border-emerald-400/60 px-3 py-1 rounded-full">
-                CHARACTER VOCAL PRESET: {currentQ.speakerName.replace('_', ' ')}
+                QUOTE MODE / NEUTRAL NARRATION
               </span>
             )}
 
@@ -400,14 +404,12 @@ export const QuizGame: React.FC<QuizGameProps> = ({
               }`}
             >
               <Play className={`w-5 h-5 ${isSpeakingVoice ? 'animate-spin' : ''}`} />
-              {isSpeakingVoice ? 'SPEAKING VIRAL QUOTE...' : 'PLAY ACCURATE VOICE CLIP 🎙️'}
+              {isSpeakingVoice ? 'SPEAKING SYNTHESIZED QUOTE...' : 'PLAY SYNTHESIZED NARRATION 🎙️'}
             </button>
 
-            {currentQ.voiceText && (
-              <div className="text-xs text-emerald-200/90 font-mono italic bg-black/50 px-3 py-1.5 rounded-lg border border-emerald-800/80">
-                "{currentQ.voiceText}"
-              </div>
-            )}
+            <div className="text-[10px] text-emerald-200/80 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-emerald-800/80">
+              Synthesized narration • no creator impersonation
+            </div>
           </div>
         )}
 
@@ -469,7 +471,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-pink-400 font-mono font-bold">
                   <HelpCircle className="w-4 h-4" />
-                  <span>MEME ARCHIVE LORE:</span>
+                  <span>{session.selectedOption === currentQ.correctAnswer ? 'LOCKED IN:' : 'COOKED:'}</span>
                 </div>
                 <span className="text-zinc-500 font-mono text-[10px]">
                   PRESS ENTER FOR NEXT

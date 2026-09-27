@@ -1,6 +1,7 @@
 import { Question } from '../types';
+import { MODERN_QUESTIONS } from './modernQuestions';
 
-export const QUESTIONS_DB: Question[] = [
+const LEGACY_QUESTIONS_DB: Question[] = [
   // ==================== 1. IMAGE MODE ====================
   {
     id: 'img_1',
@@ -9,7 +10,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: The Sing-Along Terror',
     visualType: 'image',
     visualContent: 'toilet_head',
-    imageUrl: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80',
     options: ['Cameraman Titan', 'Skibidi Toilet', 'Plumber Bob', 'Ohio Septic Monster'],
     correctAnswer: 1, // B
     explanation: 'Skibidi Toilet was created by Alexey Gerasimov (DaFuq!?Boom!) featuring a human head singing inside a toilet.',
@@ -23,7 +23,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: Looksmaxxing & Orthotropics',
     visualType: 'image',
     visualContent: 'mewing_jaw',
-    imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
     options: ['Face-Palming', 'Jaw-Dropping', 'Mewing', 'The Sigma Nod'],
     correctAnswer: 2, // C
     explanation: '🤫🧏‍♂️ Mewing refers to proper tongue posture popularized by Dr. John Mew, co-opted into looksmaxxing memes.',
@@ -37,7 +36,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: Ultimate Zen Dog',
     visualType: 'image',
     visualContent: 'chill_guy',
-    imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=80',
     options: ['Chill Guy', 'Snoopy Alter-Ego', 'Doggo Sigma', 'Lowkey Larry'],
     correctAnswer: 0, // A
     explanation: '"Chill Guy" (created by artist Phillip Banks) became a massive TikTok viral sensation in late 2024.',
@@ -51,7 +49,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: Birthday Curse',
     visualType: 'image',
     visualContent: 'grimace_shake',
-    imageUrl: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&auto=format&fit=crop&q=80',
     options: ['Barney Elixir', 'Lean Potion', 'Purple Guy Sludge', 'Grimace Shake'],
     correctAnswer: 3, // D
     explanation: 'McDonald\'s Grimace Birthday Shake went viral in summer 2023 with mock found-footage horror videos.',
@@ -65,7 +62,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: We Live, We Love, We Lie',
     visualType: 'image',
     visualContent: 'smurf_cat',
-    imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&auto=format&fit=crop&q=80',
     options: ['Mushroom Kitty', 'Smurf Cat (Shailushai)', 'Gargamel Pet', 'Avatar Feline'],
     correctAnswer: 1, // B
     explanation: 'The Russian CGI creature "Shailushai", known in English as Smurf Cat, paired with Alan Walker\'s song "The Spectre".',
@@ -79,7 +75,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: The 1x1 Lego Piece',
     visualType: 'image',
     visualContent: 'caseoh_mic',
-    imageUrl: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=600&auto=format&fit=crop&q=80',
     options: ['Jynxzi', 'CaseOh', 'IShowSpeed', 'Sketch'],
     correctAnswer: 1, // B
     explanation: 'CaseOh is famous for chaotic gaming streams where his chat spams unhinged fat jokes and food memes.',
@@ -93,7 +88,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: The Original Doge',
     visualType: 'image',
     visualContent: 'doge_shiba',
-    imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&auto=format&fit=crop&q=80',
     options: ['Cheems Balltze', 'Hachiko', 'Kabosu (Doge)', 'Walter the Bull Terrier'],
     correctAnswer: 2, // C
     explanation: 'Kabosu, a female Shiba Inu rescue dog in Japan, was photographed in 2010 with folded paws and an iconic side-eye expression.',
@@ -107,7 +101,6 @@ export const QUESTIONS_DB: Question[] = [
     subtitle: 'Meme Archetype: The People\'s Eyebrow',
     visualType: 'image',
     visualContent: 'rock_eyebrow',
-    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
     options: ['John Cena', 'Dave Bautista', 'Dwayne "The Rock" Johnson', 'Roman Reigns'],
     correctAnswer: 2, // C
     explanation: 'Dwayne "The Rock" Johnson\'s signature eyebrow raise accompanied by the Vine Boom sound became TikTok\'s favorite suspicion meme.',
@@ -759,4 +752,12 @@ export const QUESTIONS_DB: Question[] = [
     memeContext: 'It evolved over 8 years into "Wait, it\'s all Ohio? Always has been 👨‍🚀🔫👨‍🚀".',
     difficulty: 'sigma',
   },
+];
+
+// Legacy prototype image prompts are intentionally excluded from active play:
+// they referenced unrelated stock photography. The replacement pack is local,
+// source-documented, and current-generation brainrot content.
+export const QUESTIONS_DB: Question[] = [
+  ...LEGACY_QUESTIONS_DB.filter((question) => question.mode !== 'image'),
+  ...MODERN_QUESTIONS,
 ];
