@@ -6,6 +6,7 @@ import { MemeArt } from './MemeArt';
 import { getLocalMediaAsset } from '../data/media';
 import { fisherYates } from '../utils/shuffle';
 import { soundManager } from '../utils/audio';
+import { calculateNormalScore, calculateRushScore, comboMultiplier } from '../utils/scoring';
 
 interface QuizGameProps {
   mode: GameMode;
@@ -15,20 +16,6 @@ interface QuizGameProps {
   onFinishGame: (finalSession: QuizSessionState) => void;
   onExitGame: () => void;
   triggerScreenShake: () => void;
-}
-
-const DIFFICULTY_MULTIPLIER: Record<Question['difficulty'], number> = {
-  easy: 1,
-  medium: 1.2,
-  hard: 1.5,
-  sigma: 2,
-};
-
-function comboMultiplier(combo: number): number {
-  if (combo >= 8) return 2;
-  if (combo >= 5) return 1.5;
-  if (combo >= 3) return 1.2;
-  return 1;
 }
 
 function getInitialWave(question?: Question): number {
@@ -61,11 +48,14 @@ function createInitialSession(mode: GameMode, questions: Question[], isPracticeR
     questionsAnswered: 0,
     challengeWave: getInitialWave(questions[0]),
     highestChallengeWave: getInitialWave(questions[0]),
+    challengeVictory: false,
+    finalBossDefeated: false,
     isPracticeRun,
     isNewHighScore: false,
     scoreEvents: [],
     dailyPerfect: false,
     correctByCategory: {},
+    answeredSubjectKeys: [],
   };
 }
 
@@ -211,12 +201,11 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
     if (isCorrect) {
       if (mode === 'rush') {
         const speedBonus = answerTimeMs < 1_000 ? 75 : answerTimeMs < 2_000 ? 50 : 0;
-        const multiplier = comboMultiplier(nextCombo) * DIFFICULTY_MULTIPLIER[currentQ.difficulty];
-        scoreDelta = Math.round((100 + speedBonus) * multiplier);
+        scoreDelta = calculateRushScore(currentQ.difficulty, nextCombo, answerTimeMs, true);
         scoreEvent = speedBonus > 0 ? `+${scoreDelta} FAST` : `+${scoreDelta}`;
         if (nextCombo >= 3) scoreEvent = `${scoreEvent} • x${comboMultiplier(nextCombo).toFixed(1)} COMBO`;
       } else {
-        scoreDelta = 100 * Math.max(1, nextCombo);
+        scoreDelta = calculateNormalScore(nextCombo, true);
         scoreEvent = `+${scoreDelta}`;
       }
       soundManager.play(nextCombo >= 3 ? 'airhorn' : 'correct');
@@ -243,7 +232,10 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
       questionsAnswered: session.questionsAnswered + 1,
       scoreEvents: scoreEvent ? [...session.scoreEvents, scoreEvent] : session.scoreEvents,
       correctByCategory,
+      answeredSubjectKeys: [...new Set([...session.answeredSubjectKeys, currentQ.subjectKey ?? currentQ.visualContent ?? currentQ.id])],
       highestChallengeWave: Math.max(session.highestChallengeWave, currentQ.challengeWave ?? session.challengeWave),
+      challengeVictory: session.challengeVictory || (mode === 'challenge' && currentQ.challengeWave === 6 && isCorrect),
+      finalBossDefeated: session.finalBossDefeated || (mode === 'challenge' && currentQ.challengeWave === 6 && isCorrect),
     };
     setSession(updatedSession);
     if (scoreEvent) {

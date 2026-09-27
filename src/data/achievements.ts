@@ -22,5 +22,5 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   { id: 'last-heart', title: 'LAST HEART', description: 'Finish Challenge with one heart left.', condition: ({ session }) => session?.mode === 'challenge' && session.isFinished && session.lives === 1 },
   { id: 'daily-grinder', title: 'DAILY GRINDER', description: 'Reach a seven-day Daily streak.', condition: ({ stats }) => stats.streak >= 7 },
   { id: 'touch-grass', title: 'TOUCH GRASS', description: 'Complete 50 quizzes.', condition: ({ stats }) => stats.quizzesCompleted >= 50 },
-  { id: 'final-boss', title: 'FINAL BOSS', description: 'Beat the Challenge Final Boss.', condition: ({ stats }) => stats.highestChallengeWave >= 6 },
+  { id: 'final-boss', title: 'FINAL BOSS', description: 'Clear the Challenge Final Boss.', condition: ({ stats, session }) => stats.finalBossWins >= 1 || session?.challengeVictory === true },
 ];

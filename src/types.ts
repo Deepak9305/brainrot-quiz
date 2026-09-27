@@ -107,10 +107,17 @@ export interface UserStats {
   correctByCategory: Record<string, number>;
   highestRushScore: number;
   highestChallengeWave: number;
+  challengeWins: number;
+  finalBossWins: number;
   unlockedTitles: string[];
   currentTitle: string;
   unlockedAchievements: string[];
   personalBests: Record<string, number>;
+  unlockedCosmetics: string[];
+  equippedTheme: string;
+  equippedCardStyle: string;
+  equippedEffect: string;
+  discoveredSubjects: string[];
   crtEnabled: boolean;
   scanlinesEnabled: boolean;
   screenShakeEnabled: boolean;
@@ -145,9 +152,12 @@ export interface QuizSessionState {
   questionsAnswered: number;
   challengeWave: number;
   highestChallengeWave: number;
+  challengeVictory: boolean;
+  finalBossDefeated: boolean;
   isPracticeRun: boolean;
   isNewHighScore: boolean;
   scoreEvents: string[];
   dailyPerfect: boolean;
   correctByCategory: Record<string, number>;
+  answeredSubjectKeys: string[];
 }

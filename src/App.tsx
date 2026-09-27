@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameMode, Question, QuizSessionState, UserStats } from './types';
 import { QUESTIONS_DB } from './data/questions';
+import { getLocalMediaAsset } from './data/media';
 import { loadUserStats, saveUserStats, recordGameCompletion, evaluateStreakState } from './utils/storage';
 import { soundManager } from './utils/audio';
 import { appendRecentQuestionIds, buildChallengeQuestions, prepareQuizQuestions } from './utils/shuffle';
@@ -14,6 +15,7 @@ import { QuizGame } from './components/QuizGame';
 import { ResultsModal } from './components/ResultsModal';
 import { StreakModal } from './components/StreakModal';
 import { SoundboardDrawer } from './components/SoundboardDrawer';
+import { CollectionModal } from './components/CollectionModal';
 
 export default function App() {
   const [stats, setStats] = useState<UserStats>(() => {
@@ -28,6 +30,7 @@ export default function App() {
   const [streakExtendedAlert, setStreakExtendedAlert] = useState<boolean>(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState<boolean>(false);
+  const [isCollectionOpen, setIsCollectionOpen] = useState<boolean>(false);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
   const [achievementToast, setAchievementToast] = useState<string | null>(null);
 
@@ -64,6 +67,8 @@ export default function App() {
       limit = 11;
     } else if (mode === 'mix') {
       qList = QUESTIONS_DB.filter((question) => question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'rush');
+    } else if (mode === 'image') {
+      qList = QUESTIONS_DB.filter((question) => question.visualType === 'image' && Boolean(getLocalMediaAsset(question.visualContent)));
     } else {
       qList = QUESTIONS_DB.filter((question) => question.mode === mode);
     }
@@ -101,6 +106,7 @@ export default function App() {
       extraScore,
       isDailyPerfect,
       finalSession.correctByCategory,
+      finalSession.challengeVictory,
     );
     const { updatedStats, streakExtended } = result;
 
@@ -111,16 +117,19 @@ export default function App() {
         ...updatedStats.personalBests,
         combo: Math.max(updatedStats.personalBests.combo ?? 0, finalSession.highestCombo),
       },
+      discoveredSubjects: [...new Set([...updatedStats.discoveredSubjects, ...finalSession.answeredSubjectKeys])],
     };
     withRecentQuestions.unlockedTitles = evaluateTitles(withRecentQuestions);
     withRecentQuestions.unlockedAchievements = evaluateAchievements(withRecentQuestions, finalSession);
     saveUserStats(withRecentQuestions);
     setStats(withRecentQuestions);
     setStreakExtendedAlert(finalSession.mode === 'daily' && streakExtended);
-    const newlyUnlocked = withRecentQuestions.unlockedAchievements.find((id) => !stats.unlockedAchievements.includes(id));
-    if (newlyUnlocked) {
-      const achievement = ACHIEVEMENT_DEFINITIONS.find((definition) => definition.id === newlyUnlocked);
-      setAchievementToast(achievement ? `${achievement.title} • ${achievement.description}` : 'Achievement unlocked');
+    const newlyUnlocked = withRecentQuestions.unlockedAchievements.filter((id) => !stats.unlockedAchievements.includes(id));
+    if (newlyUnlocked.length > 0) {
+      const achievement = ACHIEVEMENT_DEFINITIONS.find((definition) => definition.id === newlyUnlocked[0]);
+      setAchievementToast(newlyUnlocked.length > 1
+        ? `${newlyUnlocked.length} ACHIEVEMENTS UNLOCKED`
+        : achievement ? `${achievement.title} • ${achievement.description}` : 'Achievement unlocked');
       window.setTimeout(() => setAchievementToast(null), 3200);
     }
     setCompletedSession({
@@ -162,6 +171,7 @@ export default function App() {
           onUpdateStats={handleUpdateStats}
           onOpenStreakModal={() => setIsStreakModalOpen(true)}
           onOpenSoundboard={() => setIsSoundboardOpen(true)}
+          onOpenCollection={() => setIsCollectionOpen(true)}
         />
 
         <main className="flex-1 flex flex-col justify-center py-2">
@@ -216,6 +226,14 @@ export default function App() {
         isOpen={isSoundboardOpen}
         onClose={() => setIsSoundboardOpen(false)}
       />
+
+      {isCollectionOpen && (
+        <CollectionModal
+          stats={stats}
+          onClose={() => setIsCollectionOpen(false)}
+          onUpdateStats={handleUpdateStats}
+        />
+      )}
 
       {achievementToast && (
         <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 border-yellow-400 bg-zinc-950/95 px-4 py-3 text-center shadow-[0_0_30px_rgba(250,204,21,0.35)]" role="status">

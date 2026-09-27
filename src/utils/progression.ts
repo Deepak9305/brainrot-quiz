@@ -9,10 +9,15 @@ export function evaluateTitles(stats: UserStats): string[] {
   return [...new Set(unlocked)];
 }
 
-export function evaluateAchievements(stats: UserStats, session?: QuizSessionState): string[] {
+export function evaluateAchievementConditions(stats: UserStats, session?: QuizSessionState): string[] {
   const context: AchievementContext = { stats, session };
-  const unlocked = ACHIEVEMENT_DEFINITIONS
+  return ACHIEVEMENT_DEFINITIONS
     .filter((definition) => definition.condition(context))
     .map((definition) => definition.id);
-  return [...new Set(unlocked)];
+}
+
+/** Achievements are historical unlocks. Conditions can stop being true later,
+ * but an earned achievement must remain in the save forever. */
+export function evaluateAchievements(stats: UserStats, session?: QuizSessionState): string[] {
+  return [...new Set([...stats.unlockedAchievements, ...evaluateAchievementConditions(stats, session)])];
 }

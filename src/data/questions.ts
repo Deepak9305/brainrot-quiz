@@ -1,5 +1,7 @@
 import { Question } from '../types';
 import { EXPANDED_QUESTIONS, MODERN_QUESTIONS } from './modernQuestions';
+import { RUSH_VARIANTS } from './rushVariants';
+import { getLocalMediaAsset } from './media';
 
 export const QUESTION_DATABASE_VERSION = '2026.09.27';
 
@@ -775,11 +777,24 @@ function normalizeQuestion(question: Question): Question {
     question.visualType === 'emoji' ? 'emoji_decode' :
     'standard'
   );
+  const localKey = question.subjectKey ?? question.visualContent ?? question.imageAsset;
+  const localAsset = category === 'italian_brainrot' ? getLocalMediaAsset(localKey) : undefined;
+  const imageVariant = question.imageVariant ?? (localAsset
+    ? (['standard', 'crop', 'detail', 'silhouette'] as const)[question.id.length % 4]
+    : undefined);
+  const inferredChallengeWave = question.challengeWave ?? (question.mode === 'challenge'
+    ? Math.min(6, Number(question.id.match(/(?:chg|challenge)[_-]?(\d+)/i)?.[1] ?? 1))
+    : undefined);
 
   return {
     ...question,
     category,
-    questionType: inferredType,
+    questionType: localAsset ? 'image_identification' : inferredType,
+    visualType: localAsset ? 'image' : question.visualType,
+    visualContent: localAsset ? localKey : question.visualContent,
+    imageAsset: localAsset ? localKey : question.imageAsset,
+    imageVariant,
+    challengeWave: inferredChallengeWave,
     era: question.era ?? (category === 'classic_memes' ? 'classic' : 'current'),
     subjectKey: question.subjectKey ?? question.imageAsset ?? question.visualContent ?? question.id,
     eligibleForRush: question.eligibleForRush ?? !['sound', 'voice', 'daily', 'challenge'].includes(question.mode),
@@ -787,8 +802,23 @@ function normalizeQuestion(question: Question): Question {
   };
 }
 
+// A few legacy prompts shared identical wording. Keep the original content but
+// give each active card a distinct, scannable prompt for replay variety.
+const QUESTION_PROMPT_OVERRIDES: Record<string, string> = {
+  it_deep_22: 'Which hybrid matches the goose and aircraft clue?',
+  it_deep_23: 'Which name belongs to the cow with a Saturn orbit?',
+  it_deep_33: 'Which character has a name chanted three times alongside a wooden figure?',
+  rush_deep_44: 'Which shorthand means you just burst out laughing?',
+  rush_deep_48: 'In a reply, how does lowkey change the tone?',
+  challenge_deep_02: 'Which term describes a reusable image or joke structure?',
+};
+
 export const QUESTIONS_DB: Question[] = [
   ...LEGACY_QUESTIONS_DB.filter((question) => question.mode !== 'image'),
   ...MODERN_QUESTIONS,
+  ...RUSH_VARIANTS,
   ...EXPANDED_QUESTIONS,
-].map(normalizeQuestion);
+].map(normalizeQuestion).map((question) => ({
+  ...question,
+  question: QUESTION_PROMPT_OVERRIDES[question.id] ?? question.question,
+}));

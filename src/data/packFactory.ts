@@ -40,8 +40,8 @@ export function quote(id: string, question: string, answer: string, distractors:
   return makeQuestion(id, { question, subtitle: 'QUOTE MODE / INTERNET RECEIPTS', questionType: 'quote_identification', category: 'quote', tags: ['quotes', 'internet history'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: 'Short quote prompts are cultural references, not bundled audio or claims of ownership.', difficulty });
 }
 
-export function rush(id: string, question: string, answer: string, distractors: string[], explanation = 'A short, commonly used internet-culture reference.', difficulty: Question['difficulty'] = 'easy'): Question {
-  return makeQuestion(id, { question, subtitle: 'RUSH / QUICK FIRE', category: 'rush', tags: ['rush', 'quick answer'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: 'Rush clues are short so speed tests recognition instead of reading endurance.', difficulty }, { mode: 'rush', eligibleForRush: true, eligibleForDaily: false });
+export function rush(id: string, question: string, answer: string, distractors: string[], explanation = 'A short, commonly used internet-culture reference.', difficulty: Question['difficulty'] = 'easy', extras: Partial<Question> = {}): Question {
+  return makeQuestion(id, { question, subtitle: 'RUSH / QUICK FIRE', category: 'rush', tags: ['rush', 'quick answer'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: 'Rush clues are short so speed tests recognition instead of reading endurance.', difficulty, ...extras }, { mode: 'rush', eligibleForRush: true, eligibleForDaily: false });
 }
 
 export function challenge(id: string, wave: number, question: string, answer: string, distractors: string[], explanation: string, difficulty: Question['difficulty']): Question {

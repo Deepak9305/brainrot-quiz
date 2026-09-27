@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Zap, Volume2, VolumeX, Monitor, Shield, Music } from 'lucide-react';
+import { Flame, Zap, Volume2, VolumeX, Monitor, Shield, Music, Trophy } from 'lucide-react';
 import { UserStats } from '../types';
 import { soundManager } from '../utils/audio';
 
@@ -8,6 +8,7 @@ interface HeaderProps {
   onUpdateStats: (newStats: Partial<UserStats>) => void;
   onOpenStreakModal: () => void;
   onOpenSoundboard: () => void;
+  onOpenCollection: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onUpdateStats,
   onOpenStreakModal,
   onOpenSoundboard,
+  onOpenCollection,
 }) => {
   const toggleSound = () => {
     const next = !stats.soundEnabled;
@@ -89,6 +91,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Soundboard Modal Button */}
+          <button
+            id="collection-btn"
+            onClick={() => {
+              soundManager.play('countdown_tick');
+              onOpenCollection();
+            }}
+            className="p-2 rounded-xl border border-yellow-500/70 bg-yellow-950/40 text-yellow-300 hover:bg-yellow-900/50 transition-colors cursor-pointer"
+            title="Open achievements, archive, shop, and profile"
+          >
+            <Trophy className="w-4 h-4" />
+          </button>
+
           <button
             id="soundboard-btn"
             onClick={() => {

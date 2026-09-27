@@ -13,6 +13,12 @@ export function getNextDailyLabel(date = new Date()): string {
   return getDateKey(tomorrow);
 }
 
+export function getDailyChallengeNumber(date = new Date()): number {
+  const epoch = new Date('2025-01-01T00:00:00');
+  const current = new Date(`${getDateKey(date)}T00:00:00`);
+  return Math.max(1, Math.floor((current.getTime() - epoch.getTime()) / 86_400_000) + 1);
+}
+
 /** A small deterministic PRNG. The same local date always gives the same set. */
 export function seededRandom(seedText: string): () => number {
   let seed = 2166136261;

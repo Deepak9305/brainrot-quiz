@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Trophy, Zap, Flame, RotateCcw, Home, Sparkles, Award, Share2 } from 'lucide-react';
 import { QuizSessionState, UserStats } from '../types';
 import { soundManager } from '../utils/audio';
+import { getDailyChallengeNumber } from '../utils/daily';
 
 interface ResultsModalProps {
   session: QuizSessionState;
@@ -27,7 +28,13 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
   const accuracy = total > 0 ? Math.round((session.correctCount / total) * 100) : 0;
 
   const handleShare = async () => {
-    const shareText = `BRAINROT QUIZ\n${accuracy}% BRAINROTTED\nScore: ${session.score.toLocaleString()}\nStreak: ${session.highestCombo}\nRank: ${rankTitle}`;
+    const shareText = session.mode === 'daily'
+      ? `BRAINROT DAILY #${getDailyChallengeNumber()}\n${session.correctCount}/${session.questions.length} 🧠\n🔥 ${stats.streak}-day streak\n🛡️ ${stats.streakFreezes} freezes`
+      : session.mode === 'rush'
+        ? `BRAINROT RUSH\n${session.score.toLocaleString()} pts\n${session.correctCount} correct\n${session.highestCombo}x combo`
+        : session.mode === 'challenge'
+          ? `BRAINROT CHALLENGE\n${session.challengeVictory ? 'FINAL BOSS CLEARED' : `DEFEATED — WAVE ${session.highestChallengeWave}`}\n❤️ ${session.lives} heart${session.lives === 1 ? '' : 's'} remaining`
+          : `BRAINROT QUIZ\n${accuracy}% BRAINROTTED\nScore: ${session.score.toLocaleString()}\n${session.highestCombo}x combo\nRank: ${rankTitle}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Brainrot Quiz result', text: shareText });
@@ -49,22 +56,26 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
   let rankTitle = 'GIGA SIGMA OVERLORD 🗿';
   let rankColor = 'from-yellow-400 via-pink-500 to-purple-500';
 
-  if (accuracy >= 90) {
+  if (accuracy === 100) {
     rankGrade = 'SSS';
-    rankTitle = 'GIGA SIGMA OVERLORD 🗿';
+    rankTitle = 'BEYOND SAVING 🗿';
     rankColor = 'from-yellow-400 via-pink-500 to-purple-500';
-  } else if (accuracy >= 75) {
+  } else if (accuracy >= 90) {
     rankGrade = 'S';
     rankTitle = 'UNSPOKEN RIZZLER 🔥';
     rankColor = 'from-cyan-400 to-blue-500';
-  } else if (accuracy >= 60) {
+  } else if (accuracy >= 75) {
     rankGrade = 'A';
     rankTitle = 'CHILL GUY IN OHIO 🐕';
     rankColor = 'from-emerald-400 to-teal-500';
-  } else if (accuracy >= 40) {
+  } else if (accuracy >= 60) {
     rankGrade = 'B';
     rankTitle = 'FANUM TAX RECRUIT 🍕';
     rankColor = 'from-amber-400 to-orange-500';
+  } else if (accuracy >= 40) {
+    rankGrade = 'C';
+    rankTitle = 'CASUAL SCROLLER';
+    rankColor = 'from-orange-400 to-zinc-500';
   } else {
     rankGrade = 'F';
     rankTitle = 'SKIBIDI NPC CASUALTY 🚽';
@@ -73,17 +84,19 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
 
   // Trigger celebratory confetti on high scores
   useEffect(() => {
-    if (accuracy >= 60) {
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const celebration = accuracy >= 90 || session.dailyPerfect || session.isNewHighScore || session.challengeVictory;
+    if (!reducedMotion && celebration) {
       try {
         confetti({
-          particleCount: 80,
+          particleCount: session.dailyPerfect || session.challengeVictory ? 100 : 65,
           spread: 70,
           origin: { y: 0.6 },
           colors: ['#f43f5e', '#eab308', '#06b6d4', '#a855f7'],
         });
       } catch {}
     }
-  }, [accuracy]);
+  }, [accuracy, session.dailyPerfect, session.isNewHighScore, session.challengeVictory]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
@@ -154,8 +167,8 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
 
         <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-xs font-mono text-zinc-300">
           {session.mode === 'rush' && <span>RUSH: {session.questionsAnswered} rapid answers • personal best {stats.highestRushScore.toLocaleString()} pts</span>}
-          {session.mode === 'challenge' && <span>CHALLENGE: reached Wave {session.highestChallengeWave}/6 • {session.lives} heart{session.lives === 1 ? '' : 's'} left</span>}
-          {session.mode === 'daily' && <span>DAILY: {session.isPracticeRun ? 'PRACTICE RUN • no streak or reward changes' : session.dailyPerfect ? 'PERFECT DAILY • +500 Aura bonus' : 'Reward progress saved locally'}</span>}
+          {session.mode === 'challenge' && <span className={session.challengeVictory ? 'text-emerald-300' : 'text-red-300'}>{session.challengeVictory ? 'CHALLENGE CLEARED • FINAL BOSS DEFEATED' : `DEFEATED — WAVE ${session.highestChallengeWave}`} • {session.lives} heart{session.lives === 1 ? '' : 's'} left</span>}
+          {session.mode === 'daily' && <span>DAILY #{getDailyChallengeNumber()}: {session.isPracticeRun ? 'PRACTICE RUN • no streak or reward changes' : session.dailyPerfect ? 'PERFECT DAILY • +500 Aura bonus' : 'Reward progress saved locally'}</span>}
           {session.mode !== 'rush' && session.mode !== 'challenge' && session.mode !== 'daily' && <span>MIX: {session.correctCount} correct across {new Set(session.questions.map((question) => question.category ?? question.mode)).size} clue families</span>}
         </div>
 
