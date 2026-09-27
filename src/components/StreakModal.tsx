@@ -13,7 +13,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { UserStats } from '../types';
-import { claimDailyReward, saveUserStats } from '../utils/storage';
+import { buyStreakFreeze, claimDailyReward, MAX_STREAK_FREEZES, saveUserStats } from '../utils/storage';
 import { soundManager } from '../utils/audio';
 
 interface StreakModalProps {
@@ -49,22 +49,10 @@ export const StreakModal: React.FC<StreakModalProps> = ({
 
   const handleBuyFreeze = () => {
     const cost = 400;
-    if (stats.auraPoints < cost) {
-      soundManager.play('wrong');
-      setClaimMessage('Not enough Aura! Complete quizzes to earn more.');
-      setTimeout(() => setClaimMessage(''), 3000);
-      return;
-    }
-
-    soundManager.play('correct');
-    const updated = {
-      ...stats,
-      auraPoints: stats.auraPoints - cost,
-      streakFreezes: stats.streakFreezes + 1,
-    };
-    saveUserStats(updated);
-    onUpdateStats(updated);
-    setClaimMessage('Purchased +1 Streak Freeze Shield! 🛡️');
+    const result = buyStreakFreeze(stats, cost);
+    soundManager.play(result.ok ? 'correct' : 'wrong');
+    onUpdateStats(result.updatedStats);
+    setClaimMessage(result.message);
     setTimeout(() => setClaimMessage(''), 3000);
   };
 
@@ -100,7 +88,7 @@ export const StreakModal: React.FC<StreakModalProps> = ({
             YOUR MEME GRINDSET
           </h2>
           <p className="text-zinc-400 text-xs mt-0.5">
-            Log in daily, maintain your streak, and unlock legendary Brainrot titles.
+            Play the Daily Challenge, maintain your streak, and unlock legendary Brainrot titles.
           </p>
         </div>
 
@@ -128,6 +116,17 @@ export const StreakModal: React.FC<StreakModalProps> = ({
           </div>
         </div>
 
+        {stats.streakStatus === 'protected' && (
+          <div className="rounded-xl border border-cyan-400/70 bg-cyan-950/40 px-3 py-2 text-center text-xs font-mono font-bold text-cyan-200">
+            🛡️ STREAK PROTECTED • {stats.protectedMissedDays} missed day{stats.protectedMissedDays === 1 ? '' : 's'} covered when you complete Daily
+          </div>
+        )}
+        {stats.streakStatus === 'expired' && (
+          <div className="rounded-xl border border-red-400/70 bg-red-950/40 px-3 py-2 text-center text-xs font-mono font-bold text-red-200">
+            STREAK EXPIRED • Complete Daily to start a fresh run
+          </div>
+        )}
+
         {/* Notification / Toast */}
         {claimMessage && (
           <motion.div
@@ -146,13 +145,13 @@ export const StreakModal: React.FC<StreakModalProps> = ({
               <Gift className="w-3.5 h-3.5 text-pink-400" />
               7-DAY CHECK-IN CALENDAR:
             </span>
-            <span className="text-[10px] text-zinc-500 font-mono">RESET EVERY CYCLE</span>
+            <span className="text-[10px] text-zinc-500 font-mono">CYCLE {stats.rewardCycle.cycleNumber} • {stats.rewardCycle.completedDays}/7 COMPLETE</span>
           </div>
 
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {dailyDays.map((item) => {
               const isClaimed = stats.claimedDays.includes(item.day);
-              const canClaim = !isClaimed && stats.streak >= item.day;
+              const canClaim = !isClaimed && stats.rewardCycle.completedDays >= item.day;
 
               return (
                 <div
@@ -212,10 +211,11 @@ export const StreakModal: React.FC<StreakModalProps> = ({
 
           <button
             onClick={handleBuyFreeze}
-            className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs px-3 py-2 rounded-xl cursor-pointer transition-transform active:scale-95 whitespace-nowrap shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+            disabled={stats.streakFreezes >= MAX_STREAK_FREEZES}
+            className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs px-3 py-2 rounded-xl cursor-pointer transition-transform active:scale-95 whitespace-nowrap shadow-[0_0_10px_rgba(6,182,212,0.4)] disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 disabled:shadow-none"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            400 AURA
+            {stats.streakFreezes >= MAX_STREAK_FREEZES ? 'FULL' : '400 AURA'}
           </button>
         </div>
 

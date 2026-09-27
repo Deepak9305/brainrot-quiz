@@ -1,4 +1,5 @@
 import { SoundEffectType } from '../types';
+import { voiceManager } from './VoiceManager';
 
 class SoundSynthesizer {
   private ctx: AudioContext | null = null;
@@ -84,7 +85,7 @@ class SoundSynthesizer {
     }
   }
 
-  // Iconic Vine Boom: Deep resonant bass impact with slight distortion
+  // Generated game recreation: low resonant impact with slight distortion.
   private playVineBoom(ctx: AudioContext) {
     const t = ctx.currentTime;
     
@@ -134,7 +135,7 @@ class SoundSynthesizer {
     clickOsc.stop(t + 0.08);
   }
 
-  // Iconic MLG Airhorn: triple blast
+  // Generated game recreation: short triple blast.
   private playAirhorn(ctx: AudioContext) {
     const blastTimes = [0, 0.14, 0.32];
     blastTimes.forEach((delay) => {
@@ -162,7 +163,7 @@ class SoundSynthesizer {
     });
   }
 
-  // Iconic Metal Pipe: metallic clanging resonant frequencies
+  // Generated game recreation: metallic clanging frequencies.
   private playMetalPipe(ctx: AudioContext) {
     const t = ctx.currentTime;
     const freqs = [385, 784, 1145, 1720, 2480, 3950];
@@ -185,7 +186,7 @@ class SoundSynthesizer {
     });
   }
 
-  // Iconic Roblox Oof: upward pitch slide
+  // Generated game recreation: short upward pitch slide.
   private playRobloxOof(ctx: AudioContext) {
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -388,7 +389,7 @@ class SoundSynthesizer {
     });
   }
 
-  // Iconic Discord Notification Ping (two sine tones: high B5 then F#5)
+  // Generated game recreation: two-tone notification ping.
   private playDiscordPing(ctx: AudioContext) {
     const t = ctx.currentTime;
     const osc1 = ctx.createOscillator();
@@ -466,95 +467,34 @@ class SoundSynthesizer {
     });
   }
 
-  // High-fidelity speech synthesis for Voice Mode with character profiling
-  public speakMemeText(
-    text: string, 
-    pitch = 1.0, 
-    rate = 1.0, 
-    speakerName?: string,
-    onEnd?: () => void
-  ) {
+  public speakMemeText(text: string, _pitch = 1.0, _rate = 1.0, _speakerName?: string, onEnd?: () => void) {
     if (this.isMuted) {
-      if (onEnd) onEnd();
+      onEnd?.();
       return;
     }
-
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      this.play('roblox_oof');
-      if (onEnd) setTimeout(onEnd, 1000);
-      return;
-    }
-
-    try {
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.volume = 1.0;
-
-      // Character-based cadence adjustments
-      let targetPitch = pitch;
-      let targetRate = rate;
-
-      if (speakerName) {
-        const sLower = speakerName.toLowerCase();
-        if (sLower.includes('squidward')) {
-          targetPitch = 1.55; // Nasal cartoon pitch
-          targetRate = 0.95;
-        } else if (sLower.includes('chill')) {
-          targetPitch = 0.82; // Laid-back relaxed pitch
-          targetRate = 0.85;
-        } else if (sLower.includes('kai') || sLower.includes('streamer')) {
-          targetPitch = 1.15; // Hype energetic pitch
-          targetRate = 1.25;
-        } else if (sLower.includes('caseoh')) {
-          targetPitch = 0.72; // Deep resonant booming pitch
-          targetRate = 1.1;
-        } else if (sLower.includes('hawk') || sLower.includes('haliey')) {
-          targetPitch = 1.28; // Playful southern drawl
-          targetRate = 1.05;
-        } else if (sLower.includes('sigma') || sLower.includes('chad')) {
-          targetPitch = 0.65; // Ultra deep sigma grindset pitch
-          targetRate = 0.85;
-        }
-      }
-
-      utterance.pitch = Math.max(0.5, Math.min(2.0, targetPitch));
-      utterance.rate = Math.max(0.6, Math.min(1.8, targetRate));
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        // Look for quality natural English voices
-        const preferred = voices.find(v => 
-          (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Daniel') || v.name.includes('Samantha') || v.name.includes('Oliver')) 
-          && v.lang.startsWith('en')
-        ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-        
-        if (preferred) utterance.voice = preferred;
-      }
-
-      if (onEnd) {
-        utterance.onend = () => onEnd();
-        utterance.onerror = () => onEnd();
-      }
-
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      if (onEnd) onEnd();
-    }
+    voiceManager.speak(text, onEnd);
   }
 
-  public stop() {
+  public stopCurrentPlayback() {
+    voiceManager.stop();
+  }
+
+  public destroy() {
+    this.stopCurrentPlayback();
     if (this.ctx) {
       this.ctx.close().catch(() => {});
       this.ctx = null;
     }
-    this.stopSpeaking();
+  }
+
+  // Compatibility alias. Gameplay should use stopCurrentPlayback so the
+  // AudioContext is reused on mobile browsers.
+  public stop() {
+    this.stopCurrentPlayback();
   }
 
   public stopSpeaking() {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    voiceManager.stop();
   }
 }
 

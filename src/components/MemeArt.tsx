@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getLocalMediaAsset } from '../data/media';
 
 interface MemeArtProps {
   type: string;
   imageUrl?: string;
   altText?: string;
-  variant?: 'standard' | 'crop' | 'silhouette';
+  variant?: 'standard' | 'crop' | 'detail' | 'silhouette';
 }
 
 const FALLBACK_CLUES: Record<string, { icon: string; title: string }> = {
@@ -24,16 +24,28 @@ export const MemeArt: React.FC<MemeArtProps> = ({ type, altText, variant = 'stan
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  useEffect(() => {
+    setImageFailed(false);
+    setImageLoaded(false);
+  }, [type, asset?.src]);
+
   if (asset && !imageFailed) {
     const imageClass = variant === 'crop'
-      ? 'scale-[1.65] object-cover'
+      ? 'object-cover'
+      : variant === 'detail'
+        ? 'object-cover'
       : variant === 'silhouette'
-        ? 'object-contain grayscale contrast-125 brightness-75'
+        ? 'object-contain brightness-0 opacity-90'
         : 'object-contain';
+    const scale = variant === 'crop'
+      ? asset.crop?.scale ?? 1.55
+      : variant === 'detail'
+        ? (asset.crop?.scale ?? 1.55) + 0.25
+        : 1;
 
     return (
       <figure
-        className="relative w-full max-w-md aspect-square mx-auto rounded-2xl overflow-hidden border-2 border-pink-500/80 bg-zinc-950 shadow-[0_0_30px_rgba(236,72,153,0.32)]"
+        className="relative w-full max-w-md max-h-[38vh] aspect-square mx-auto rounded-2xl overflow-hidden border-2 border-pink-500/80 bg-zinc-950 shadow-[0_0_30px_rgba(236,72,153,0.32)]"
         aria-busy={!imageLoaded}
       >
         {!imageLoaded && (
@@ -46,11 +58,18 @@ export const MemeArt: React.FC<MemeArtProps> = ({ type, altText, variant = 'stan
           alt={altText || asset.alt}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageFailed(true)}
+          style={{
+            objectPosition: `${asset.crop?.x ?? 50}% ${asset.crop?.y ?? 50}%`,
+            transform: `scale(${scale})`,
+          }}
           className={`h-full w-full transition-transform duration-300 ${imageClass} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         />
+        {variant === 'silhouette' && (
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,transparent_0%,rgba(0,0,0,0.18)_58%,rgba(0,0,0,0.72)_100%)]" aria-hidden="true" />
+        )}
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-3 pb-2 pt-7 text-[10px] font-mono font-bold text-pink-200">
           <span>{asset.label}</span>
-          <span className="text-yellow-300">{variant === 'silhouette' ? 'SILHOUETTE' : variant === 'crop' ? 'CROP CLUE' : 'OFFLINE'}</span>
+          <span className="text-yellow-300">{variant === 'silhouette' ? 'SILHOUETTE' : variant === 'detail' ? 'DETAIL CLUE' : variant === 'crop' ? 'CROP CLUE' : 'OFFLINE'}</span>
         </div>
         <figcaption className="sr-only">{asset.alt}</figcaption>
       </figure>

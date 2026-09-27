@@ -1,5 +1,7 @@
 import { Question } from '../types';
-import { MODERN_QUESTIONS } from './modernQuestions';
+import { EXPANDED_QUESTIONS, MODERN_QUESTIONS } from './modernQuestions';
+
+export const QUESTION_DATABASE_VERSION = '2026.09.27';
 
 const LEGACY_QUESTIONS_DB: Question[] = [
   // ==================== 1. IMAGE MODE ====================
@@ -757,7 +759,36 @@ const LEGACY_QUESTIONS_DB: Question[] = [
 // Legacy prototype image prompts are intentionally excluded from active play:
 // they referenced unrelated stock photography. The replacement pack is local,
 // source-documented, and current-generation brainrot content.
+function normalizeQuestion(question: Question): Question {
+  const category = question.category ?? (
+    question.era === 'italian_brainrot' ? 'italian_brainrot' :
+    question.mode === 'slang' ? 'slang' :
+    question.mode === 'emoji' ? 'emoji' :
+    question.mode === 'sound' ? 'sound' :
+    question.mode === 'challenge' ? 'challenge' :
+    question.mode === 'rush' ? 'rush' :
+    question.questionType === 'quote_identification' ? 'quote' :
+    'modern'
+  );
+  const inferredType = question.questionType ?? (
+    question.visualType === 'image' ? 'image_identification' :
+    question.visualType === 'emoji' ? 'emoji_decode' :
+    'standard'
+  );
+
+  return {
+    ...question,
+    category,
+    questionType: inferredType,
+    era: question.era ?? (category === 'classic_memes' ? 'classic' : 'current'),
+    subjectKey: question.subjectKey ?? question.imageAsset ?? question.visualContent ?? question.id,
+    eligibleForRush: question.eligibleForRush ?? !['sound', 'voice', 'daily', 'challenge'].includes(question.mode),
+    eligibleForDaily: question.eligibleForDaily ?? !['sound', 'voice', 'daily', 'challenge', 'rush'].includes(question.mode),
+  };
+}
+
 export const QUESTIONS_DB: Question[] = [
   ...LEGACY_QUESTIONS_DB.filter((question) => question.mode !== 'image'),
   ...MODERN_QUESTIONS,
-];
+  ...EXPANDED_QUESTIONS,
+].map(normalizeQuestion);

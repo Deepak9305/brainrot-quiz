@@ -30,6 +30,7 @@ export type QuestionType =
   | 'standard'
   | 'image_identification'
   | 'image_crop'
+  | 'image_detail'
   | 'silhouette'
   | 'emoji_decode'
   | 'sound_recreation'
@@ -38,6 +39,26 @@ export type QuestionType =
   | 'origin';
 
 export type QuestionEra = 'classic' | '2025' | '2026' | 'italian_brainrot' | 'current';
+
+export type QuestionCategory =
+  | 'modern'
+  | 'italian_brainrot'
+  | 'slang'
+  | 'classic_memes'
+  | 'emoji'
+  | 'quote'
+  | 'sound'
+  | 'challenge'
+  | 'rush';
+
+export type StreakStatus = 'active' | 'protected' | 'expired';
+
+export interface RewardCycle {
+  cycleStartDate: string;
+  cycleNumber: number;
+  completedDays: number;
+  claimedDays: number[];
+}
 
 export interface Question {
   id: string;
@@ -49,9 +70,12 @@ export interface Question {
   visualContent?: string; // image url/svg identifier, emoji string, ascii art, sound trigger key, etc.
   imageUrl?: string; // Legacy field; bundled media uses imageAsset instead.
   imageAsset?: string;
-  imageVariant?: 'standard' | 'crop' | 'silhouette';
+  imageVariant?: 'standard' | 'crop' | 'detail' | 'silhouette';
   questionType?: QuestionType;
   era?: QuestionEra;
+  category?: QuestionCategory;
+  subjectKey?: string;
+  challengeWave?: number;
   tags?: string[];
   eligibleForRush?: boolean;
   eligibleForDaily?: boolean;
@@ -80,15 +104,21 @@ export interface UserStats {
   quizzesCompleted: number;
   totalCorrect: number;
   totalWrong: number;
+  correctByCategory: Record<string, number>;
   highestRushScore: number;
   highestChallengeWave: number;
   unlockedTitles: string[];
   currentTitle: string;
+  unlockedAchievements: string[];
+  personalBests: Record<string, number>;
   crtEnabled: boolean;
   scanlinesEnabled: boolean;
   screenShakeEnabled: boolean;
   soundEnabled: boolean;
-  claimedDays: number[]; // Day 1-7 in current week cycle
+  claimedDays: number[]; // Deprecated compatibility mirror for older saves.
+  rewardCycle: RewardCycle;
+  streakStatus: StreakStatus;
+  protectedMissedDays: number;
 }
 
 export interface QuizSessionState {
@@ -108,4 +138,16 @@ export interface QuizSessionState {
   isAnswered: boolean;
   earnedAura: number;
   streakExtended: boolean;
+  startedAt: number;
+  questionStartedAt: number;
+  rushEndsAt: number | null;
+  questionTimesMs: number[];
+  questionsAnswered: number;
+  challengeWave: number;
+  highestChallengeWave: number;
+  isPracticeRun: boolean;
+  isNewHighScore: boolean;
+  scoreEvents: string[];
+  dailyPerfect: boolean;
+  correctByCategory: Record<string, number>;
 }

@@ -1,39 +1,43 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Heart, 
-  Timer, 
-  Volume2, 
-  Play, 
-  CheckCircle2, 
-  XCircle, 
-  ArrowRight, 
-  Flame, 
-  HelpCircle,
-  RotateCcw
-} from 'lucide-react';
+import { Heart, Timer, Volume2, Play, CheckCircle2, XCircle, ArrowRight, Flame, HelpCircle, RotateCcw, Zap } from 'lucide-react';
 import { GameMode, Question, QuizSessionState, UserStats } from '../types';
 import { MemeArt } from './MemeArt';
+import { getLocalMediaAsset } from '../data/media';
+import { fisherYates } from '../utils/shuffle';
 import { soundManager } from '../utils/audio';
 
 interface QuizGameProps {
   mode: GameMode;
   questions: Question[];
   stats: UserStats;
+  isPracticeRun?: boolean;
   onFinishGame: (finalSession: QuizSessionState) => void;
   onExitGame: () => void;
   triggerScreenShake: () => void;
 }
 
-export const QuizGame: React.FC<QuizGameProps> = ({
-  mode,
-  questions,
-  stats,
-  onFinishGame,
-  onExitGame,
-  triggerScreenShake,
-}) => {
-  const [session, setSession] = useState<QuizSessionState>({
+const DIFFICULTY_MULTIPLIER: Record<Question['difficulty'], number> = {
+  easy: 1,
+  medium: 1.2,
+  hard: 1.5,
+  sigma: 2,
+};
+
+function comboMultiplier(combo: number): number {
+  if (combo >= 8) return 2;
+  if (combo >= 5) return 1.5;
+  if (combo >= 3) return 1.2;
+  return 1;
+}
+
+function getInitialWave(question?: Question): number {
+  return question?.challengeWave ?? 1;
+}
+
+function createInitialSession(mode: GameMode, questions: Question[], isPracticeRun = false): QuizSessionState {
+  const startedAt = performance.now();
+  return {
     mode,
     questions,
     currentIndex: 0,
@@ -42,7 +46,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({
     wrongCount: 0,
     combo: 0,
     highestCombo: 0,
-    timeLeft: mode === 'rush' ? 60 : 15,
+    timeLeft: mode === 'rush' ? 60 : 0,
     lives: mode === 'challenge' ? 3 : 1,
     maxLives: 3,
     isFinished: false,
@@ -50,452 +54,327 @@ export const QuizGame: React.FC<QuizGameProps> = ({
     isAnswered: false,
     earnedAura: 0,
     streakExtended: false,
-  });
+    startedAt,
+    questionStartedAt: startedAt,
+    rushEndsAt: mode === 'rush' ? startedAt + 60_000 : null,
+    questionTimesMs: [],
+    questionsAnswered: 0,
+    challengeWave: getInitialWave(questions[0]),
+    highestChallengeWave: getInitialWave(questions[0]),
+    isPracticeRun,
+    isNewHighScore: false,
+    scoreEvents: [],
+    dailyPerfect: false,
+    correctByCategory: {},
+  };
+}
 
-  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
-  const [isSpeakingVoice, setIsSpeakingVoice] = useState<boolean>(false);
+export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPracticeRun = false, onFinishGame, onExitGame, triggerScreenShake }) => {
+  const [session, setSession] = useState<QuizSessionState>(() => createInitialSession(mode, questions, isPracticeRun));
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isSpeakingVoice, setIsSpeakingVoice] = useState(false);
+  const [scoreFlash, setScoreFlash] = useState('');
+  const [waveAnnouncement, setWaveAnnouncement] = useState<number | null>(null);
   const mediaTimeoutRef = useRef<number | null>(null);
   const advanceTimeoutRef = useRef<number | null>(null);
+  const didFinishRef = useRef(false);
+  const rushEndsAtRef = useRef<number | null>(session.rushEndsAt);
 
-  const currentQ = session.questions[session.currentIndex] || session.questions[0];
+  const currentQ = session.questions[session.currentIndex] ?? session.questions[0];
 
-  // Play audio or speak voice clip on load of a question
-  const triggerMediaForQuestion = useCallback((q: Question) => {
-    if (q.mode === 'sound' && q.audioClip) {
+  const triggerMediaForQuestion = useCallback((question: Question) => {
+    if (question.mode === 'sound' && question.audioClip) {
       setIsPlayingAudio(true);
-      soundManager.play(q.audioClip);
+      soundManager.play(question.audioClip);
       if (mediaTimeoutRef.current) window.clearTimeout(mediaTimeoutRef.current);
       mediaTimeoutRef.current = window.setTimeout(() => setIsPlayingAudio(false), 1200);
-    } else if (q.mode === 'voice' && q.voiceText) {
+    } else if (question.mode === 'voice' && question.voiceText) {
       setIsSpeakingVoice(true);
-      soundManager.speakMemeText(
-        q.voiceText,
-        1.0,
-        1.0,
-        undefined,
-        () => setIsSpeakingVoice(false)
-      );
+      soundManager.speakMemeText(question.voiceText, 1, 1, undefined, () => setIsSpeakingVoice(false));
     }
   }, []);
 
-  // Stop narration and stale timers when questions change or the component unmounts.
+  // Stop only current playback between questions; keep the AudioContext alive.
   useEffect(() => {
     setIsPlayingAudio(false);
     setIsSpeakingVoice(false);
-    soundManager.stopSpeaking();
+    soundManager.stopCurrentPlayback();
+    const nextQuestion = session.questions[session.currentIndex + 1];
+    if (nextQuestion?.visualType === 'image' && nextQuestion.visualContent) {
+      const nextAsset = getLocalMediaAsset(nextQuestion.visualContent);
+      if (nextAsset) {
+        const preload = new Image();
+        preload.src = nextAsset.src;
+      }
+    }
+    setSession((previous) => previous.isFinished ? previous : { ...previous, questionStartedAt: performance.now() });
     return () => {
-      soundManager.stopSpeaking();
-      soundManager.stop();
+      soundManager.stopCurrentPlayback();
       if (mediaTimeoutRef.current) window.clearTimeout(mediaTimeoutRef.current);
       if (advanceTimeoutRef.current) window.clearTimeout(advanceTimeoutRef.current);
     };
   }, [currentQ?.id]);
 
-  // Timer loop
+  // Rush is a real wall-clock timer. Feedback and transition states do not pause it.
   useEffect(() => {
-    if (session.isFinished || session.isAnswered) return;
-
-    const timer = setInterval(() => {
-      setSession((prev) => {
-        // If rush mode, global 60s countdown
-        if (prev.mode === 'rush') {
-          if (prev.timeLeft <= 1) {
-            clearInterval(timer);
-            soundManager.play('game_over');
-            return { ...prev, timeLeft: 0, isFinished: true };
-          }
-          if (prev.timeLeft <= 6) {
-            soundManager.play('countdown_tick');
-          }
-          return { ...prev, timeLeft: prev.timeLeft - 1 };
+    if (mode !== 'rush' || session.isFinished || !rushEndsAtRef.current) return;
+    const timer = window.setInterval(() => {
+      const end = rushEndsAtRef.current ?? performance.now();
+      const remainingMs = Math.max(0, end - performance.now());
+      const remaining = Math.ceil(remainingMs / 1000);
+      setSession((previous) => {
+        if (previous.isFinished) return previous;
+        if (remainingMs <= 0) {
+          soundManager.play('game_over');
+          return { ...previous, timeLeft: 0, isFinished: true };
         }
-
-        // For other modes, optional per-question pace (except challenge or relaxed)
-        return prev;
+        return previous.timeLeft === remaining ? previous : { ...previous, timeLeft: remaining };
       });
-    }, 1000);
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [mode, session.isFinished]);
 
-    return () => clearInterval(timer);
-  }, [session.isFinished, session.isAnswered]);
-
-  // Handle game end trigger
   useEffect(() => {
-    if (session.isFinished) {
-      onFinishGame(session);
+    if (!session.isFinished || didFinishRef.current) return;
+    didFinishRef.current = true;
+    onFinishGame(session);
+  }, [session, onFinishGame]);
+
+  const advanceQuestion = useCallback((state: QuizSessionState = session) => {
+    if (state.isFinished) return;
+
+    if (state.mode === 'rush') {
+      const end = state.rushEndsAt ?? rushEndsAtRef.current ?? performance.now();
+      if (performance.now() >= end) {
+        setSession((previous) => ({ ...previous, timeLeft: 0, isFinished: true }));
+        return;
+      }
     }
-  }, [session.isFinished, onFinishGame, session]);
 
-  // Handle Option selection
+    let nextIndex = state.currentIndex + 1;
+    let nextQuestions = state.questions;
+    if (nextIndex >= nextQuestions.length) {
+      if (state.mode === 'rush') {
+        // A large pool should be enough, but never let exhaustion end a timed run.
+        nextQuestions = fisherYates(nextQuestions);
+        if (nextQuestions[0]?.id === state.questions[state.currentIndex]?.id && nextQuestions.length > 1) {
+          [nextQuestions[0], nextQuestions[1]] = [nextQuestions[1], nextQuestions[0]];
+        }
+        nextIndex = 0;
+      } else {
+        soundManager.play('level_up');
+        setSession((previous) => ({ ...previous, isFinished: true }));
+        return;
+      }
+    }
+
+    const nextQuestion = nextQuestions[nextIndex];
+    const nextWave = nextQuestion?.challengeWave ?? state.challengeWave;
+    const changedWave = state.mode === 'challenge' && nextWave !== state.challengeWave;
+    const commitNext = () => {
+      setSession((previous) => ({
+        ...previous,
+        questions: nextQuestions,
+        currentIndex: nextIndex,
+        selectedOption: null,
+        isAnswered: false,
+        challengeWave: nextWave,
+        highestChallengeWave: Math.max(previous.highestChallengeWave, nextWave),
+        questionStartedAt: performance.now(),
+      }));
+      setWaveAnnouncement(null);
+    };
+
+    if (changedWave) {
+      setWaveAnnouncement(nextWave);
+      window.setTimeout(commitNext, 650);
+    } else {
+      commitNext();
+    }
+  }, [session]);
+
   const handleSelectOption = (index: number) => {
-    if (session.isAnswered || session.isFinished) return;
+    if (!currentQ || session.isAnswered || session.isFinished || waveAnnouncement !== null) return;
+    if (mode === 'rush' && rushEndsAtRef.current && performance.now() >= rushEndsAtRef.current) {
+      setSession((previous) => ({ ...previous, timeLeft: 0, isFinished: true }));
+      return;
+    }
 
+    const answerTimeMs = Math.max(0, performance.now() - session.questionStartedAt);
     const isCorrect = index === currentQ.correctAnswer;
     const nextCombo = isCorrect ? session.combo + 1 : 0;
     const highestCombo = Math.max(session.highestCombo, nextCombo);
-    
-    // Combo aura multiplier
-    const auraGain = isCorrect ? (100 + nextCombo * 25) : 0;
+    const nextLives = !isCorrect && mode === 'challenge' ? session.lives - 1 : session.lives;
+    let scoreDelta = 0;
+    let scoreEvent = '';
 
     if (isCorrect) {
-      if (nextCombo >= 3) {
-        soundManager.play('airhorn');
+      if (mode === 'rush') {
+        const speedBonus = answerTimeMs < 1_000 ? 75 : answerTimeMs < 2_000 ? 50 : 0;
+        const multiplier = comboMultiplier(nextCombo) * DIFFICULTY_MULTIPLIER[currentQ.difficulty];
+        scoreDelta = Math.round((100 + speedBonus) * multiplier);
+        scoreEvent = speedBonus > 0 ? `+${scoreDelta} FAST` : `+${scoreDelta}`;
+        if (nextCombo >= 3) scoreEvent = `${scoreEvent} • x${comboMultiplier(nextCombo).toFixed(1)} COMBO`;
       } else {
-        soundManager.play('correct');
+        scoreDelta = 100 * Math.max(1, nextCombo);
+        scoreEvent = `+${scoreDelta}`;
       }
+      soundManager.play(nextCombo >= 3 ? 'airhorn' : 'correct');
     } else {
       triggerScreenShake();
       soundManager.play('wrong');
     }
 
-    let nextLives = session.lives;
-    if (!isCorrect && session.mode === 'challenge') {
-      nextLives = session.lives - 1;
-    }
-
+    const category = currentQ.category ?? currentQ.mode;
+    const correctByCategory = { ...session.correctByCategory };
+    if (isCorrect) correctByCategory[category] = (correctByCategory[category] ?? 0) + 1;
     const updatedSession: QuizSessionState = {
       ...session,
       selectedOption: index,
       isAnswered: true,
-      score: isCorrect ? session.score + 100 * Math.max(1, nextCombo) : session.score,
-      correctCount: isCorrect ? session.correctCount + 1 : session.correctCount,
-      wrongCount: !isCorrect ? session.wrongCount + 1 : session.wrongCount,
+      score: session.score + scoreDelta,
+      correctCount: session.correctCount + (isCorrect ? 1 : 0),
+      wrongCount: session.wrongCount + (isCorrect ? 0 : 1),
       combo: nextCombo,
       highestCombo,
       lives: nextLives,
-      earnedAura: session.earnedAura + auraGain,
+      earnedAura: session.earnedAura + (isCorrect ? 100 + nextCombo * 25 : 0),
+      questionTimesMs: [...session.questionTimesMs, answerTimeMs],
+      questionsAnswered: session.questionsAnswered + 1,
+      scoreEvents: scoreEvent ? [...session.scoreEvents, scoreEvent] : session.scoreEvents,
+      correctByCategory,
+      highestChallengeWave: Math.max(session.highestChallengeWave, currentQ.challengeWave ?? session.challengeWave),
     };
-
     setSession(updatedSession);
+    if (scoreEvent) {
+      setScoreFlash(scoreEvent);
+      window.setTimeout(() => setScoreFlash(''), 700);
+    }
 
-    // If challenge mode and out of lives
     if (nextLives <= 0) {
       advanceTimeoutRef.current = window.setTimeout(() => {
         soundManager.play('game_over');
-        setSession((prev) => ({ ...prev, isFinished: true }));
-      }, 1400);
-    } else if (session.mode === 'rush' && session.timeLeft > 0) {
-      // In rush mode, immediately advance after 400ms!
-      advanceTimeoutRef.current = window.setTimeout(() => {
-        advanceQuestion(updatedSession);
-      }, 450);
+        setSession((previous) => ({ ...previous, isFinished: true }));
+      }, 650);
+    } else if (mode === 'rush') {
+      advanceTimeoutRef.current = window.setTimeout(() => advanceQuestion(updatedSession), 450);
     }
   };
 
-  const advanceQuestion = (curState = session) => {
-    const nextIndex = curState.currentIndex + 1;
-    if (nextIndex >= curState.questions.length) {
-      // Finished all questions!
-      soundManager.play('level_up');
-      setSession((prev) => ({ ...prev, isFinished: true }));
-    } else {
-      setSession((prev) => ({
-        ...prev,
-        currentIndex: nextIndex,
-        selectedOption: null,
-        isAnswered: false,
-      }));
-    }
-  };
-
-  // Keyboard shortcut listener (1, 2, 3, 4, Enter)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (session.isFinished) return;
-
       if (!session.isAnswered) {
-        if (e.key === '1') handleSelectOption(0);
-        if (e.key === '2') handleSelectOption(1);
-        if (e.key === '3') handleSelectOption(2);
-        if (e.key === '4') handleSelectOption(3);
-      } else if (e.key === 'Enter' || e.key === ' ') {
+        const key = Number(event.key);
+        if (key >= 1 && key <= 4) handleSelectOption(key - 1);
+      } else if ((event.key === 'Enter' || event.key === ' ') && mode !== 'rush') {
+        event.preventDefault();
         advanceQuestion();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [session.isAnswered, session.isFinished, session.currentIndex]);
+  }, [session.isAnswered, session.isFinished, session.currentIndex, mode, advanceQuestion]);
 
-  const replayAudio = () => {
-    triggerMediaForQuestion(currentQ);
-  };
+  const replayAudio = () => currentQ && triggerMediaForQuestion(currentQ);
+  const challengeTotalWaves = 6;
+  const progressLabel = mode === 'rush' ? `${session.questionsAnswered} ANSWERED` : `Q ${session.currentIndex + 1}/${session.questions.length}`;
+
+  if (!currentQ) return null;
 
   return (
     <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-3">
-      {/* Top Status Bar */}
-      <div className="flex items-center justify-between gap-2 bg-zinc-900/90 border border-zinc-700/80 rounded-2xl p-3 mb-4 backdrop-blur-md shadow-lg">
-        {/* Mode & Progress */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onExitGame}
-            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs flex items-center gap-1 font-mono"
-            title="Exit Quiz"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            QUIT
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-zinc-900/90 border border-zinc-700/80 rounded-2xl p-3 mb-4 backdrop-blur-md shadow-lg">
+        <div className="flex min-w-0 items-center gap-2">
+          <button onClick={onExitGame} className="min-h-11 px-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs flex items-center gap-1 font-mono" title="Exit Quiz">
+            <RotateCcw className="w-3.5 h-3.5" /> QUIT
           </button>
-          <div className="font-mono text-xs">
+          <div className="min-w-0 font-mono text-xs">
             <span className="text-pink-400 font-bold uppercase">{mode} MODE</span>
             <span className="text-zinc-500 mx-1.5">•</span>
-            <span className="text-zinc-300">
-              Q {session.currentIndex + 1}/{session.questions.length}
-            </span>
+            <span className="text-zinc-300">{progressLabel}</span>
+            {mode === 'challenge' && <span className="ml-2 text-indigo-300">WAVE {session.challengeWave}/{challengeTotalWaves}</span>}
           </div>
         </div>
 
-        {/* Combo Multiplier */}
-        {session.combo > 1 && (
-          <motion.div 
-            initial={{ scale: 0.8, rotate: -5 }}
-            animate={{ scale: 1, rotate: 0 }}
-            className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-pink-500 text-black font-black text-xs px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(236,72,153,0.6)] animate-pulse"
-          >
-            <Flame className="w-3.5 h-3.5 fill-black" />
-            <span>{session.combo}x {session.combo >= 4 ? 'GIGA SIGMA!' : 'COMBO'}</span>
-          </motion.div>
-        )}
-
-        {/* Challenge Hearts or Rush Timer */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {session.combo > 1 && (
+            <motion.div initial={{ scale: 0.8, rotate: -5 }} animate={{ scale: 1, rotate: 0 }} className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-pink-500 text-black font-black text-xs px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(236,72,153,0.6)]">
+              <Flame className="w-3.5 h-3.5 fill-black" />
+              <span>{session.combo}x {session.combo >= 4 ? 'GIGA SIGMA!' : 'COMBO'}</span>
+            </motion.div>
+          )}
           {mode === 'challenge' && (
-            <div className="flex items-center gap-1">
-              {[...Array(session.maxLives)].map((_, i) => (
-                <Heart
-                  key={i}
-                  className={`w-5 h-5 transition-transform ${
-                    i < session.lives
-                      ? 'text-red-500 fill-red-500 animate-pulse'
-                      : 'text-zinc-700'
-                  }`}
-                />
-              ))}
+            <div className="flex items-center gap-1" aria-label={`${session.lives} hearts remaining`}>
+              {[...Array(session.maxLives)].map((_, index) => <Heart key={index} className={`w-5 h-5 ${index < session.lives ? 'text-red-500 fill-red-500' : 'text-zinc-700'}`} />)}
             </div>
           )}
-
           {mode === 'rush' && (
-            <div className="flex items-center gap-1 bg-red-950/80 border border-red-500/80 text-red-300 px-3 py-1 rounded-xl font-mono text-sm font-bold shadow-[0_0_10px_rgba(239,68,68,0.4)]">
-              <Timer className="w-4 h-4 text-red-400 animate-spin" />
-              <span>{session.timeLeft}s</span>
+            <div className={`flex items-center gap-1 border px-3 py-1 rounded-xl font-mono text-sm font-bold ${session.timeLeft <= 10 ? 'bg-red-950 border-red-400 text-red-200' : 'bg-zinc-800 border-red-500/70 text-red-300'}`}>
+              <Timer className="w-4 h-4 text-red-400" /> <span>{session.timeLeft}s</span>
             </div>
           )}
-
-          {/* Score Counter */}
-          <div className="font-mono text-xs text-yellow-300 font-bold bg-zinc-800 px-2 py-1 rounded border border-zinc-700">
-            {session.score} PTS
-          </div>
+          <div className="font-mono text-xs text-yellow-300 font-bold bg-zinc-800 px-2 py-1 rounded border border-zinc-700">{session.score} PTS</div>
         </div>
       </div>
 
-      {/* Question Card */}
-      <motion.div
-        key={currentQ.id}
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        transition={{ duration: 0.2 }}
-        className="relative bg-zinc-950/90 border-2 border-pink-500/60 rounded-2xl p-5 sm:p-6 shadow-[0_0_25px_rgba(236,72,153,0.2)] overflow-hidden"
-      >
-        {/* Question Header & Badge */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] font-mono font-bold tracking-widest text-pink-400 uppercase bg-pink-950/60 px-2.5 py-1 rounded-md border border-pink-800">
-            {currentQ.subtitle || 'VIRAL CULTURE TEST'}
-          </span>
-          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
-            currentQ.difficulty === 'sigma' ? 'bg-purple-600 text-white animate-pulse' :
-            currentQ.difficulty === 'hard' ? 'bg-red-600 text-white' :
-            currentQ.difficulty === 'medium' ? 'bg-yellow-500 text-black' : 'bg-green-600 text-white'
-          }`}>
-            {currentQ.difficulty}
-          </span>
+      <motion.div key={currentQ.id} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="relative bg-zinc-950/90 border-2 border-pink-500/60 rounded-2xl p-4 sm:p-6 shadow-[0_0_25px_rgba(236,72,153,0.2)] overflow-hidden">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="max-w-[75%] truncate text-[10px] font-mono font-bold tracking-widest text-pink-400 uppercase bg-pink-950/60 px-2.5 py-1 rounded-md border border-pink-800">{currentQ.subtitle || 'VIRAL CULTURE TEST'}</span>
+          <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded ${currentQ.difficulty === 'sigma' ? 'bg-purple-600 text-white' : currentQ.difficulty === 'hard' ? 'bg-red-600 text-white' : currentQ.difficulty === 'medium' ? 'bg-yellow-500 text-black' : 'bg-green-600 text-white'}`}>{currentQ.difficulty}</span>
         </div>
 
-        {/* Question Text */}
-        <h2 className="text-lg sm:text-xl font-bold text-white leading-snug mb-4">
-          {currentQ.question}
-        </h2>
+        <h2 className="text-lg sm:text-xl font-bold text-white leading-snug mb-4">{currentQ.question}</h2>
 
-        {/* Visual / Media Container */}
-        {currentQ.visualType === 'image' && currentQ.visualContent && (
-          <div className="my-4">
-            <MemeArt 
-              type={currentQ.visualContent} 
-              altText={currentQ.question}
-              variant={currentQ.imageVariant}
-            />
-          </div>
-        )}
+        {currentQ.visualType === 'image' && currentQ.visualContent && <div className="my-3"><MemeArt type={currentQ.visualContent} altText={currentQ.question} variant={currentQ.imageVariant} /></div>}
+        {currentQ.visualType === 'emoji' && currentQ.visualContent && <div className="my-4 p-4 rounded-2xl bg-zinc-900 border-2 border-yellow-400/50 flex flex-col items-center justify-center gap-2"><span className="text-4xl sm:text-5xl tracking-widest">{currentQ.visualContent}</span><span className="text-[10px] font-mono text-yellow-300/80 uppercase">DECODE THE BRAINROT COMBINATION</span></div>}
+        {currentQ.visualType === 'ascii' && currentQ.visualContent && <div className="my-4 p-3 rounded-xl bg-black border border-cyan-500/50 font-mono text-cyan-300 text-center text-sm sm:text-base font-bold tracking-widest whitespace-pre-line">{currentQ.visualContent}</div>}
 
-        {currentQ.visualType === 'emoji' && currentQ.visualContent && (
-          <div className="my-5 p-4 rounded-2xl bg-zinc-900 border-2 border-yellow-400/50 flex flex-col items-center justify-center gap-2 shadow-[0_0_20px_rgba(250,204,21,0.2)]">
-            <span className="text-4xl sm:text-5xl tracking-widest animate-bounce">
-              {currentQ.visualContent}
-            </span>
-            <span className="text-[10px] font-mono text-yellow-300/80 uppercase">
-              DECODE THE BRAINROT COMBINATION
-            </span>
-          </div>
-        )}
-
-        {currentQ.visualType === 'ascii' && currentQ.visualContent && (
-          <div className="my-4 p-3 rounded-xl bg-black border border-cyan-500/50 font-mono text-cyan-300 text-center text-sm sm:text-base font-bold tracking-widest whitespace-pre-line shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-            {currentQ.visualContent}
-          </div>
-        )}
-
-        {/* Sound Mode Player Button */}
         {currentQ.mode === 'sound' && (
-          <div className="my-4 p-5 rounded-2xl bg-purple-950/40 border-2 border-purple-500 flex flex-col items-center justify-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-            <div className="flex items-center gap-1.5 h-6">
-              {[40, 70, 100, 60, 90, 50, 80, 45].map((h, i) => (
-                <span
-                  key={i}
-                  className={`w-1.5 rounded-full bg-purple-400 transition-all ${
-                    isPlayingAudio ? 'animate-pulse' : 'opacity-40'
-                  }`}
-                  style={{ height: isPlayingAudio ? `${h}%` : '20%' }}
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={replayAudio}
-              className={`flex items-center gap-2 font-black text-sm px-6 py-3 rounded-xl cursor-pointer transition-all active:scale-95 ${
-                isPlayingAudio
-                  ? 'bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.8)] scale-105'
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-md'
-              }`}
-            >
-              <Volume2 className={`w-5 h-5 ${isPlayingAudio ? 'animate-ping' : ''}`} />
-              {isPlayingAudio ? 'PLAYING AUDIO EFFECT...' : 'REPLAY SOUND EFFECT 🔊'}
-            </button>
-            <span className="text-xs text-purple-300 font-mono">
-              Pure offline Web Audio synthesis • Zero network required
-            </span>
+          <div className="my-4 p-5 rounded-2xl bg-purple-950/40 border-2 border-purple-500 flex flex-col items-center justify-center gap-3">
+            <div className="flex items-center gap-1.5 h-6" aria-hidden="true">{[40, 70, 100, 60, 90, 50, 80, 45].map((height, index) => <span key={index} className={`w-1.5 rounded-full bg-purple-400 ${isPlayingAudio ? 'animate-pulse' : 'opacity-40'}`} style={{ height: isPlayingAudio ? `${height}%` : '20%' }} />)}</div>
+            <button onClick={replayAudio} className={`min-h-11 flex items-center gap-2 font-black text-sm px-6 py-3 rounded-xl cursor-pointer active:scale-95 ${isPlayingAudio ? 'bg-purple-500 text-white' : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'}`}><Volume2 className="w-5 h-5" />{isPlayingAudio ? 'PLAYING RECREATION…' : 'PLAY SOUND RECREATION 🔊'}</button>
+            <span className="text-xs text-purple-300 font-mono">Original Web Audio recreation • no bundled recording</span>
           </div>
         )}
 
-        {/* Voice Mode Player Button */}
         {currentQ.mode === 'voice' && (
-          <div className="my-4 p-5 rounded-2xl bg-emerald-950/40 border-2 border-emerald-500 flex flex-col items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-            {currentQ.speakerName && (
-              <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-900/80 text-emerald-300 border border-emerald-400/60 px-3 py-1 rounded-full">
-                QUOTE MODE / NEUTRAL NARRATION
-              </span>
-            )}
-
-            <div className="flex items-center gap-1.5 h-7">
-              {[30, 80, 50, 100, 75, 45, 95, 60, 40].map((h, i) => (
-                <span
-                  key={i}
-                  className={`w-1.5 rounded-full bg-emerald-400 transition-all ${
-                    isSpeakingVoice ? 'animate-bounce' : 'opacity-40'
-                  }`}
-                  style={{ height: isSpeakingVoice ? `${h}%` : '25%', animationDelay: `${i * 0.08}s` }}
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={replayAudio}
-              className={`flex items-center gap-2 font-black text-sm px-6 py-3 rounded-xl cursor-pointer transition-all active:scale-95 ${
-                isSpeakingVoice
-                  ? 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)] scale-105'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-md'
-              }`}
-            >
-              <Play className={`w-5 h-5 ${isSpeakingVoice ? 'animate-spin' : ''}`} />
-              {isSpeakingVoice ? 'SPEAKING SYNTHESIZED QUOTE...' : 'PLAY SYNTHESIZED NARRATION 🎙️'}
-            </button>
-
-            <div className="text-[10px] text-emerald-200/80 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-emerald-800/80">
-              Synthesized narration • no creator impersonation
-            </div>
+          <div className="my-4 p-5 rounded-2xl bg-emerald-950/40 border-2 border-emerald-500 flex flex-col items-center justify-center gap-3">
+            <div className="flex items-center gap-1.5 h-7" aria-hidden="true">{[30, 80, 50, 100, 75, 45, 95, 60, 40].map((height, index) => <span key={index} className={`w-1.5 rounded-full bg-emerald-400 ${isSpeakingVoice ? 'animate-bounce' : 'opacity-40'}`} style={{ height: isSpeakingVoice ? `${height}%` : '25%', animationDelay: `${index * 0.08}s` }} />)}</div>
+            <button onClick={replayAudio} className="min-h-11 flex items-center gap-2 font-black text-sm px-6 py-3 rounded-xl cursor-pointer active:scale-95 bg-gradient-to-r from-emerald-500 to-teal-500 text-black"><Play className="w-5 h-5" />{isSpeakingVoice ? 'SPEAKING…' : 'PLAY SYNTHESIZED NARRATION 🎙️'}</button>
+            <div className="text-[10px] text-emerald-200/80 font-mono bg-black/50 px-3 py-1.5 rounded-lg border border-emerald-800/80">Neutral narration • no creator impersonation</div>
           </div>
         )}
 
-        {/* Options List */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
-          {currentQ.options.map((option, idx) => {
-            const isSelected = session.selectedOption === idx;
-            const isCorrectAnswer = idx === currentQ.correctAnswer;
-            const optionLetter = ['A', 'B', 'C', 'D'][idx] || String(idx + 1);
-            
-            let btnStyle = 'bg-zinc-900/90 border-zinc-700 hover:border-pink-400 text-zinc-200 hover:text-white';
-            
+        <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
+          {currentQ.options.map((option, index) => {
+            const isSelected = session.selectedOption === index;
+            const isCorrectAnswer = index === currentQ.correctAnswer;
+            let buttonStyle = 'bg-zinc-900/90 border-zinc-700 hover:border-pink-400 text-zinc-200 hover:text-white';
             if (session.isAnswered) {
-              if (isCorrectAnswer) {
-                btnStyle = 'bg-emerald-950/90 border-emerald-400 text-emerald-200 font-bold shadow-[0_0_15px_rgba(52,211,153,0.5)]';
-              } else if (isSelected) {
-                btnStyle = 'bg-red-950/90 border-red-500 text-red-200 font-bold shadow-[0_0_15px_rgba(239,68,68,0.5)]';
-              } else {
-                btnStyle = 'bg-zinc-900/40 border-zinc-800 text-zinc-500 opacity-60';
-              }
+              if (isCorrectAnswer) buttonStyle = 'bg-emerald-950/90 border-emerald-400 text-emerald-200 font-bold shadow-[0_0_15px_rgba(52,211,153,0.5)]';
+              else if (isSelected) buttonStyle = 'bg-red-950/90 border-red-500 text-red-200 font-bold';
+              else buttonStyle = 'bg-zinc-900/40 border-zinc-800 text-zinc-500 opacity-60';
             }
-
-            return (
-              <motion.button
-                key={idx}
-                whileHover={!session.isAnswered ? { scale: 1.015 } : {}}
-                whileTap={!session.isAnswered ? { scale: 0.98 } : {}}
-                onClick={() => handleSelectOption(idx)}
-                disabled={session.isAnswered}
-                className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-xl border-2 text-left text-sm transition-all cursor-pointer ${btnStyle}`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg bg-black/70 border border-zinc-600 flex items-center justify-center text-xs font-mono font-black text-pink-400 shadow-sm">
-                    {optionLetter}
-                  </span>
-                  <span className="font-semibold leading-snug">{option}</span>
-                </div>
-
-                {session.isAnswered && (
-                  <div>
-                    {isCorrectAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-2" />}
-                    {isSelected && !isCorrectAnswer && <XCircle className="w-5 h-5 text-red-400 ml-2" />}
-                  </div>
-                )}
-              </motion.button>
-            );
+            return <motion.button key={`${currentQ.id}-${index}`} whileHover={!session.isAnswered ? { scale: 1.015 } : {}} whileTap={!session.isAnswered ? { scale: 0.98 } : {}} onClick={() => handleSelectOption(index)} disabled={session.isAnswered || waveAnnouncement !== null} aria-pressed={isSelected} className={`relative min-h-11 flex items-center justify-between p-3.5 sm:p-4 rounded-xl border-2 text-left text-sm transition-all cursor-pointer ${buttonStyle}`}>
+              <div className="flex items-center gap-3"><span className="w-7 h-7 shrink-0 rounded-lg bg-black/70 border border-zinc-600 flex items-center justify-center text-xs font-mono font-black text-pink-400">{['A', 'B', 'C', 'D'][index] ?? String(index + 1)}</span><span className="font-semibold leading-snug">{option}</span></div>
+              {session.isAnswered && <div>{isCorrectAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-2" />}{isSelected && !isCorrectAnswer && <XCircle className="w-5 h-5 text-red-400 ml-2" />}</div>}
+            </motion.button>;
           })}
+          <AnimatePresence>{scoreFlash && <motion.div initial={{ opacity: 0, y: 10, scale: 0.8 }} animate={{ opacity: 1, y: -12, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute right-2 top-0 text-sm font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"><Zap className="inline w-4 h-4 fill-yellow-300" /> {scoreFlash}</motion.div>}</AnimatePresence>
         </div>
 
-        {/* Answer Explanation Box */}
         <AnimatePresence>
-          {session.isAnswered && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-4 p-4 rounded-xl bg-zinc-900 border border-zinc-700 text-xs sm:text-sm text-zinc-300 space-y-2 overflow-hidden"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-pink-400 font-mono font-bold">
-                  <HelpCircle className="w-4 h-4" />
-                  <span>{session.selectedOption === currentQ.correctAnswer ? 'LOCKED IN:' : 'COOKED:'}</span>
-                </div>
-                <span className="text-zinc-500 font-mono text-[10px]">
-                  PRESS ENTER FOR NEXT
-                </span>
-              </div>
-              <p className="text-zinc-200">{currentQ.explanation}</p>
-              <p className="text-zinc-400 text-xs italic">Origin: {currentQ.memeContext}</p>
-            </motion.div>
-          )}
+          {session.isAnswered && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 p-4 rounded-xl bg-zinc-900 border border-zinc-700 text-xs sm:text-sm text-zinc-300 space-y-2 overflow-hidden">
+            <div className="flex items-center justify-between"><div className="flex items-center gap-1.5 text-pink-400 font-mono font-bold"><HelpCircle className="w-4 h-4" /><span>{session.selectedOption === currentQ.correctAnswer ? 'LOCKED IN:' : 'COOKED:'}</span></div>{mode !== 'rush' && <span className="text-zinc-500 font-mono text-[10px]">PRESS ENTER FOR NEXT</span>}</div>
+            <p className="text-zinc-200">{currentQ.explanation}</p><p className="text-zinc-400 text-xs italic">Context: {currentQ.memeContext}</p>
+          </motion.div>}
         </AnimatePresence>
 
-        {/* Next Button (Only in non-rush or when finished answering) */}
-        {session.isAnswered && session.mode !== 'rush' && (
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => advanceQuestion()}
-              className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-400 hover:to-yellow-300 text-black font-black text-sm px-6 py-3 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(236,72,153,0.5)] transition-transform active:scale-95"
-            >
-              <span>{session.currentIndex + 1 >= session.questions.length ? 'FINISH QUIZ' : 'NEXT QUESTION'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        {session.isAnswered && mode !== 'rush' && session.lives > 0 && <div className="mt-4 flex justify-end"><button onClick={() => advanceQuestion()} className="min-h-11 flex items-center gap-2 bg-gradient-to-r from-pink-500 to-yellow-400 text-black font-black text-sm px-6 py-3 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(236,72,153,0.5)] active:scale-95"><span>{session.currentIndex + 1 >= session.questions.length ? 'FINISH QUIZ' : 'NEXT QUESTION'}</span><ArrowRight className="w-4 h-4" /></button></div>}
       </motion.div>
+
+      <AnimatePresence>{waveAnnouncement !== null && <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"><div className="rounded-3xl border-2 border-indigo-400 bg-indigo-950/95 px-8 py-6 text-center shadow-[0_0_50px_rgba(99,102,241,0.6)]"><div className="text-xs font-mono text-indigo-300">CHALLENGE PROGRESSION</div><div className="mt-1 text-4xl font-black text-white">{waveAnnouncement === 6 ? 'FINAL BOSS' : `WAVE ${waveAnnouncement}`}</div><div className="mt-2 text-xs font-mono text-indigo-200">{waveAnnouncement >= 5 ? 'DEEP LORE DETECTED' : 'NEXT TIER LOADED'}</div></div></motion.div>}</AnimatePresence>
     </div>
   );
 };

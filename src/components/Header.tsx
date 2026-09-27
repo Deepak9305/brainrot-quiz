@@ -72,6 +72,8 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Flame className="w-4 h-4 text-orange-400 fill-orange-400 animate-bounce" />
             <span className="font-mono text-sm tracking-wider font-extrabold">{stats.streak} DAY{stats.streak > 1 ? 'S' : ''}</span>
+            {stats.streakStatus === 'protected' && <span className="text-[9px] font-black text-cyan-200 bg-cyan-950/80 border border-cyan-500 px-1 rounded">SAFE</span>}
+            {stats.streakStatus === 'expired' && <span className="text-[9px] font-black text-red-200 bg-red-950/80 border border-red-500 px-1 rounded">RESET</span>}
             {stats.streakFreezes > 0 && (
               <span className="flex items-center text-[10px] bg-cyan-900/80 text-cyan-300 px-1 rounded ml-1 border border-cyan-500" title={`${stats.streakFreezes} Streak Freeze Shield(s) equipped`}>
                 <Shield className="w-2.5 h-2.5 mr-0.5" />

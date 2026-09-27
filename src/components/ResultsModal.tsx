@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { motion } from 'motion/react';
-import { Trophy, Zap, Flame, RotateCcw, Home, Sparkles, Award } from 'lucide-react';
+import { Trophy, Zap, Flame, RotateCcw, Home, Sparkles, Award, Share2 } from 'lucide-react';
 import { QuizSessionState, UserStats } from '../types';
 import { soundManager } from '../utils/audio';
 
@@ -22,8 +22,27 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
   onReturnToModes,
   onOpenStreakModal,
 }) => {
+  const [shareStatus, setShareStatus] = useState('SHARE RESULT');
   const total = session.correctCount + session.wrongCount;
   const accuracy = total > 0 ? Math.round((session.correctCount / total) * 100) : 0;
+
+  const handleShare = async () => {
+    const shareText = `BRAINROT QUIZ\n${accuracy}% BRAINROTTED\nScore: ${session.score.toLocaleString()}\nStreak: ${session.highestCombo}\nRank: ${rankTitle}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Brainrot Quiz result', text: shareText });
+        setShareStatus('SHARED');
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareText);
+        setShareStatus('COPIED TO CLIPBOARD');
+      } else {
+        setShareStatus('SCREENSHOT THIS CARD');
+      }
+    } catch {
+      setShareStatus('SHARE CANCELLED');
+    }
+    window.setTimeout(() => setShareStatus('SHARE RESULT'), 2200);
+  };
 
   // Grade determination
   let rankGrade = 'SSS';
@@ -101,6 +120,18 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
         )}
 
         {/* Score & Aura Grid */}
+        <div className="grid grid-cols-2 gap-2.5 my-3">
+          <div className="bg-zinc-900 border border-yellow-500/40 rounded-xl p-3">
+            <span className="text-zinc-500 block text-[10px] font-mono">SCORE</span>
+            <span className="text-lg font-black text-yellow-300">{session.score.toLocaleString()}</span>
+            {session.isNewHighScore && <span className="block text-[9px] font-black text-pink-400">NEW HIGH SCORE</span>}
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+            <span className="text-zinc-500 block text-[10px] font-mono">ANSWERED</span>
+            <span className="text-lg font-black text-cyan-300">{session.questionsAnswered}</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 gap-2.5 my-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
             <span className="text-zinc-500 block text-[10px] font-mono">ACCURACY</span>
@@ -119,6 +150,13 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
               +{session.earnedAura}
             </span>
           </div>
+        </div>
+
+        <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-xs font-mono text-zinc-300">
+          {session.mode === 'rush' && <span>RUSH: {session.questionsAnswered} rapid answers • personal best {stats.highestRushScore.toLocaleString()} pts</span>}
+          {session.mode === 'challenge' && <span>CHALLENGE: reached Wave {session.highestChallengeWave}/6 • {session.lives} heart{session.lives === 1 ? '' : 's'} left</span>}
+          {session.mode === 'daily' && <span>DAILY: {session.isPracticeRun ? 'PRACTICE RUN • no streak or reward changes' : session.dailyPerfect ? 'PERFECT DAILY • +500 Aura bonus' : 'Reward progress saved locally'}</span>}
+          {session.mode !== 'rush' && session.mode !== 'challenge' && session.mode !== 'daily' && <span>MIX: {session.correctCount} correct across {new Set(session.questions.map((question) => question.category ?? question.mode)).size} clue families</span>}
         </div>
 
         {/* Action Buttons */}
@@ -145,6 +183,14 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
             ALL MODES
           </button>
         </div>
+
+        <button
+          onClick={handleShare}
+          className="w-full mt-3 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-sm py-3 px-4 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-transform active:scale-95"
+        >
+          <Share2 className="w-4 h-4" />
+          {shareStatus}
+        </button>
 
         {/* Daily Streak Calendar Shortcut */}
         <button

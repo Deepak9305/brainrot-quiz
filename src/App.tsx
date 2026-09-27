@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { GameMode, Question, QuizSessionState, UserStats } from './types';
 import { QUESTIONS_DB } from './data/questions';
-import { loadUserStats, saveUserStats, recordGameCompletion } from './utils/storage';
+import { loadUserStats, saveUserStats, recordGameCompletion, evaluateStreakState } from './utils/storage';
 import { soundManager } from './utils/audio';
-import { appendRecentQuestionIds, prepareQuizQuestions } from './utils/shuffle';
+import { appendRecentQuestionIds, buildChallengeQuestions, prepareQuizQuestions } from './utils/shuffle';
 import { getDailyQuestions, getDateKey, seededRandom } from './utils/daily';
+import { evaluateAchievements, evaluateTitles } from './utils/progression';
+import { ACHIEVEMENT_DEFINITIONS } from './data/achievements';
 import { Header } from './components/Header';
 import { BrainrotBackground } from './components/BrainrotBackground';
 import { ModeSelector } from './components/ModeSelector';
@@ -14,7 +16,12 @@ import { StreakModal } from './components/StreakModal';
 import { SoundboardDrawer } from './components/SoundboardDrawer';
 
 export default function App() {
-  const [stats, setStats] = useState<UserStats>(loadUserStats);
+  const [stats, setStats] = useState<UserStats>(() => {
+    const loaded = loadUserStats();
+    const evaluated = evaluateStreakState(loaded).stats;
+    saveUserStats(evaluated);
+    return evaluated;
+  });
   const [activeMode, setActiveMode] = useState<GameMode | null>(null);
   const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
   const [completedSession, setCompletedSession] = useState<QuizSessionState | null>(null);
@@ -22,6 +29,7 @@ export default function App() {
   const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState<boolean>(false);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
+  const [achievementToast, setAchievementToast] = useState<string | null>(null);
 
   // Sync sound setting on mount
   useEffect(() => {
@@ -37,7 +45,7 @@ export default function App() {
   const triggerScreenShake = () => {
     if (!stats.screenShakeEnabled) return;
     setIsScreenShaking(true);
-    setTimeout(() => setIsScreenShaking(false), 500);
+    setTimeout(() => setIsScreenShaking(false), 280);
   };
 
   // Start selected mode
@@ -47,13 +55,13 @@ export default function App() {
 
     if (mode === 'daily') {
       qList = getDailyQuestions(QUESTIONS_DB);
-      limit = 5;
+      limit = 10;
     } else if (mode === 'rush') {
       qList = QUESTIONS_DB.filter((question) => question.eligibleForRush !== false && question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'sound' && question.mode !== 'voice');
-      limit = 40;
+      limit = 120;
     } else if (mode === 'challenge') {
       qList = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
-      limit = 6;
+      limit = 11;
     } else if (mode === 'mix') {
       qList = QUESTIONS_DB.filter((question) => question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'rush');
     } else {
@@ -62,11 +70,13 @@ export default function App() {
 
     if (qList.length === 0) qList = QUESTIONS_DB.filter((question) => question.mode !== 'daily');
 
-    const preparedQuestions = prepareQuizQuestions(qList, {
-      limit,
-      recentIds: mode === 'daily' ? [] : stats.recentQuestionIds,
-      random: mode === 'daily' ? seededRandom(getDateKey()) : Math.random,
-    });
+    const preparedQuestions = mode === 'challenge'
+      ? buildChallengeQuestions(qList, Math.random)
+      : prepareQuizQuestions(qList, {
+        limit,
+        recentIds: mode === 'daily' ? [] : stats.recentQuestionIds,
+        random: mode === 'daily' ? seededRandom(`daily-session:${getDateKey()}`) : Math.random,
+      });
 
     setActiveQuestions(preparedQuestions);
     setActiveMode(mode);
@@ -77,26 +87,48 @@ export default function App() {
   const handleFinishGame = (finalSession: QuizSessionState) => {
     const isCorrect = finalSession.correctCount;
     const isWrong = finalSession.wrongCount;
+    const isDailyPerfect = finalSession.mode === 'daily' && !finalSession.isPracticeRun && finalSession.questions.length > 0 && finalSession.correctCount === finalSession.questions.length && finalSession.wrongCount === 0;
     const earnedAura = finalSession.earnedAura;
-    const extraScore = finalSession.mode === 'rush' ? finalSession.score : finalSession.currentIndex + 1;
+    const extraScore = finalSession.mode === 'rush' ? finalSession.score : finalSession.mode === 'challenge' ? finalSession.highestChallengeWave : finalSession.currentIndex + 1;
+    const wasRushHighScore = finalSession.mode === 'rush' && finalSession.score > stats.highestRushScore;
 
-    const { updatedStats, streakExtended } = recordGameCompletion(
+    const result = recordGameCompletion(
       stats,
       isCorrect,
       isWrong,
       earnedAura,
       finalSession.mode,
-      extraScore
+      extraScore,
+      isDailyPerfect,
+      finalSession.correctByCategory,
     );
+    const { updatedStats, streakExtended } = result;
 
     const withRecentQuestions = {
       ...updatedStats,
       recentQuestionIds: appendRecentQuestionIds(updatedStats.recentQuestionIds, finalSession.questions),
+      personalBests: {
+        ...updatedStats.personalBests,
+        combo: Math.max(updatedStats.personalBests.combo ?? 0, finalSession.highestCombo),
+      },
     };
+    withRecentQuestions.unlockedTitles = evaluateTitles(withRecentQuestions);
+    withRecentQuestions.unlockedAchievements = evaluateAchievements(withRecentQuestions, finalSession);
     saveUserStats(withRecentQuestions);
     setStats(withRecentQuestions);
     setStreakExtendedAlert(finalSession.mode === 'daily' && streakExtended);
-    setCompletedSession(finalSession);
+    const newlyUnlocked = withRecentQuestions.unlockedAchievements.find((id) => !stats.unlockedAchievements.includes(id));
+    if (newlyUnlocked) {
+      const achievement = ACHIEVEMENT_DEFINITIONS.find((definition) => definition.id === newlyUnlocked);
+      setAchievementToast(achievement ? `${achievement.title} • ${achievement.description}` : 'Achievement unlocked');
+      window.setTimeout(() => setAchievementToast(null), 3200);
+    }
+    setCompletedSession({
+      ...finalSession,
+      earnedAura: finalSession.earnedAura + result.dailyPerfectBonus,
+      dailyPerfect: isDailyPerfect,
+      isNewHighScore: wasRushHighScore,
+    });
   };
 
   // Replay current mode
@@ -115,7 +147,7 @@ export default function App() {
 
   return (
     <div className={`relative min-h-screen bg-black text-white font-sans flex flex-col justify-between select-none ${
-      isScreenShaking ? 'animate-bounce' : ''
+      isScreenShaking ? 'brainrot-shake' : ''
     }`}>
       {/* Background with CRT Scanlines */}
       <BrainrotBackground
@@ -146,6 +178,7 @@ export default function App() {
               mode={activeMode}
               questions={activeQuestions}
               stats={stats}
+              isPracticeRun={activeMode === 'daily' && stats.lastDailyCompletedDate === getDateKey()}
               onFinishGame={handleFinishGame}
               onExitGame={handleReturnToModes}
               triggerScreenShake={triggerScreenShake}
@@ -183,6 +216,13 @@ export default function App() {
         isOpen={isSoundboardOpen}
         onClose={() => setIsSoundboardOpen(false)}
       />
+
+      {achievementToast && (
+        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 border-yellow-400 bg-zinc-950/95 px-4 py-3 text-center shadow-[0_0_30px_rgba(250,204,21,0.35)]" role="status">
+          <div className="text-[10px] font-mono font-black text-yellow-300">ACHIEVEMENT UNLOCKED</div>
+          <div className="mt-1 text-xs font-bold text-white">{achievementToast}</div>
+        </div>
+      )}
     </div>
   );
 }

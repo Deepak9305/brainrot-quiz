@@ -35,30 +35,38 @@ export function getDailyQuestions(questions: Question[], date = new Date()): Que
     question.eligibleForDaily !== false &&
     question.mode !== 'rush' &&
     question.mode !== 'challenge' &&
-    question.mode !== 'daily'
+    question.mode !== 'daily' &&
+    question.mode !== 'sound' &&
+    question.mode !== 'voice'
   );
 
   if (eligible.length === 0) return questions.slice(0, 5);
 
-  const random = seededRandom(getDateKey(date));
+  const random = seededRandom(`daily:${getDateKey(date)}`);
   const pool = [...eligible];
   const selected: Question[] = [];
 
-  // Prefer five different formats, with a visual clue whenever one exists.
-  const preferredModes = ['image', 'emoji', 'slang', 'voice', 'sound'] as const;
-  for (const mode of preferredModes) {
-    const candidates = pool.filter((question) => question.mode === mode);
-    if (candidates.length === 0) continue;
+  const pick = (predicate: (question: Question) => boolean): Question | undefined => {
+    const candidates = pool.filter((question) => predicate(question) && !selected.some((picked) => picked.subjectKey && picked.subjectKey === question.subjectKey));
+    if (candidates.length === 0) return undefined;
     const candidate = candidates[Math.floor(random() * candidates.length)];
     selected.push(candidate);
     pool.splice(pool.indexOf(candidate), 1);
-    if (selected.length === 5) break;
-  }
+    return candidate;
+  };
 
-  while (selected.length < 5 && pool.length > 0) {
+  // Every Daily run is playable with sound disabled and has a predictable
+  // editorial shape: five anchor picks followed by five balanced wildcards.
+  pick((question) => question.category === 'italian_brainrot' || question.era === 'italian_brainrot');
+  pick((question) => question.category === 'classic_memes' || question.era === 'classic');
+  pick((question) => question.category === 'slang' || question.category === 'emoji' || question.mode === 'slang' || question.mode === 'emoji');
+  pick((question) => question.visualType === 'image');
+  pick((question) => question.difficulty === 'medium' || question.difficulty === 'hard' || question.difficulty === 'sigma');
+
+  while (selected.length < 10 && pool.length > 0) {
     const candidate = pool.splice(Math.floor(random() * pool.length), 1)[0];
     if (!selected.some((question) => question.id === candidate.id)) selected.push(candidate);
   }
 
-  return selected.slice(0, 5);
+  return selected.slice(0, 10);
 }
