@@ -1,0 +1,163 @@
+import React, { useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import { motion } from 'motion/react';
+import { Trophy, Zap, Flame, RotateCcw, Home, Sparkles, Award } from 'lucide-react';
+import { QuizSessionState, UserStats } from '../types';
+import { soundManager } from '../utils/audio';
+
+interface ResultsModalProps {
+  session: QuizSessionState;
+  stats: UserStats;
+  streakExtended: boolean;
+  onPlayAgain: () => void;
+  onReturnToModes: () => void;
+  onOpenStreakModal: () => void;
+}
+
+export const ResultsModal: React.FC<ResultsModalProps> = ({
+  session,
+  stats,
+  streakExtended,
+  onPlayAgain,
+  onReturnToModes,
+  onOpenStreakModal,
+}) => {
+  const total = session.correctCount + session.wrongCount;
+  const accuracy = total > 0 ? Math.round((session.correctCount / total) * 100) : 0;
+
+  // Grade determination
+  let rankGrade = 'SSS';
+  let rankTitle = 'GIGA SIGMA OVERLORD 🗿';
+  let rankColor = 'from-yellow-400 via-pink-500 to-purple-500';
+
+  if (accuracy >= 90) {
+    rankGrade = 'SSS';
+    rankTitle = 'GIGA SIGMA OVERLORD 🗿';
+    rankColor = 'from-yellow-400 via-pink-500 to-purple-500';
+  } else if (accuracy >= 75) {
+    rankGrade = 'S';
+    rankTitle = 'UNSPOKEN RIZZLER 🔥';
+    rankColor = 'from-cyan-400 to-blue-500';
+  } else if (accuracy >= 60) {
+    rankGrade = 'A';
+    rankTitle = 'CHILL GUY IN OHIO 🐕';
+    rankColor = 'from-emerald-400 to-teal-500';
+  } else if (accuracy >= 40) {
+    rankGrade = 'B';
+    rankTitle = 'FANUM TAX RECRUIT 🍕';
+    rankColor = 'from-amber-400 to-orange-500';
+  } else {
+    rankGrade = 'F';
+    rankTitle = 'SKIBIDI NPC CASUALTY 🚽';
+    rankColor = 'from-red-500 to-zinc-600';
+  }
+
+  // Trigger celebratory confetti on high scores
+  useEffect(() => {
+    if (accuracy >= 60) {
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#f43f5e', '#eab308', '#06b6d4', '#a855f7'],
+        });
+      } catch {}
+    }
+  }, [accuracy]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="relative w-full max-w-lg bg-zinc-950 border-4 border-yellow-400 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(250,204,21,0.4)] text-center overflow-hidden"
+      >
+        {/* Retro Header Tag */}
+        <div className="inline-block bg-yellow-400 text-black font-black text-[11px] px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+          QUIZ REPORT DECLASSIFIED
+        </div>
+
+        {/* Grade Badge */}
+        <div className="my-2">
+          <div className={`text-6xl sm:text-7xl font-black italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-r ${rankColor} drop-shadow-md`}>
+            RANK {rankGrade}
+          </div>
+          <div className="text-sm sm:text-base font-black text-zinc-200 mt-1 uppercase tracking-wide">
+            {rankTitle}
+          </div>
+        </div>
+
+        {/* Streak Extended Celebration Alert */}
+        {streakExtended && (
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="my-3 p-3 rounded-2xl bg-gradient-to-r from-orange-600/30 to-amber-600/30 border-2 border-orange-500 text-orange-300 flex items-center justify-center gap-2 font-mono text-xs font-bold shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+          >
+            <Flame className="w-5 h-5 text-orange-400 fill-orange-400 animate-bounce" />
+            <span>DAILY STREAK EXTENDED TO {stats.streak} DAYS! 🔥</span>
+          </motion.div>
+        )}
+
+        {/* Score & Aura Grid */}
+        <div className="grid grid-cols-3 gap-2.5 my-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+            <span className="text-zinc-500 block text-[10px] font-mono">ACCURACY</span>
+            <span className="text-lg font-black text-green-400">{accuracy}%</span>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+            <span className="text-zinc-500 block text-[10px] font-mono">MAX COMBO</span>
+            <span className="text-lg font-black text-pink-400">{session.highestCombo}x</span>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+            <span className="text-zinc-500 block text-[10px] font-mono">AURA GAINED</span>
+            <span className="text-lg font-black text-yellow-400 flex items-center justify-center gap-1">
+              <Zap className="w-3.5 h-3.5 fill-yellow-400" />
+              +{session.earnedAura}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
+          <button
+            onClick={() => {
+              soundManager.play('level_up');
+              onPlayAgain();
+            }}
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-400 hover:to-yellow-300 text-black font-black text-sm py-3 px-4 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(236,72,153,0.4)] transition-transform active:scale-95"
+          >
+            <RotateCcw className="w-4 h-4" />
+            PLAY AGAIN
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.play('countdown_tick');
+              onReturnToModes();
+            }}
+            className="flex-1 flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm py-3 px-4 rounded-xl border border-zinc-600 transition-colors cursor-pointer"
+          >
+            <Home className="w-4 h-4" />
+            ALL MODES
+          </button>
+        </div>
+
+        {/* Daily Streak Calendar Shortcut */}
+        <button
+          onClick={() => {
+            soundManager.play('level_up');
+            onOpenStreakModal();
+          }}
+          className="w-full mt-3 text-xs font-mono text-amber-400 hover:text-amber-300 hover:underline cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <Award className="w-3.5 h-3.5" />
+          Check Streak Milestones & Claim Daily Gifts
+        </button>
+      </motion.div>
+    </div>
+  );
+};

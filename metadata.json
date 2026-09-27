@@ -1,0 +1,6 @@
+{
+  "name": "Brainrot Quiz",
+  "description": "A fast, chaotic meme-culture quiz game with image, emoji, slang, sound, voice, rush, daily, and challenge modes with offline audio, streaks, and hyper-kinetic retro aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
