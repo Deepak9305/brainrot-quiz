@@ -51,6 +51,8 @@ for (let day = 0; day < 30; day += 1) {
   assert(daily.some((question) => question.visualType === 'image' || question.visualType === 'emoji'));
   assert(daily.every((question) => question.mode !== 'sound' && question.mode !== 'voice'));
   assert(new Set(daily.map((question) => question.category)).size >= 2);
+  assert(daily.filter((question) => question.category === 'italian_brainrot' || question.era === 'italian_brainrot').length <= 1);
+  assert(new Set(daily.map((question) => question.era)).size >= 3);
 }
 const dailyItalianCount = dailyA.filter((question) => question.category === 'italian_brainrot' || question.era === 'italian_brainrot').length;
 assert(dailyItalianCount <= 1);
@@ -79,6 +81,10 @@ assert(Object.values(LOCAL_MEDIA).every((asset) => asset.assetType === 'public_d
 assert(new Set(imageQuestions.map((question) => question.subjectKey)).size >= 15);
 const challenge = buildChallengeQuestions(QUESTIONS_DB.filter((question) => question.mode === 'challenge'), () => 0.42);
 assert.deepEqual(challenge.map((question) => question.challengeWave), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
+assert(challenge.some((question) => question.question.includes('subreddits')));
+assert(challenge.some((question) => question.question.includes('Victory Royale')));
+assert(challenge.some((question) => question.question.includes('FINAL BOSS')));
+assert(challenge.every((question) => question.category !== 'italian_brainrot' && !/^What does .* mean/i.test(question.question)));
 
 assert.equal(calculateRushScore('easy', 1, 500, true), 175);
 assert.equal(calculateRushScore('hard', 5, 1500, true), 338);

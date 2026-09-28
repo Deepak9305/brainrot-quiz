@@ -817,7 +817,71 @@ const QUESTION_PROMPT_OVERRIDES: Record<string, string> = {
   it_deep_33: 'Which character has a name chanted three times alongside a wooden figure?',
   rush_deep_44: 'Which shorthand means you just burst out laughing?',
   rush_deep_48: 'In a reply, how does lowkey change the tone?',
-  challenge_deep_02: 'Which term describes a reusable image or joke structure?',
+};
+
+// The legacy challenge cards remain in this source file for migration safety,
+// but the active game uses this curated cross-era set. Challenge should test
+// internet culture recognition, not repeat current-slang definitions.
+const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
+  chg_1: {
+    question: 'Challenge Wave 1: Which service is built around topic communities called subreddits?',
+    subtitle: 'BOSS WAVE: PLATFORM FOUNDATIONS',
+    options: ['Reddit', 'Tumblr', 'Twitch', 'Pinterest'],
+    correctAnswer: 0,
+    explanation: 'Subreddits are topic-based Reddit communities with their own feeds, rules, and moderators.',
+    memeContext: 'The format of internet culture changes when a platform changes how communities gather.',
+    difficulty: 'easy',
+  },
+  chg_2: {
+    question: 'Challenge Wave 1: Which platform launched in 2005 and became a home for creator-uploaded video?',
+    subtitle: 'BOSS WAVE: PLATFORM FOUNDATIONS',
+    options: ['YouTube', 'Discord', 'Vine', 'Instagram'],
+    correctAnswer: 0,
+    explanation: 'YouTube launched in 2005 and made creator-uploaded video a central part of online culture.',
+    memeContext: 'A platform-history clue should reward recognition of an era, not a vocabulary definition.',
+    difficulty: 'easy',
+    challengeWave: 1,
+  },
+  chg_3: {
+    question: 'Challenge Wave 2: Which short-video platform became known for six-second looping clips?',
+    subtitle: 'BOSS WAVE: FORMAT HISTORY',
+    options: ['Vine', 'TikTok', 'Twitch', 'Reddit'],
+    correctAnswer: 0,
+    explanation: 'Vine made six-second loops a distinctive comedy format before the service shut down.',
+    memeContext: 'The short-loop grammar later echoed through other video platforms.',
+    difficulty: 'medium',
+    challengeWave: 2,
+  },
+  chg_4: {
+    question: 'Challenge Wave 2: Which platform feature is matched correctly?',
+    subtitle: 'BOSS WAVE: FORMAT HISTORY',
+    options: ['Discord - servers', 'Reddit - Top 8', 'Myspace - For You Page', 'Vine - subreddits'],
+    correctAnswer: 0,
+    explanation: 'Discord servers are persistent communities organized around shared interests or friend groups.',
+    memeContext: 'Platform literacy is part of internet history: the interface shapes the culture.',
+    difficulty: 'medium',
+    challengeWave: 2,
+  },
+  chg_5: {
+    question: 'Challenge Wave 3: Which site became a major home for Flash animations and browser games?',
+    subtitle: 'BOSS WAVE: EARLY WEB',
+    options: ['Newgrounds', 'LinkedIn', 'Dropbox', 'Google Maps'],
+    correctAnswer: 0,
+    explanation: 'Newgrounds helped popularize user-submitted Flash cartoons, games, and music online.',
+    memeContext: 'Early web culture was often interactive, messy, and built around browser plugins.',
+    difficulty: 'medium',
+    challengeWave: 3,
+  },
+  chg_6: {
+    question: 'FINAL BOSS OF GAMING CULTURE: What does “Victory Royale” announce?',
+    subtitle: 'FINAL BOSS: GAMING CULTURE',
+    options: ['A Fortnite battle-royale win', 'A Minecraft building award', 'An Among Us emergency meeting', 'A Roblox friend request'],
+    correctAnswer: 0,
+    explanation: 'Victory Royale is Fortnite’s banner for winning a battle-royale match.',
+    memeContext: 'Gaming phrases become internet-wide references when clips and reactions carry them outside the game.',
+    difficulty: 'sigma',
+    challengeWave: 6,
+  },
 };
 
 export const QUESTIONS_DB: Question[] = [
@@ -826,7 +890,11 @@ export const QUESTIONS_DB: Question[] = [
   ...RUSH_VARIANTS,
   ...EXPANDED_QUESTIONS,
   ...INTERNET_CULTURE_QUESTIONS,
-].map(normalizeQuestion).map((question) => ({
-  ...question,
-  question: QUESTION_PROMPT_OVERRIDES[question.id] ?? question.question,
-}));
+].map(normalizeQuestion).map((question) => {
+  const contentOverride = CHALLENGE_CONTENT_OVERRIDES[question.id] ?? {};
+  return {
+    ...question,
+    ...contentOverride,
+    question: QUESTION_PROMPT_OVERRIDES[question.id] ?? contentOverride.question ?? question.question,
+  };
+});

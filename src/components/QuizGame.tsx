@@ -331,7 +331,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
 
         <h2 className="text-lg sm:text-xl font-bold text-white leading-snug mb-4">{currentQ.question}</h2>
 
-        {currentQ.visualType === 'image' && currentQ.visualContent && <div className="my-3"><MemeArt type={currentQ.visualContent} altText={currentQ.question} variant={currentQ.imageVariant} /></div>}
+        {currentQ.visualType === 'image' && currentQ.visualContent && <div className="my-3"><MemeArt type={currentQ.visualContent} altText={currentQ.question} variant={session.isAnswered ? 'standard' : currentQ.imageVariant} /></div>}
         {currentQ.visualType === 'emoji' && currentQ.visualContent && <div className="my-4 p-4 rounded-2xl bg-zinc-900 border-2 border-yellow-400/50 flex flex-col items-center justify-center gap-2"><span className="text-4xl sm:text-5xl tracking-widest">{currentQ.visualContent}</span><span className="text-[10px] font-mono text-yellow-300/80 uppercase">DECODE THE BRAINROT COMBINATION</span></div>}
         {currentQ.visualType === 'ascii' && currentQ.visualContent && <div className="my-4 p-3 rounded-xl bg-black border border-cyan-500/50 font-mono text-cyan-300 text-center text-sm sm:text-base font-bold tracking-widest whitespace-pre-line">{currentQ.visualContent}</div>}
 
