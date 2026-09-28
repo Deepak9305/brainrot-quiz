@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { QUESTIONS_DB, QUESTION_DATABASE_VERSION } from '../src/data/questions';
 import { LOCAL_MEDIA, getLocalMediaAsset } from '../src/data/media';
 import { ARCHIVE_ENTRIES } from '../src/data/archive';
+import { TEXT_VISUAL_QUESTIONS } from '../src/data/textVisualQuestions';
 
 const validModes = new Set(['mix', 'image', 'emoji', 'slang', 'sound', 'voice', 'rush', 'daily', 'challenge']);
 const validCategories = new Set([
@@ -142,14 +143,11 @@ const categories = countBy(QUESTIONS_DB.map((question) => question.category ?? '
 const eras = countBy(QUESTIONS_DB.map((question) => question.era ?? 'unknown'));
 const topics = countBy(QUESTIONS_DB.map((question) => question.topic ?? 'untagged'));
 const questionTypes = countBy(QUESTIONS_DB.map((question) => question.questionType ?? 'standard'));
-const visualQuestions = QUESTIONS_DB.filter((question) => question.mode === 'image' && (question.visualType === 'image' || question.visualType === 'ascii'));
-const imageQuestions = visualQuestions.filter((question) => question.visualType === 'image');
-const textVisualQuestions = visualQuestions.filter((question) => question.visualType === 'ascii');
+const visualQuestions = QUESTIONS_DB.filter((question) => question.mode === 'image' && question.visualType === 'image');
+const imageQuestions = visualQuestions;
+const inactiveTextVisualQuestions = TEXT_VISUAL_QUESTIONS.filter((question) => question.mode === 'image' && question.visualType === 'ascii');
 const visualCount = visualQuestions.length;
 const uniqueVisualSubjects = new Set(visualQuestions.map((question) => question.subjectKey)).size;
-visualQuestions.forEach((question) => {
-  if (question.visualType === 'ascii' && (!question.useMediaAsQuestion || !question.visualContent?.trim())) errors.push(`${question.id}: text visual requires useMediaAsQuestion and visualContent`);
-});
 const uniqueSubjects = new Set(QUESTIONS_DB.map((question) => question.subjectKey)).size;
 if (QUESTIONS_DB.length < 200) errors.push(`question pool too small: ${QUESTIONS_DB.length}`);
 if (QUESTIONS_DB.filter((question) => question.mode === 'rush').length < 100) errors.push('dedicated Rush pool is below 100');
@@ -209,7 +207,7 @@ Object.entries(subjectCounts).forEach(([subject, count]) => {
   if (count > 4) warnings.push(`duplicate concept: ${subject} appears in ${count} questions`);
 });
 if (warnings.length > 0) console.warn(`data validation warnings: ${warnings.length}\n${warnings.slice(0, 20).join('\n')}`);
-console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, imageCount: imageQuestions.length, textVisualCount: textVisualQuestions.length, uniqueVisualSubjects, imageCategories: countBy(visualQuestions.map((question) => question.category ?? 'unknown')), imageEras: countBy(visualQuestions.map((question) => question.era ?? 'unknown')), uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
+console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, imageCount: imageQuestions.length, inactiveTextVisualCount: inactiveTextVisualQuestions.length, uniqueVisualSubjects, imageCategories: countBy(visualQuestions.map((question) => question.category ?? 'unknown')), imageEras: countBy(visualQuestions.map((question) => question.era ?? 'unknown')), uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
 if (errors.length > 0) {
   console.error(`data validation failed: ${errors.length}\n${errors.join('\n')}`);
   process.exit(1);
