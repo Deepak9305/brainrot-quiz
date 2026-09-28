@@ -139,6 +139,7 @@ export interface UserStats {
   auraPoints: number;
   streakFreezes: number;
   recentQuestionIds: string[];
+  recentVisualSubjectKeys: string[];
   quizzesCompleted: number;
   totalCorrect: number;
   totalWrong: number;
@@ -199,6 +200,7 @@ export interface QuizSessionState {
   dailyPerfect: boolean;
   correctByCategory: Record<string, number>;
   answeredSubjectKeys: string[];
+  answeredQuestionIds: string[];
   auraBreakdown?: {
     answers: number;
     perfectBonus: number;

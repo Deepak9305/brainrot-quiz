@@ -4,7 +4,7 @@ import { QUESTIONS_DB } from './data/questions';
 import { getLocalMediaAsset } from './data/media';
 import { applyArchiveProgress, loadUserStats, saveUserStats, recordGameCompletion, evaluateStreakState } from './utils/storage';
 import { soundManager } from './utils/audio';
-import { appendRecentQuestionIds, buildChallengeQuestions, prepareQuizQuestions } from './utils/shuffle';
+import { appendRecentQuestionIds, appendRecentSubjectKeys, buildChallengeQuestions, prepareQuizQuestions } from './utils/shuffle';
 import { CHALLENGE_QUESTIONS } from './data/challengeQuestions';
 import { getDailyQuestions, getDateKey, seededRandom } from './utils/daily';
 import { evaluateAchievements, evaluateTitles } from './utils/progression';
@@ -120,6 +120,7 @@ export default function App() {
       : prepareQuizQuestions(qList, {
         limit,
         recentIds: mode === 'daily' ? [] : stats.recentQuestionIds,
+        avoidSubjects: mode === 'image' ? stats.recentVisualSubjectKeys : [],
         uniqueSubjects: mode === 'image',
         balance: mode === 'mix' ? 'mix' : mode === 'image' ? 'image' : undefined,
         random: mode === 'daily' ? seededRandom(`daily-session:${getDateKey()}`) : Math.random,
@@ -153,6 +154,7 @@ export default function App() {
       finalSession.challengeVictory,
     );
     const { updatedStats, streakExtended } = result;
+    const answeredQuestions = finalSession.questions.filter((question) => finalSession.answeredQuestionIds.includes(question.id));
 
     const archiveProgress = applyArchiveProgress(
       updatedStats,
@@ -161,7 +163,10 @@ export default function App() {
     );
     const progressedStats = {
       ...archiveProgress.updatedStats,
-      recentQuestionIds: appendRecentQuestionIds(updatedStats.recentQuestionIds, finalSession.questions),
+      recentQuestionIds: appendRecentQuestionIds(updatedStats.recentQuestionIds, answeredQuestions),
+      recentVisualSubjectKeys: finalSession.mode === 'image'
+        ? appendRecentSubjectKeys(updatedStats.recentVisualSubjectKeys, finalSession.answeredSubjectKeys)
+        : updatedStats.recentVisualSubjectKeys,
       personalBests: {
         ...updatedStats.personalBests,
         combo: Math.max(updatedStats.personalBests.combo ?? 0, finalSession.highestCombo),

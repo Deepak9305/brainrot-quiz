@@ -26,6 +26,9 @@ const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType ===
 const imageSubjects = new Set(imageQuestions.map((question) => question.subjectKey ?? question.id));
 const imageCategories = countBy(imageQuestions.map((question) => question.category ?? 'unknown'));
 const imageEras = countBy([...new Set(imageQuestions.map((question) => `${question.era ?? 'unknown'}:${question.subjectKey ?? question.id}`))].map((key) => key.split(':')[0]));
+const imageLicenses = countBy(imageQuestions.map((question) => LOCAL_MEDIA[question.visualContent ?? '']?.licenseName ?? 'unknown'));
+const repeatedImageSubjects = Object.entries(countBy(imageQuestions.map((question) => question.subjectKey ?? question.id)))
+  .filter(([, count]) => count > 1);
 const mediaTypes = countBy(Object.values(LOCAL_MEDIA).map((asset) => asset.assetType));
 const challengeQuestions = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
 
@@ -34,6 +37,14 @@ console.log(`Total questions: ${QUESTIONS_DB.length}`);
 console.log(`Visual subjects: ${visualSubjects.size}`);
 console.log(`Image questions: ${imageQuestions.length}`);
 console.log(`Image subjects: ${imageSubjects.size}`);
+
+console.log('\nVISUAL MODE');
+console.log(`  Total image questions: ${imageQuestions.length}`);
+console.log(`  Unique visual subjects: ${imageSubjects.size}`);
+printSection('  Subjects by category', topEntries(imageCategories, Object.keys(imageCategories).length));
+printSection('  Subjects by era', topEntries(imageEras, Object.keys(imageEras).length));
+printSection('  Subjects by license', topEntries(imageLicenses, Object.keys(imageLicenses).length));
+console.log(`  Repeated image subjects: ${repeatedImageSubjects.length ? repeatedImageSubjects.map(([subject, count]) => `${subject}:${count}`).join(', ') : 'none'}`);
 
 printSection('By category', topEntries(categories, Object.keys(categories).length));
 printSection('By era', topEntries(eras, Object.keys(eras).length));

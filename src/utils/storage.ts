@@ -38,6 +38,7 @@ export const INITIAL_USER_STATS: UserStats = {
   auraPoints: 500,
   streakFreezes: 1,
   recentQuestionIds: [],
+  recentVisualSubjectKeys: [],
   quizzesCompleted: 0,
   totalCorrect: 0,
   totalWrong: 0,
@@ -117,6 +118,9 @@ export function sanitizeStats(data: Partial<UserStats>): UserStats {
     auraPoints: Math.max(0, Number(data.auraPoints ?? INITIAL_USER_STATS.auraPoints) || 0),
     streakFreezes: Math.min(MAX_STREAK_FREEZES, Math.max(0, Number(data.streakFreezes ?? INITIAL_USER_STATS.streakFreezes) || 0)),
     recentQuestionIds: Array.isArray(data.recentQuestionIds) ? data.recentQuestionIds.filter(Boolean).slice(0, 100) : [],
+    recentVisualSubjectKeys: Array.isArray(data.recentVisualSubjectKeys)
+      ? [...new Set(data.recentVisualSubjectKeys.filter(Boolean))].slice(0, 20)
+      : [],
     challengeWins: Math.max(0, Number(data.challengeWins) || 0),
     finalBossWins: Math.max(0, Number(data.finalBossWins) || 0),
     unlockedTitles: Array.isArray(data.unlockedTitles) && data.unlockedTitles.length > 0

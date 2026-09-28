@@ -115,10 +115,18 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
     });
     const availableSubjects = new Set(remaining.map((question) => question.subjectKey ?? question.visualContent ?? question.id));
     const unseenSubjectCandidates = candidates.filter((question) => !subjectCounts.has(question.subjectKey ?? question.visualContent ?? question.id));
+    const cooledSubjectCandidates = candidates.filter((question) => {
+      const subject = question.subjectKey ?? question.visualContent ?? question.id;
+      return !avoidSubjects.has(subject) && !subjectCounts.has(subject);
+    });
+    const cooledSubjects = new Set(cooledSubjectCandidates.map((question) => question.subjectKey ?? question.visualContent ?? question.id));
     const canKeepSubjectsUnique = options.uniqueSubjects && availableSubjects.size >= limit - selected.length;
-    const pool = canKeepSubjectsUnique && unseenSubjectCandidates.length > 0
-      ? unseenSubjectCandidates
-      : candidates.length > 0 ? candidates : remaining;
+    const canKeepCooledSubjects = options.uniqueSubjects && cooledSubjects.size >= limit - selected.length;
+    const pool = canKeepCooledSubjects && cooledSubjectCandidates.length > 0
+      ? cooledSubjectCandidates
+      : canKeepSubjectsUnique && unseenSubjectCandidates.length > 0
+        ? unseenSubjectCandidates
+        : candidates.length > 0 ? candidates : remaining;
 
     const scored = pool.map((question) => {
       const category = question.category ?? question.mode;
@@ -201,4 +209,8 @@ function inferChallengeWave(question: Question): number {
 export function appendRecentQuestionIds(existing: string[], questions: Question[], max = 100): string[] {
   const ids = [...questions.map((question) => question.id), ...existing];
   return [...new Set(ids)].slice(0, max);
+}
+
+export function appendRecentSubjectKeys(existing: string[], subjectKeys: string[], max = 20): string[] {
+  return [...new Set([...subjectKeys.filter(Boolean), ...existing])].slice(0, max);
 }

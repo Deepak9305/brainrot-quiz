@@ -57,6 +57,7 @@ function createInitialSession(mode: GameMode, questions: Question[], isPracticeR
     dailyPerfect: false,
     correctByCategory: {},
     answeredSubjectKeys: [],
+    answeredQuestionIds: [],
   };
 }
 
@@ -246,6 +247,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
       scoreEvents: scoreEvent ? [...session.scoreEvents, scoreEvent] : session.scoreEvents,
       correctByCategory,
       answeredSubjectKeys: [...new Set([...session.answeredSubjectKeys, currentQ.subjectKey ?? currentQ.visualContent ?? currentQ.id])],
+      answeredQuestionIds: [...new Set([...session.answeredQuestionIds, currentQ.id])],
       highestChallengeWave: Math.max(session.highestChallengeWave, currentQ.challengeWave ?? session.challengeWave),
       challengeVictory: session.challengeVictory || (mode === 'challenge' && currentQ.challengeWave === 6 && isCorrect),
       finalBossDefeated: session.finalBossDefeated || (mode === 'challenge' && currentQ.challengeWave === 6 && isCorrect),

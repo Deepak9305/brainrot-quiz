@@ -42,6 +42,9 @@ const ARCHIVE_ENTRIES_BASE: ArchiveEntry[] = [
   { subjectKey: 'slg_deep_04', name: 'Ratio', emoji: '📊', description: 'A reply receives more engagement than the original post.', era: 'Current', category: 'Slang' },
   { subjectKey: 'slg_deep_13', name: 'Crash Out', emoji: '💥', description: 'An impulsive emotional blow-up or reckless reaction.', era: 'Current', category: 'Slang' },
   { subjectKey: 'slg_deep_24', name: 'IJBOL', emoji: '😂', description: 'Internet shorthand for suddenly bursting out laughing.', era: 'Current', category: 'Slang' },
+  { subjectKey: 'doge_meme', name: 'Doge Image Macro', emoji: '\u{1F415}', description: 'The recognizable Shiba Inu image macro used for deliberately silly inner monologue captions.', era: 'OG', category: 'Classic Memes', mediaKey: 'doge_meme_example' },
+  { subjectKey: 'trollface', name: 'Trollface', emoji: '\u{1F60F}', description: 'The rage-comic face associated with baiting, pranks, and internet mischief.', era: 'OG', category: 'Meme Formats', mediaKey: 'trollface_classic' },
+  { subjectKey: 'grumpy_cat', name: 'Grumpy Cat', emoji: '\u{1F408}', description: 'The permanently unimpressed reaction cat that became a defining 2010s meme.', era: '2010s', category: 'Reaction Memes', mediaKey: 'grumpy_cat_classic' },
 ];
 
 export const ARCHIVE_ENTRIES: ArchiveEntry[] = ARCHIVE_ENTRIES_BASE;

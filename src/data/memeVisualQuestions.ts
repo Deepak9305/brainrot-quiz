@@ -1,0 +1,65 @@
+import { Question } from '../types';
+
+const memeVisualQuestion = (seed: Omit<Question, 'mode' | 'visualType' | 'useMediaAsQuestion' | 'imageAsset' | 'visualContent'> & {
+  imageAsset: string;
+}): Question => ({
+  ...seed,
+  mode: 'image',
+  visualType: 'image',
+  visualContent: seed.imageAsset,
+  imageAsset: seed.imageAsset,
+  useMediaAsQuestion: true,
+  eligibleForRush: false,
+  eligibleForDaily: true,
+});
+
+export const MEME_VISUAL_QUESTIONS: Question[] = [
+  memeVisualQuestion({
+    id: 'meme_visual_doge_01',
+    question: 'Which classic meme is this?',
+    subtitle: 'AUTHENTIC MEME / CLASSIC IMAGE MACRO',
+    imageAsset: 'doge_meme_example',
+    imageVariant: 'standard',
+    questionType: 'image_identification',
+    category: 'classic_memes',
+    era: 'classic',
+    subjectKey: 'doge_meme',
+    options: ['Doge', 'Grumpy Cat', 'Keyboard Cat', 'Success Kid'],
+    correctAnswer: 0,
+    explanation: 'The Shiba Inu plus fragmented colorful captions is the recognizable Doge image-macro format.',
+    memeContext: 'Doge is one of the defining captioned image macros of the early-2010s internet.',
+    difficulty: 'easy',
+  }),
+  memeVisualQuestion({
+    id: 'meme_visual_trollface_01',
+    question: 'Name this rage-comic face.',
+    subtitle: 'AUTHENTIC MEME / RAGE COMIC',
+    imageAsset: 'trollface_classic',
+    imageVariant: 'standard',
+    questionType: 'image_identification',
+    category: 'meme_formats',
+    era: 'classic',
+    subjectKey: 'trollface',
+    options: ['Trollface', 'Forever Alone', 'Me Gusta', 'Y U NO'],
+    correctAnswer: 0,
+    explanation: 'The exaggerated grin and narrowed eyes identify the Trollface rage-comic character.',
+    memeContext: 'Trollface became a shorthand for baiting, trolling, and knowingly annoying a target.',
+    difficulty: 'easy',
+  }),
+  memeVisualQuestion({
+    id: 'meme_visual_grumpy_cat_01',
+    question: 'Which reaction meme is shown here?',
+    subtitle: 'AUTHENTIC MEME / REACTION CAT',
+    imageAsset: 'grumpy_cat_classic',
+    imageVariant: 'standard',
+    questionType: 'image_identification',
+    category: 'reaction_memes',
+    era: 'early_2010s',
+    subjectKey: 'grumpy_cat',
+    options: ['Grumpy Cat', 'Doge', 'Nyan Cat', 'Keyboard Cat'],
+    correctAnswer: 0,
+    explanation: 'The permanently unimpressed expression is the signature visual of Grumpy Cat.',
+    memeContext: 'Grumpy Cat turned one cat’s distinctive expression into a global reaction format.',
+    difficulty: 'easy',
+  }),
+];
