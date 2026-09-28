@@ -820,96 +820,14 @@ const QUESTION_PROMPT_OVERRIDES: Record<string, string> = {
   rush_deep_48: 'In a reply, how does lowkey change the tone?',
 };
 
-// The legacy challenge cards remain in this source file for migration safety,
-// but the active game uses this curated cross-era set. Challenge should test
-// internet culture recognition, not repeat current-slang definitions.
-const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
-  chg_1: {
-    question: 'Challenge Wave 1: Which service is built around topic communities called subreddits?',
-    subtitle: 'BOSS WAVE: PLATFORM FOUNDATIONS',
-    options: ['Reddit', 'Tumblr', 'Twitch', 'Pinterest'],
-    correctAnswer: 0,
-    explanation: 'Subreddits are topic-based Reddit communities with their own feeds, rules, and moderators.',
-    memeContext: 'The format of internet culture changes when a platform changes how communities gather.',
-    difficulty: 'medium',
-    category: 'social_media',
-    era: '2000s',
-  },
-  chg_2: {
-    question: 'Challenge Wave 1: Which platform launched in 2005 and became a home for creator-uploaded video?',
-    subtitle: 'BOSS WAVE: PLATFORM FOUNDATIONS',
-    options: ['YouTube', 'Discord', 'Vine', 'Instagram'],
-    correctAnswer: 0,
-    explanation: 'YouTube launched in 2005 and made creator-uploaded video a central part of online culture.',
-    memeContext: 'A platform-history clue should reward recognition of an era, not a vocabulary definition.',
-    difficulty: 'medium',
-    category: 'youtube',
-    era: 'mid_2000s',
-    challengeWave: 1,
-  },
-  chg_3: {
-    question: 'Challenge Wave 2: Which short-video platform became known for six-second looping clips?',
-    subtitle: 'BOSS WAVE: FORMAT HISTORY',
-    options: ['Vine', 'TikTok', 'Twitch', 'Reddit'],
-    correctAnswer: 0,
-    explanation: 'Vine made six-second loops a distinctive comedy format before the service shut down.',
-    memeContext: 'The short-loop grammar later echoed through other video platforms.',
-    difficulty: 'medium',
-    category: 'social_media',
-    era: 'early_2010s',
-    challengeWave: 2,
-  },
-  chg_4: {
-    question: 'Challenge Wave 2: Which platform feature is matched correctly?',
-    subtitle: 'BOSS WAVE: FORMAT HISTORY',
-    options: ['Discord - servers', 'Reddit - Top 8', 'Myspace - For You Page', 'Vine - subreddits'],
-    correctAnswer: 0,
-    explanation: 'Discord servers are persistent communities organized around shared interests or friend groups.',
-    memeContext: 'Platform literacy is part of internet history: the interface shapes the culture.',
-    difficulty: 'medium',
-    category: 'social_media',
-    era: 'early_2010s',
-    challengeWave: 2,
-  },
-  chg_5: {
-    question: 'Challenge Wave 3: Which site became a major home for Flash animations and browser games?',
-    subtitle: 'BOSS WAVE: EARLY WEB',
-    options: ['Newgrounds', 'LinkedIn', 'Dropbox', 'Google Maps'],
-    correctAnswer: 0,
-    explanation: 'Newgrounds helped popularize user-submitted Flash cartoons, games, and music online.',
-    memeContext: 'Early web culture was often interactive, messy, and built around browser plugins.',
-    difficulty: 'hard',
-    category: 'digital_nostalgia',
-    era: 'early_web',
-    challengeWave: 3,
-  },
-  chg_6: {
-    question: 'FINAL BOSS: Which platform timeline is correctly ordered?',
-    subtitle: 'FINAL BOSS: CROSS-ERA CHRONOLOGY',
-    options: ['AIM -> Myspace -> YouTube -> TikTok', 'YouTube -> AIM -> TikTok -> Myspace', 'Myspace -> AIM -> TikTok -> YouTube', 'TikTok -> YouTube -> Myspace -> AIM'],
-    correctAnswer: 0,
-    explanation: 'AIM belongs to the late-1990s web, Myspace to the early 2000s, YouTube to 2005, and TikTok to the later short-video era.',
-    memeContext: 'The final boss tests the shape of four platform eras rather than one isolated launch fact.',
-    difficulty: 'sigma',
-    category: 'viral_videos',
-    era: 'current',
-    challengeWave: 6,
-    questionType: 'timeline',
-  },
-};
-
 export const QUESTIONS_DB: Question[] = [
-  ...LEGACY_QUESTIONS_DB.filter((question) => question.mode !== 'image'),
-  ...MODERN_QUESTIONS,
+  ...LEGACY_QUESTIONS_DB.filter((question) => question.mode !== 'image' && question.mode !== 'challenge'),
+  ...MODERN_QUESTIONS.filter((question) => question.mode !== 'challenge'),
   ...RUSH_VARIANTS,
-  ...EXPANDED_QUESTIONS,
+  ...EXPANDED_QUESTIONS.filter((question) => question.mode !== 'challenge'),
   ...INTERNET_CULTURE_QUESTIONS,
   ...CHALLENGE_QUESTIONS,
-].map(normalizeQuestion).map((question) => {
-  const contentOverride = CHALLENGE_CONTENT_OVERRIDES[question.id] ?? {};
-  return {
-    ...question,
-    ...contentOverride,
-    question: QUESTION_PROMPT_OVERRIDES[question.id] ?? contentOverride.question ?? question.question,
-  };
-});
+].map(normalizeQuestion).map((question) => ({
+  ...question,
+  question: QUESTION_PROMPT_OVERRIDES[question.id] ?? question.question,
+}));

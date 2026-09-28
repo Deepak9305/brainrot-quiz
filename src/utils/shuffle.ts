@@ -171,14 +171,20 @@ export function buildChallengeQuestions(questions: Question[], random: RandomSou
   const targets = [2, 2, 2, 2, 2, 1];
   const selected: Question[] = [];
   const used = new Set<string>();
+  const usedSubjects = new Set<string>();
 
   targets.forEach((target, index) => {
     const wave = index + 1;
     const wavePool = questions.filter((question) => (question.challengeWave ?? inferChallengeWave(question)) === wave && !used.has(question.id));
-    const fallback = questions.filter((question) => !used.has(question.id) && question.difficulty !== 'easy');
-    const picked = prepareQuizQuestions(wavePool.length >= target ? wavePool : fallback, { limit: target, uniqueSubjects: true, random });
+    const availableWave = wavePool.filter((question) => !usedSubjects.has(question.subjectKey ?? question.visualContent ?? question.id));
+    if (availableWave.length < target) {
+      throw new Error(`Challenge wave ${wave} needs ${target} unique subjects but only has ${availableWave.length}`);
+    }
+    const picked = prepareQuizQuestions(availableWave, { limit: target, uniqueSubjects: true, random });
+    if (picked.length !== target) throw new Error(`Challenge wave ${wave} produced ${picked.length} questions; expected ${target}`);
     picked.forEach((question) => {
       used.add(question.id);
+      usedSubjects.add(question.subjectKey ?? question.visualContent ?? question.id);
       selected.push({ ...question, challengeWave: wave });
     });
   });

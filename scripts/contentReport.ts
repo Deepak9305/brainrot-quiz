@@ -42,13 +42,14 @@ printSection('By difficulty', topEntries(difficulties, Object.keys(difficulties)
 printSection('Image questions by category', topEntries(imageCategories, Object.keys(imageCategories).length));
 printSection('Image subjects by era', topEntries(imageEras, Object.keys(imageEras).length));
 printSection('Local media by asset type', topEntries(mediaTypes, Object.keys(mediaTypes).length));
-console.log('\nChallenge report');
+console.log('\nACTIVE CHALLENGE QUESTIONS');
 for (let wave = 1; wave <= 6; wave += 1) {
   const waveQuestions = challengeQuestions.filter((question) => question.challengeWave === wave);
   const waveDifficulties = Object.entries(countBy(waveQuestions.map((question) => question.difficulty)))
     .map(([difficulty, count]) => `${difficulty}:${count}`).join(', ');
   const waveCategories = [...new Set(waveQuestions.map((question) => question.category ?? 'unknown'))].join(', ');
-  console.log(`  Wave ${wave}: ${waveQuestions.length} candidates | ${waveDifficulties || 'none'} | ${waveCategories || 'no categories'}`);
+  const waveTypes = [...new Set(waveQuestions.map((question) => question.questionType ?? 'standard'))].join(', ');
+  console.log(`  ${wave === 6 ? 'Final Boss' : `Wave ${wave}`}: ${waveQuestions.length} candidates | ${waveDifficulties || 'none'} | categories: ${waveCategories || 'none'} | types: ${waveTypes || 'none'}`);
 }
 const repeatedChallengeSubjects = Object.entries(countBy(challengeQuestions.map((question) => question.subjectKey ?? question.id)))
   .filter(([, count]) => count > 1);

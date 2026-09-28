@@ -5,6 +5,7 @@ import { getLocalMediaAsset } from './data/media';
 import { applyArchiveProgress, loadUserStats, saveUserStats, recordGameCompletion, evaluateStreakState } from './utils/storage';
 import { soundManager } from './utils/audio';
 import { appendRecentQuestionIds, buildChallengeQuestions, prepareQuizQuestions } from './utils/shuffle';
+import { CHALLENGE_QUESTIONS } from './data/challengeQuestions';
 import { getDailyQuestions, getDateKey, seededRandom } from './utils/daily';
 import { evaluateAchievements, evaluateTitles } from './utils/progression';
 import { ACHIEVEMENT_DEFINITIONS } from './data/achievements';
@@ -102,7 +103,7 @@ export default function App() {
       qList = QUESTIONS_DB.filter((question) => question.eligibleForRush !== false && question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'sound' && question.mode !== 'voice');
       limit = 120;
     } else if (mode === 'challenge') {
-      qList = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
+      qList = CHALLENGE_QUESTIONS;
       limit = 11;
     } else if (mode === 'mix') {
       qList = QUESTIONS_DB.filter((question) => question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'rush');

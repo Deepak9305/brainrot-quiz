@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { QUESTIONS_DB } from '../src/data/questions';
+import { CHALLENGE_QUESTIONS } from '../src/data/challengeQuestions';
 import { ARCHIVE_ENTRIES } from '../src/data/archive';
 import { LOCAL_MEDIA } from '../src/data/media';
 import { getDailyChallengeNumber, getDailyQuestions } from '../src/utils/daily';
@@ -82,15 +83,37 @@ assert(new Set(imageQuestions.map((question) => question.subjectKey)).size >= 15
 const challenge = buildChallengeQuestions(QUESTIONS_DB.filter((question) => question.mode === 'challenge'), () => 0.42);
 assert.deepEqual(challenge.map((question) => question.challengeWave), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
 const challengePool = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
-assert(challengePool.length >= 30);
-for (let wave = 1; wave <= 6; wave += 1) assert(challengePool.filter((question) => question.challengeWave === wave).length >= 4);
-assert(challengePool.filter((question) => question.challengeWave === 6).length >= 3);
+assert.equal(challengePool.length, CHALLENGE_QUESTIONS.length);
+assert.equal(challengePool.length, 36);
+assert(challengePool.every((question) => question.id.startsWith('challenge_pool_')));
+assert.equal(new Set(challengePool.map((question) => question.challengeWave)).size, 6);
+for (let wave = 1; wave <= 6; wave += 1) assert.equal(challengePool.filter((question) => question.challengeWave === wave).length, 6);
+assert(challengePool.every((question) => question.difficulty !== 'easy'));
+assert(challengePool.filter((question) => question.challengeWave === 1).every((question) => ['medium', 'hard', 'sigma'].includes(question.difficulty)));
+assert(challengePool.filter((question) => (question.challengeWave ?? 0) >= 3 && (question.challengeWave ?? 0) <= 5).every((question) => question.difficulty === 'hard' || question.difficulty === 'sigma'));
+assert(challengePool.filter((question) => question.challengeWave === 6).every((question) => question.difficulty === 'sigma'));
+assert.equal(challengePool.filter((question) => question.category === 'italian_brainrot').length, 0);
+assert(new Set(challengePool.map((question) => question.questionType)).size >= 5);
 assert.equal(new Set(challenge.map((question) => question.subjectKey)).size, challenge.length);
-assert(challengePool.filter((question) => question.challengeWave === 6).every((question) => question.difficulty === 'hard' || question.difficulty === 'sigma'));
-assert(challenge.some((question) => question.question.includes('subreddits')));
-assert(challenge.some((question) => question.question.includes('Victory Royale')));
-assert(challenge.some((question) => question.question.includes('FINAL BOSS')));
-assert(challenge.every((question) => question.category !== 'italian_brainrot' && !/^What does .* mean/i.test(question.question)));
+assert(challenge.every((question) => !/^What does .* mean/i.test(question.question)));
+const finalBossIds = new Set<string>();
+for (let run = 0; run < 100; run += 1) {
+  let seed = 0x9e3779b9 ^ run;
+  const random = () => {
+    seed = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b);
+    seed = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b);
+    return ((seed ^ (seed >>> 16)) >>> 0) / 4294967296;
+  };
+  const generated = buildChallengeQuestions(CHALLENGE_QUESTIONS, random);
+  assert.equal(generated.length, 11);
+  assert.deepEqual(generated.map((question) => question.challengeWave), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
+  assert.equal(new Set(generated.map((question) => question.id)).size, generated.length);
+  assert.equal(new Set(generated.map((question) => question.subjectKey)).size, generated.length);
+  finalBossIds.add(generated[10].id);
+}
+assert(finalBossIds.size > 1);
+const challengeShuffle = shuffleQuestion(CHALLENGE_QUESTIONS[0], () => 0.73);
+assert.equal(challengeShuffle.options[challengeShuffle.correctAnswer], CHALLENGE_QUESTIONS[0].options[0]);
 
 assert.equal(calculateRushScore('easy', 1, 500, true), 175);
 assert.equal(calculateRushScore('hard', 5, 1500, true), 338);

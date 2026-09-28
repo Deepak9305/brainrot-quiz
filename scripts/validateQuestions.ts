@@ -56,6 +56,10 @@ for (const question of QUESTIONS_DB) {
   if (question.visualType === 'image' && !getLocalMediaAsset(question.visualContent)) errors.push(`${question.id}: missing local media asset ${question.visualContent}`);
   if (question.visualType === 'image' && question.imageVariant === 'silhouette' && question.difficulty === 'easy') warnings.push(`${question.id}: easy silhouette clue needs editorial review`);
   if (question.mode === 'challenge' && (!question.challengeWave || question.challengeWave < 1 || question.challengeWave > 6)) errors.push(`${question.id}: invalid Challenge wave`);
+  if (question.mode === 'challenge' && !question.id.startsWith('challenge_pool_')) errors.push(`${question.id}: inactive legacy Challenge ID leaked into active pool`);
+  if (question.mode === 'challenge' && question.difficulty === 'easy') errors.push(`${question.id}: Easy question is not allowed in Challenge`);
+  if (question.mode === 'challenge' && question.challengeWave === 6 && question.difficulty !== 'sigma') errors.push(`${question.id}: Final Boss must be Sigma`);
+  if (question.mode === 'challenge' && question.challengeWave && question.challengeWave >= 4 && /^What does .* mean/i.test(question.question)) errors.push(`${question.id}: basic definition prompt is not allowed in late Challenge waves`);
   if (question.mode === 'rush' && question.eligibleForRush === false) errors.push(`${question.id}: Rush question is not eligible`);
   const prompt = normalize(question.question);
   const previous = prompts.get(prompt);
@@ -125,19 +129,16 @@ const repeatedOptionPatterns = Object.values(optionPatterns).filter((count) => c
 if (repeatedOptionPatterns > 0) warnings.push(`option quality: ${repeatedOptionPatterns} option sets are reused across questions`);
 const challengeQuestions = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
 const challengeByWave = (wave: number) => challengeQuestions.filter((question) => question.challengeWave === wave);
-if (challengeQuestions.length < 30) warnings.push(`Challenge pool: only ${challengeQuestions.length} candidates; target at least 30`);
+if (challengeQuestions.length < 30) errors.push(`Challenge pool: only ${challengeQuestions.length} candidates; target at least 30`);
 for (let wave = 1; wave <= 6; wave += 1) {
   const waveQuestions = challengeByWave(wave);
-  if (waveQuestions.length < 4) warnings.push(`Challenge Wave ${wave}: only ${waveQuestions.length} candidates`);
-  if (wave >= 5 && waveQuestions.some((question) => question.difficulty === 'easy')) warnings.push(`Challenge Wave ${wave}: Easy question weakens the late-game curve`);
+  if (waveQuestions.length < 4) errors.push(`Challenge Wave ${wave}: only ${waveQuestions.length} candidates`);
+  const waveSubjectCounts = countBy(waveQuestions.map((question) => question.subjectKey ?? question.id));
+  Object.entries(waveSubjectCounts).filter(([, count]) => count > 1).forEach(([subject, count]) => errors.push(`Challenge Wave ${wave}: subject ${subject} repeats ${count} times`));
 }
 const finalBossQuestions = challengeByWave(6);
-if (finalBossQuestions.some((question) => question.difficulty === 'easy' || question.difficulty === 'medium')) warnings.push('Challenge Final Boss: Easy/Medium question in Final Boss pool');
-if (finalBossQuestions.some((question) => question.difficulty !== 'hard' && question.difficulty !== 'sigma')) warnings.push('Challenge Final Boss: question is not Hard or Sigma');
-if (finalBossQuestions.some((question) => /^FINAL BOSS:\s*What does .* mean/i.test(question.question))) warnings.push('Challenge Final Boss: basic slang-definition prompt detected');
-const challengeSubjectCounts = countBy(challengeQuestions.map((question) => question.subjectKey ?? question.id));
-const repeatedChallengeSubjects = Object.entries(challengeSubjectCounts).filter(([, count]) => count > 1);
-if (repeatedChallengeSubjects.length > 0) warnings.push(`Challenge subject reuse: ${repeatedChallengeSubjects.map(([subject, count]) => `${subject}x${count}`).join(', ')}`);
+if (finalBossQuestions.some((question) => question.difficulty !== 'sigma')) errors.push('Challenge Final Boss: non-Sigma question in Final Boss pool');
+if (finalBossQuestions.some((question) => /^What does .* mean/i.test(question.question))) errors.push('Challenge Final Boss: basic slang-definition prompt detected');
 const challengeCategoryCounts = countBy(challengeQuestions.map((question) => question.category ?? 'unknown'));
 const dominantChallengeCategory = Math.max(...Object.values(challengeCategoryCounts), 0);
 if (challengeQuestions.length > 0 && dominantChallengeCategory / challengeQuestions.length > 0.55) warnings.push('Challenge category balance: one category exceeds 55% of the pool');
