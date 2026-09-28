@@ -36,18 +36,52 @@ export type QuestionType =
   | 'sound_recreation'
   | 'quote_identification'
   | 'complete_phrase'
-  | 'origin';
+  | 'origin'
+  | 'true_or_cap'
+  | 'odd_one_out'
+  | 'platform_matching'
+  | 'timeline'
+  | 'meme_evolution'
+  | 'format_recognition';
 
-export type QuestionEra = 'classic' | '2025' | '2026' | 'italian_brainrot' | 'current';
+export type QuestionEra =
+  | 'classic'
+  | 'early_web'
+  | '1990s'
+  | '2000s'
+  | 'early_2000s'
+  | 'mid_2000s'
+  | 'late_2000s'
+  | 'early_2010s'
+  | 'mid_2010s'
+  | 'late_2010s'
+  | 'early_2020s'
+  | '2025'
+  | '2026'
+  | 'italian_brainrot'
+  | 'current';
 
 export type QuestionCategory =
   | 'modern'
+  | 'modern_memes'
   | 'italian_brainrot'
   | 'slang'
+  | 'internet_slang'
   | 'classic_memes'
+  | 'meme_formats'
+  | 'reaction_memes'
   | 'emoji'
   | 'quote'
   | 'sound'
+  | 'social_media'
+  | 'internet_history'
+  | 'internet_tech'
+  | 'gaming_culture'
+  | 'youtube'
+  | 'streaming'
+  | 'creator_culture'
+  | 'viral_videos'
+  | 'digital_nostalgia'
   | 'challenge'
   | 'rush';
 
@@ -74,6 +108,8 @@ export interface Question {
   questionType?: QuestionType;
   era?: QuestionEra;
   category?: QuestionCategory;
+  topic?: string;
+  freshness?: 'evergreen' | 'current' | 'seasonal';
   subjectKey?: string;
   challengeWave?: number;
   tags?: string[];

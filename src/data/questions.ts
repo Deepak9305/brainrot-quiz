@@ -1,6 +1,7 @@
 import { Question } from '../types';
 import { EXPANDED_QUESTIONS, MODERN_QUESTIONS } from './modernQuestions';
 import { RUSH_VARIANTS } from './rushVariants';
+import { INTERNET_CULTURE_QUESTIONS } from './internetCultureQuestions';
 import { getLocalMediaAsset } from './media';
 
 export const QUESTION_DATABASE_VERSION = '2026.09.28';
@@ -799,6 +800,7 @@ function normalizeQuestion(question: Question): Question {
     imageVariant,
     challengeWave: inferredChallengeWave,
     era: question.era ?? (category === 'classic_memes' ? 'classic' : 'current'),
+    topic: question.topic ?? question.category ?? question.mode,
     subjectKey: question.subjectKey ?? question.imageAsset ?? question.visualContent ?? question.id,
     eligibleForRush: question.eligibleForRush ?? !['sound', 'voice', 'daily', 'challenge'].includes(question.mode),
     eligibleForDaily: question.eligibleForDaily ?? !['sound', 'voice', 'daily', 'challenge', 'rush'].includes(question.mode),
@@ -821,6 +823,7 @@ export const QUESTIONS_DB: Question[] = [
   ...MODERN_QUESTIONS,
   ...RUSH_VARIANTS,
   ...EXPANDED_QUESTIONS,
+  ...INTERNET_CULTURE_QUESTIONS,
 ].map(normalizeQuestion).map((question) => ({
   ...question,
   question: QUESTION_PROMPT_OVERRIDES[question.id] ?? question.question,

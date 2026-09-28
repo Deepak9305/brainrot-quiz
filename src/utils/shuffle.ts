@@ -32,6 +32,34 @@ interface PrepareOptions {
   balance?: 'mix';
 }
 
+type MixTrait = 'italian' | 'current' | 'classic' | 'gaming' | 'platform' | 'slang' | 'visual' | 'wildcard';
+
+const MIX_TARGETS: Record<MixTrait, number> = {
+  italian: 1,
+  current: 2,
+  classic: 2,
+  gaming: 1,
+  platform: 1,
+  slang: 1,
+  visual: 1,
+  wildcard: 1,
+};
+
+function getMixTraits(question: Question): MixTrait[] {
+  const category = question.category;
+  const traits = new Set<MixTrait>();
+
+  if (category === 'italian_brainrot' || question.era === 'italian_brainrot') traits.add('italian');
+  if (category === 'classic_memes' || category === 'meme_formats' || category === 'reaction_memes' || question.era === 'classic' || question.era === 'early_web') traits.add('classic');
+  if (category === 'gaming_culture') traits.add('gaming');
+  if (category === 'social_media' || category === 'internet_history' || category === 'internet_tech' || category === 'youtube' || category === 'streaming' || category === 'creator_culture') traits.add('platform');
+  if (category === 'slang' || category === 'internet_slang') traits.add('slang');
+  if (question.visualType === 'image' || question.visualType === 'emoji' || category === 'emoji') traits.add('visual');
+  if (category === 'modern' || category === 'modern_memes' || question.era === 'current' || question.era === '2025' || question.era === '2026' || question.freshness === 'current') traits.add('current');
+  if (traits.size === 0) traits.add('wildcard');
+  return [...traits];
+}
+
 function difficultyTarget(index: number, total: number): Question['difficulty'][] {
   const ratio = total <= 1 ? 0 : index / (total - 1);
   if (ratio < 0.2) return ['easy', 'medium'];
@@ -52,6 +80,8 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
   const remaining = [...questions];
   const selected: Question[] = [];
   const categoryCounts = new Map<string, number>();
+  const eraCounts = new Map<string, number>();
+  const mixTraitCounts = new Map<MixTrait, number>();
   const subjectCounts = new Map<string, number>();
   const avoidSubjects = new Set(options.avoidSubjects ?? []);
 
@@ -74,34 +104,21 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
       const subject = question.subjectKey ?? question.visualContent ?? question.id;
       const recent = recentRank.get(question.id);
       const recencyPenalty = recent === undefined ? 0 : 45 + Math.max(0, 100 - recent);
-      const categoryPenalty = (categoryCounts.get(category) ?? 0) * 35;
+      const categoryCount = categoryCounts.get(category) ?? 0;
+      const categoryPenalty = categoryCount * 55 + (options.balance === 'mix' && categoryCount >= 2 ? 110 : 0);
       const subjectPenalty = (subjectCounts.get(subject) ?? 0) * 90;
       const avoidPenalty = avoidSubjects.has(subject) ? 120 : 0;
       const difficultyPenalty = targetDifficulties.includes(question.difficulty) ? 0 : 30;
-      const mixKind = question.visualType === 'image' || question.visualType === 'emoji'
-        ? 'visual'
-        : question.category === 'classic_memes'
-          ? 'classic'
-          : question.mode === 'sound' || question.mode === 'voice'
-            ? 'audio'
-            : question.mode === 'slang' || question.category === 'slang' || question.category === 'quote'
-              ? 'text'
-              : 'wildcard';
-      const mixCount = selected.filter((picked) => {
-        const pickedKind = picked.visualType === 'image' || picked.visualType === 'emoji'
-          ? 'visual'
-          : picked.category === 'classic_memes'
-            ? 'classic'
-            : picked.mode === 'sound' || picked.mode === 'voice'
-              ? 'audio'
-              : picked.mode === 'slang' || picked.category === 'slang' || picked.category === 'quote'
-                ? 'text'
-                : 'wildcard';
-        return pickedKind === mixKind;
-      }).length;
-      const mixTarget = { visual: 3.5, text: 2.5, classic: 1.5, audio: 1, wildcard: 2 }[mixKind];
-      const mixPenalty = options.balance === 'mix' && mixCount >= mixTarget ? 110 + mixCount * 15 : 0;
-      return { question, score: recencyPenalty + categoryPenalty + subjectPenalty + avoidPenalty + difficultyPenalty + mixPenalty + random() * 18 };
+      const era = question.era ?? 'unknown';
+      const eraCount = eraCounts.get(era) ?? 0;
+      const eraPenalty = options.balance === 'mix' && eraCount >= 3 ? 120 + eraCount * 20 : 0;
+      const mixPenalty = options.balance === 'mix'
+        ? getMixTraits(question).reduce((penalty, trait) => {
+          const traitCount = mixTraitCounts.get(trait) ?? 0;
+          return penalty + (traitCount >= MIX_TARGETS[trait] ? 95 + traitCount * 20 : 0);
+        }, 0)
+        : 0;
+      return { question, score: recencyPenalty + categoryPenalty + subjectPenalty + avoidPenalty + difficultyPenalty + eraPenalty + mixPenalty + random() * 18 };
     });
 
     scored.sort((a, b) => a.score - b.score);
@@ -111,8 +128,11 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
     selected.push(shuffleQuestion(chosen, random));
     const category = chosen.category ?? chosen.mode;
     const subject = chosen.subjectKey ?? chosen.visualContent ?? chosen.id;
+    const era = chosen.era ?? 'unknown';
     categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
     subjectCounts.set(subject, (subjectCounts.get(subject) ?? 0) + 1);
+    eraCounts.set(era, (eraCounts.get(era) ?? 0) + 1);
+    getMixTraits(chosen).forEach((trait) => mixTraitCounts.set(trait, (mixTraitCounts.get(trait) ?? 0) + 1));
   }
 
   return selected;

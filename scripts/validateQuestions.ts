@@ -5,7 +5,18 @@ import { LOCAL_MEDIA, getLocalMediaAsset } from '../src/data/media';
 import { ARCHIVE_ENTRIES } from '../src/data/archive';
 
 const validModes = new Set(['mix', 'image', 'emoji', 'slang', 'sound', 'voice', 'rush', 'daily', 'challenge']);
-const validCategories = new Set(['modern', 'italian_brainrot', 'slang', 'classic_memes', 'emoji', 'quote', 'sound', 'challenge', 'rush']);
+const validCategories = new Set([
+  'modern', 'modern_memes', 'italian_brainrot', 'slang', 'internet_slang', 'classic_memes',
+  'meme_formats', 'reaction_memes', 'emoji', 'quote', 'sound', 'social_media', 'internet_history',
+  'internet_tech', 'gaming_culture', 'youtube', 'streaming', 'creator_culture', 'viral_videos',
+  'digital_nostalgia', 'challenge', 'rush',
+]);
+const validEras = new Set([
+  'classic', 'early_web', '1990s', '2000s', 'early_2000s', 'mid_2000s', 'late_2000s',
+  'early_2010s', 'mid_2010s', 'late_2010s', 'early_2020s', '2025', '2026', 'italian_brainrot', 'current',
+]);
+const validFreshness = new Set(['evergreen', 'current', 'seasonal']);
+const validQuestionTypes = new Set(['standard', 'image_identification', 'image_crop', 'image_detail', 'silhouette', 'emoji_decode', 'sound_recreation', 'quote_identification', 'complete_phrase', 'origin', 'true_or_cap', 'odd_one_out', 'platform_matching', 'timeline', 'meme_evolution', 'format_recognition']);
 const errors: string[] = [];
 const warnings: string[] = [];
 const ids = new Set<string>();
@@ -36,6 +47,10 @@ for (const question of QUESTIONS_DB) {
   if (!['easy', 'medium', 'hard', 'sigma'].includes(question.difficulty)) errors.push(`${question.id}: invalid difficulty`);
   if (!validModes.has(question.mode)) errors.push(`${question.id}: invalid mode ${question.mode}`);
   if (!question.category || !validCategories.has(question.category)) errors.push(`${question.id}: invalid category`);
+  if (!question.era || !validEras.has(question.era)) errors.push(`${question.id}: invalid era`);
+  if (question.questionType && !validQuestionTypes.has(question.questionType)) errors.push(`${question.id}: invalid question type`);
+  if (question.topic !== undefined && !question.topic.trim()) errors.push(`${question.id}: empty topic`);
+  if (question.freshness !== undefined && !validFreshness.has(question.freshness)) errors.push(`${question.id}: invalid freshness`);
   if (!question.subjectKey?.trim()) errors.push(`${question.id}: missing subjectKey`);
   if (question.visualType === 'image' && !getLocalMediaAsset(question.visualContent)) errors.push(`${question.id}: missing local media asset ${question.visualContent}`);
   if (question.visualType === 'image' && question.imageVariant === 'silhouette' && question.difficulty === 'easy') warnings.push(`${question.id}: easy silhouette clue needs editorial review`);
@@ -79,6 +94,9 @@ const countBy = (values: string[]) => values.reduce((counts, value) => ({ ...cou
 const difficulty = QUESTIONS_DB.reduce((counts, question) => ({ ...counts, [question.difficulty]: (counts[question.difficulty] ?? 0) + 1 }), {} as Record<string, number>);
 const modes = countBy(QUESTIONS_DB.map((question) => question.mode));
 const categories = countBy(QUESTIONS_DB.map((question) => question.category ?? 'unknown'));
+const eras = countBy(QUESTIONS_DB.map((question) => question.era ?? 'unknown'));
+const topics = countBy(QUESTIONS_DB.map((question) => question.topic ?? 'untagged'));
+const questionTypes = countBy(QUESTIONS_DB.map((question) => question.questionType ?? 'standard'));
 const visualCount = QUESTIONS_DB.filter((question) => question.visualType === 'image').length;
 const uniqueVisualSubjects = new Set(QUESTIONS_DB.filter((question) => question.visualType === 'image').map((question) => question.subjectKey)).size;
 const uniqueSubjects = new Set(QUESTIONS_DB.map((question) => question.subjectKey)).size;
@@ -89,8 +107,29 @@ if (((difficulty.hard ?? 0) + (difficulty.sigma ?? 0)) / QUESTIONS_DB.length < 0
 const rushQuestions = QUESTIONS_DB.filter((question) => question.mode === 'rush');
 const rushVocabulary = rushQuestions.filter((question) => /what does|what is|what do/i.test(question.question)).length;
 if (rushQuestions.length > 0 && rushVocabulary / rushQuestions.length > 0.7) warnings.push('Rush variety: vocabulary-style prompts dominate the pool');
+const generalPool = QUESTIONS_DB.filter((question) => !['rush', 'daily', 'challenge'].includes(question.mode));
+const generalCategoryCount = (names: string[]) => generalPool.filter((question) => names.includes(question.category ?? '')).length;
+const generalItalianShare = generalCategoryCount(['italian_brainrot']) / Math.max(generalPool.length, 1);
+const generalSlangShare = generalCategoryCount(['slang', 'internet_slang']) / Math.max(generalPool.length, 1);
+const generalClassicShare = generalCategoryCount(['classic_memes', 'meme_formats', 'reaction_memes']) / Math.max(generalPool.length, 1);
+const generalGamingShare = generalCategoryCount(['gaming_culture']) / Math.max(generalPool.length, 1);
+const generalPlatformShare = generalCategoryCount(['social_media', 'internet_history', 'internet_tech']) / Math.max(generalPool.length, 1);
+if (generalItalianShare > 0.2) warnings.push(`breadth balance: Italian Brainrot is ${(generalItalianShare * 100).toFixed(1)}% of the general pool`);
+if (generalSlangShare > 0.25) warnings.push(`breadth balance: slang is ${(generalSlangShare * 100).toFixed(1)}% of the general pool`);
+const systemTopicLabels = new Set([...validCategories, 'image', 'emoji', 'slang', 'sound', 'voice', 'daily', 'challenge']);
+Object.entries(topics).filter(([topic]) => !systemTopicLabels.has(topic)).forEach(([topic, count]) => {
+  const share = count / Math.max(QUESTIONS_DB.length, 1);
+  if (share > 0.15) warnings.push(`breadth balance: topic ${topic} is ${(share * 100).toFixed(1)}% of the full pool`);
+});
+if (generalClassicShare < 0.1) warnings.push(`breadth balance: classic/format/reaction content is ${(generalClassicShare * 100).toFixed(1)}% of the general pool`);
+if (generalGamingShare < 0.05) warnings.push(`breadth balance: gaming content is ${(generalGamingShare * 100).toFixed(1)}% of the general pool`);
+if (generalPlatformShare < 0.05) warnings.push(`breadth balance: platform/history content is ${(generalPlatformShare * 100).toFixed(1)}% of the general pool`);
+const subjectCounts = countBy(QUESTIONS_DB.map((question) => question.subjectKey ?? question.id));
+Object.entries(subjectCounts).forEach(([subject, count]) => {
+  if (count > 4) warnings.push(`duplicate concept: ${subject} appears in ${count} questions`);
+});
 if (warnings.length > 0) console.warn(`data validation warnings: ${warnings.length}\n${warnings.slice(0, 20).join('\n')}`);
-console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, visualCount, uniqueVisualSubjects, uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
+console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, uniqueVisualSubjects, uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
 if (errors.length > 0) {
   console.error(`data validation failed: ${errors.length}\n${errors.join('\n')}`);
   process.exit(1);

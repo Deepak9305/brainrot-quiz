@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "test": "tsx tests/core.test.ts",
     "validate:data": "tsx scripts/validateQuestions.ts",
+    "content:report": "tsx scripts/contentReport.ts",
     "validate": "npm run validate:data",
     "check": "npm run lint && npm run validate:data && npm test && npm run build"
   },

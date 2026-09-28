@@ -52,12 +52,25 @@ for (let day = 0; day < 30; day += 1) {
   assert(daily.every((question) => question.mode !== 'sound' && question.mode !== 'voice'));
   assert(new Set(daily.map((question) => question.category)).size >= 2);
 }
+const dailyItalianCount = dailyA.filter((question) => question.category === 'italian_brainrot' || question.era === 'italian_brainrot').length;
+assert(dailyItalianCount <= 1);
+assert(dailyA.some((question) => question.category === 'gaming_culture' || question.category === 'creator_culture' || question.category === 'youtube' || question.category === 'streaming'));
+assert(dailyA.some((question) => question.category === 'social_media' || question.category === 'internet_history' || question.category === 'internet_tech'));
 const sample = QUESTIONS_DB[0];
 const shuffled = shuffleQuestion(sample, () => 0.1);
 assert.equal(shuffled.options[shuffled.correctAnswer], sample.options[sample.correctAnswer]);
 assert.deepEqual(fisherYates([1, 2, 3], () => 0), [2, 3, 1]);
 const prepared = prepareQuizQuestions(QUESTIONS_DB.filter((question) => question.category === 'italian_brainrot'), { limit: 10, random: () => 0.4 });
 assert.equal(new Set(prepared.map((question) => question.subjectKey)).size, prepared.length);
+const mixPool = QUESTIONS_DB.filter((question) => question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'rush');
+const balancedMix = prepareQuizQuestions(mixPool, { limit: 10, balance: 'mix', random: () => 0.37 });
+assert(new Set(balancedMix.map((question) => question.category)).size >= 5);
+assert(balancedMix.filter((question) => question.category === 'italian_brainrot').length <= 2);
+assert(Math.max(...Object.values(balancedMix.reduce((counts, question) => ({ ...counts, [question.era ?? 'unknown']: (counts[question.era ?? 'unknown'] ?? 0) + 1 }), {} as Record<string, number>))) <= 5);
+assert(QUESTIONS_DB.some((question) => question.category === 'gaming_culture'));
+assert(QUESTIONS_DB.some((question) => question.category === 'social_media'));
+assert(QUESTIONS_DB.some((question) => question.category === 'internet_slang'));
+assert(QUESTIONS_DB.filter((question) => question.mode === 'rush' && question.category !== 'rush').length >= 30);
 const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType === 'image');
 const imageSession = prepareQuizQuestions(imageQuestions, { limit: 10, uniqueSubjects: true, random: () => 0.4 });
 assert.equal(new Set(imageSession.map((question) => question.subjectKey)).size, imageSession.length);

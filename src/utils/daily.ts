@@ -61,17 +61,23 @@ export function getDailyQuestions(questions: Question[], date = new Date()): Que
     return candidate;
   };
 
-  // Every Daily run is playable with sound disabled and has a predictable
-  // editorial shape: five anchor picks followed by five balanced wildcards.
-  pick((question) => question.category === 'italian_brainrot' || question.era === 'italian_brainrot');
-  pick((question) => question.category === 'classic_memes' || question.era === 'classic');
-  pick((question) => question.category === 'slang' || question.category === 'emoji' || question.mode === 'slang' || question.mode === 'emoji');
-  pick((question) => question.visualType === 'image');
-  pick((question) => question.difficulty === 'medium' || question.difficulty === 'hard' || question.difficulty === 'sigma');
+  // Every Daily run is playable with sound disabled and has a broad editorial
+  // shape: visual, classic, current, language, gaming/creator, platform/history,
+  // then four balanced wildcards. Italian Brainrot can appear as one visual or
+  // wildcard pick, but it is never the Daily's editorial anchor anymore.
+  pick((question) => question.visualType === 'image' || question.visualType === 'emoji' || question.category === 'emoji');
+  pick((question) => ['classic_memes', 'meme_formats', 'reaction_memes'].includes(question.category ?? '') || question.era === 'classic' || question.era === 'early_web');
+  pick((question) => question.category === 'modern_memes' || question.category === 'modern' || question.freshness === 'current' || ['current', '2025', '2026'].includes(question.era ?? ''));
+  pick((question) => question.category === 'slang' || question.category === 'internet_slang' || question.mode === 'slang');
+  pick((question) => question.category === 'gaming_culture' || question.category === 'youtube' || question.category === 'streaming' || question.category === 'creator_culture');
+  pick((question) => question.category === 'social_media' || question.category === 'internet_history' || question.category === 'internet_tech');
 
   while (selected.length < 10 && pool.length > 0) {
     const unseenSubjects = pool.filter((question) => !selected.some((picked) => picked.subjectKey && picked.subjectKey === question.subjectKey));
-    const candidatePool = unseenSubjects.length >= 10 - selected.length ? unseenSubjects : pool;
+    const italianCount = selected.filter((question) => question.category === 'italian_brainrot' || question.era === 'italian_brainrot').length;
+    const nonItalianUnseen = unseenSubjects.filter((question) => question.category !== 'italian_brainrot' && question.era !== 'italian_brainrot');
+    const diversityPool = italianCount >= 1 && nonItalianUnseen.length >= 10 - selected.length ? nonItalianUnseen : unseenSubjects;
+    const candidatePool = diversityPool.length >= 10 - selected.length ? diversityPool : pool;
     const candidate = candidatePool[Math.floor(random() * candidatePool.length)];
     pool.splice(pool.indexOf(candidate), 1);
     if (!selected.some((question) => question.id === candidate.id)) selected.push(candidate);
