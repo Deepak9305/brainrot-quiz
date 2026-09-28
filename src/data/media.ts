@@ -1,5 +1,4 @@
 import { QuestionCategory, QuestionEra } from '../types';
-import { VERIFIED_MEME_MEDIA } from './verifiedMemeMedia';
 
 export type MediaAssetType = 'public_domain' | 'licensed' | 'original_clue' | 'reference';
 
@@ -351,7 +350,6 @@ const LOCAL_MEDIA_DEFINITIONS: Record<string, Omit<LocalMediaAsset, 'assetType'>
     notes: 'The AI-generated Commons candidate was rejected. This is a separately sourced licensed photograph of the recognizable meme visual.',
     variants: { standard: { x: 50, y: 50, scale: 1 }, crop: { x: 58, y: 45, scale: 1.25 }, detail: { x: 61, y: 46, scale: 1.5 } },
   },
-  ...VERIFIED_MEME_MEDIA,
 };
 
 export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = Object.fromEntries(
