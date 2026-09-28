@@ -1,5 +1,5 @@
-import React from 'react';
-import { Flame, Zap, Volume2, VolumeX, Monitor, Shield, Music, Trophy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Zap, Volume2, VolumeX, Monitor, Shield, Music, Trophy, Settings } from 'lucide-react';
 import { UserStats } from '../types';
 import { soundManager } from '../utils/audio';
 
@@ -18,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSoundboard,
   onOpenCollection,
 }) => {
+  const [isUtilityOpen, setIsUtilityOpen] = useState(false);
   const toggleSound = () => {
     const next = !stats.soundEnabled;
     soundManager.setMuted(!next);
@@ -35,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="relative z-30 w-full max-w-5xl mx-auto px-4 pt-4 pb-3">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-900/90 backdrop-blur-md border-2 border-pink-500/80 rounded-2xl p-3 sm:p-4 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+      <div className="theme-accent-border flex flex-wrap items-center justify-between gap-3 bg-zinc-900/90 backdrop-blur-md border-2 rounded-2xl p-3 sm:p-4 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
         {/* Logo and Rank */}
         <div className="flex items-center gap-3">
           <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-pink-600 to-yellow-400 rounded-xl flex items-center justify-center text-2xl border-2 border-white shadow-[0_0_12px_rgba(244,63,94,0.6)] transform -rotate-3 hover:rotate-0 transition-transform">
@@ -103,6 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Trophy className="w-4 h-4" />
           </button>
 
+          <div className="hidden items-center gap-2 sm:flex">
           <button
             id="soundboard-btn"
             onClick={() => {
@@ -142,7 +144,23 @@ export const Header: React.FC<HeaderProps> = ({
               <VolumeX className="w-4 h-4 text-red-400" />
             )}
           </button>
+          </div>
+
+          <button
+            onClick={() => setIsUtilityOpen((open) => !open)}
+            className="rounded-xl border border-zinc-700 bg-zinc-800/80 p-2 text-zinc-300 transition-colors hover:text-white sm:hidden"
+            title="Open settings"
+            aria-expanded={isUtilityOpen}
+          >
+            <Settings className="h-4 w-4" />
+          </button>
         </div>
+        {isUtilityOpen && <div className="absolute right-3 top-[calc(100%+8px)] z-50 flex w-48 flex-col gap-2 rounded-2xl border border-zinc-700 bg-zinc-950/95 p-3 shadow-[0_0_30px_rgba(0,0,0,0.55)] sm:hidden">
+          <div className="text-[10px] font-mono font-black text-cyan-300">UTILITY SETTINGS</div>
+          <button onClick={() => { onOpenSoundboard(); setIsUtilityOpen(false); }} className="flex min-h-11 items-center gap-2 rounded-xl border border-purple-500/60 bg-purple-950/70 px-3 text-left text-xs font-bold text-purple-200"><Music className="h-4 w-4" /> SOUND PLAYGROUND</button>
+          <button onClick={() => { toggleCRT(); setIsUtilityOpen(false); }} className="flex min-h-11 items-center gap-2 rounded-xl border border-cyan-500/60 bg-cyan-950/60 px-3 text-left text-xs font-bold text-cyan-200"><Monitor className="h-4 w-4" /> CRT + SCANLINES</button>
+          <button onClick={() => { toggleSound(); setIsUtilityOpen(false); }} className="flex min-h-11 items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-left text-xs font-bold text-zinc-200">{stats.soundEnabled ? <Volume2 className="h-4 w-4 text-green-400" /> : <VolumeX className="h-4 w-4 text-red-400" />} SOUND EFFECTS</button>
+        </div>}
       </div>
     </header>
   );

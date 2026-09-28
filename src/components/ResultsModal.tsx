@@ -33,7 +33,7 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
       : session.mode === 'rush'
         ? `BRAINROT RUSH\n${session.score.toLocaleString()} pts\n${session.correctCount} correct\n${session.highestCombo}x combo`
         : session.mode === 'challenge'
-          ? `BRAINROT CHALLENGE\n${session.challengeVictory ? 'FINAL BOSS CLEARED' : `DEFEATED — WAVE ${session.highestChallengeWave}`}\n❤️ ${session.lives} heart${session.lives === 1 ? '' : 's'} remaining`
+          ? `BRAINROT CHALLENGE\n${session.challengeVictory ? 'FINAL BOSS CLEARED' : session.highestChallengeWave === 6 ? 'FINAL BOSS SURVIVED' : `DEFEATED — WAVE ${session.highestChallengeWave}`}\n❤️ ${session.lives} heart${session.lives === 1 ? '' : 's'} remaining`
           : `BRAINROT QUIZ\n${accuracy}% BRAINROTTED\nScore: ${session.score.toLocaleString()}\n${session.highestCombo}x combo\nRank: ${rankTitle}`;
     try {
       if (navigator.share) {
@@ -103,7 +103,7 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
       <motion.div
         initial={{ scale: 0.85, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative w-full max-w-lg bg-zinc-950 border-4 border-yellow-400 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(250,204,21,0.4)] text-center overflow-hidden"
+        className={`relative w-full max-w-lg bg-zinc-950 border-4 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(250,204,21,0.4)] text-center overflow-hidden ${stats.equippedCardStyle === 'card_holo' ? 'card-cosmetic-holo' : stats.equippedCardStyle === 'card_gold' ? 'card-cosmetic-gold' : 'border-yellow-400'}`}
       >
         {/* Retro Header Tag */}
         <div className="inline-block bg-yellow-400 text-black font-black text-[11px] px-3 py-1 rounded-full uppercase tracking-wider mb-2">
@@ -167,7 +167,7 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
 
         <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-xs font-mono text-zinc-300">
           {session.mode === 'rush' && <span>RUSH: {session.questionsAnswered} rapid answers • personal best {stats.highestRushScore.toLocaleString()} pts</span>}
-          {session.mode === 'challenge' && <span className={session.challengeVictory ? 'text-emerald-300' : 'text-red-300'}>{session.challengeVictory ? 'CHALLENGE CLEARED • FINAL BOSS DEFEATED' : `DEFEATED — WAVE ${session.highestChallengeWave}`} • {session.lives} heart{session.lives === 1 ? '' : 's'} left</span>}
+          {session.mode === 'challenge' && <span className={session.challengeVictory ? 'text-emerald-300' : 'text-red-300'}>{session.challengeVictory ? 'CHALLENGE CLEARED • FINAL BOSS DEFEATED' : session.highestChallengeWave === 6 ? 'FINAL BOSS SURVIVED' : `DEFEATED — WAVE ${session.highestChallengeWave}`} • {session.lives} heart{session.lives === 1 ? '' : 's'} left</span>}
           {session.mode === 'daily' && <span>DAILY #{getDailyChallengeNumber()}: {session.isPracticeRun ? 'PRACTICE RUN • no streak or reward changes' : session.dailyPerfect ? 'PERFECT DAILY • +500 Aura bonus' : 'Reward progress saved locally'}</span>}
           {session.mode !== 'rush' && session.mode !== 'challenge' && session.mode !== 'daily' && <span>MIX: {session.correctCount} correct across {new Set(session.questions.map((question) => question.category ?? question.mode)).size} clue families</span>}
         </div>

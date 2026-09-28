@@ -30,17 +30,18 @@ export const MemeArt: React.FC<MemeArtProps> = ({ type, altText, variant = 'stan
   }, [type, asset?.src]);
 
   if (asset && !imageFailed) {
+    const crop = asset.variants?.[variant] ?? asset.crop;
     const imageClass = variant === 'crop'
       ? 'object-cover'
       : variant === 'detail'
         ? 'object-cover'
       : variant === 'silhouette'
         ? 'object-contain brightness-0 opacity-90'
-        : 'object-contain';
+        : asset.fit === 'cover' ? 'object-cover' : 'object-contain';
     const scale = variant === 'crop'
-      ? asset.crop?.scale ?? 1.55
+      ? crop?.scale ?? 1.55
       : variant === 'detail'
-        ? (asset.crop?.scale ?? 1.55) + 0.25
+        ? (crop?.scale ?? 1.55) + 0.25
         : 1;
 
     return (
@@ -59,7 +60,7 @@ export const MemeArt: React.FC<MemeArtProps> = ({ type, altText, variant = 'stan
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageFailed(true)}
           style={{
-            objectPosition: `${asset.crop?.x ?? 50}% ${asset.crop?.y ?? 50}%`,
+            objectPosition: `${crop?.x ?? 50}% ${crop?.y ?? 50}%`,
             transform: `scale(${scale})`,
           }}
           className={`h-full w-full transition-transform duration-300 ${imageClass} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}

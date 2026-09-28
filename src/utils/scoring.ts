@@ -24,3 +24,10 @@ export function calculateNormalScore(combo: number, isCorrect: boolean): number 
   if (!isCorrect) return 0;
   return 100 + Math.min(300, Math.max(0, combo - 1) * 25);
 }
+
+export function calculateAuraGain(difficulty: Question['difficulty'], combo: number, isCorrect: boolean): number {
+  if (!isCorrect) return 0;
+  const comboBonus = combo === 3 ? 10 : combo === 5 ? 20 : combo >= 8 ? 30 : 0;
+  const difficultyBonus = difficulty === 'sigma' ? 20 : difficulty === 'hard' ? 10 : 0;
+  return 30 + comboBonus + difficultyBonus;
+}

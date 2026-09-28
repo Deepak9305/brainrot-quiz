@@ -1,10 +1,12 @@
 import { strict as assert } from 'node:assert';
 import { QUESTIONS_DB } from '../src/data/questions';
+import { ARCHIVE_ENTRIES } from '../src/data/archive';
+import { LOCAL_MEDIA } from '../src/data/media';
 import { getDailyChallengeNumber, getDailyQuestions } from '../src/utils/daily';
 import { evaluateAchievementConditions, evaluateAchievements, evaluateTitles } from '../src/utils/progression';
 import { buildChallengeQuestions, fisherYates, prepareQuizQuestions, shuffleQuestion } from '../src/utils/shuffle';
-import { calculateNormalScore, calculateRushScore } from '../src/utils/scoring';
-import { INITIAL_USER_STATS, buyStreakFreeze, claimDailyReward, evaluateStreakState, recordGameCompletion } from '../src/utils/storage';
+import { calculateAuraGain, calculateNormalScore, calculateRushScore } from '../src/utils/scoring';
+import { applyArchiveProgress, INITIAL_USER_STATS, buyStreakFreeze, claimDailyReward, evaluateStreakState, recordGameCompletion, sanitizeStats } from '../src/utils/storage';
 
 const date = new Date('2026-09-27T12:00:00');
 const stats = (overrides: Partial<typeof INITIAL_USER_STATS> = {}) => ({ ...INITIAL_USER_STATS, ...overrides });
@@ -52,6 +54,10 @@ assert.equal(calculateRushScore('easy', 1, 500, true), 175);
 assert.equal(calculateRushScore('hard', 5, 1500, true), 338);
 assert.equal(calculateRushScore('easy', 5, 500, false), 0);
 assert.equal(calculateNormalScore(10, true), 325);
+assert.equal(calculateAuraGain('easy', 1, true), 30);
+assert.equal(calculateAuraGain('hard', 5, true), 60);
+assert.equal(calculateAuraGain('sigma', 8, true), 80);
+assert.equal(calculateAuraGain('easy', 8, false), 0);
 const earned = evaluateAchievements(stats({ quizzesCompleted: 1 }), undefined);
 assert(earned.includes('first-rot'));
 assert(evaluateAchievements(stats({ unlockedAchievements: ['perfect-rot'] }), undefined).includes('perfect-rot'));
@@ -64,5 +70,30 @@ assert(evaluateAchievementConditions(win.updatedStats).includes('final-boss'));
 assert(evaluateTitles(win.updatedStats).includes('Brainrot NPC'));
 const claimed = claimDailyReward({ ...win.updatedStats, rewardCycle: { ...win.updatedStats.rewardCycle, completedDays: 1 } }, 1);
 assert.equal(claimDailyReward(claimed.updatedStats, 1).rewardText, 'Already claimed!');
+
+const migratedV1 = sanitizeStats({ quizzesCompleted: 4, unlockedAchievements: ['first-rot', 'unknown-achievement'], claimedDays: [1, 99] });
+assert.equal(migratedV1.quizzesCompleted, 4);
+assert.deepEqual(migratedV1.unlockedAchievements, ['first-rot']);
+assert.deepEqual(migratedV1.claimedDays, [1]);
+assert.equal(migratedV1.archiveMilestonesClaimed.length, 0);
+const migratedV2 = sanitizeStats({ unlockedCosmetics: ['card_gold'], equippedTheme: 'card_gold', equippedCardStyle: 'card_gold', equippedEffect: 'effect_missing', rewardCycle: undefined });
+assert.equal(migratedV2.equippedTheme, 'theme_default');
+assert.equal(migratedV2.equippedCardStyle, 'card_gold');
+assert.equal(migratedV2.equippedEffect, 'effect_default');
+assert.equal(migratedV2.rewardCycle.completedDays, 0);
+
+assert.equal(new Set(ARCHIVE_ENTRIES.map((entry) => entry.subjectKey)).size, ARCHIVE_ENTRIES.length);
+assert.equal(new Set(ARCHIVE_ENTRIES.map((entry) => entry.name)).size, ARCHIVE_ENTRIES.length);
+ARCHIVE_ENTRIES.forEach((entry) => { if (entry.mediaKey) assert(LOCAL_MEDIA[entry.mediaKey]); });
+const archiveKeys = ARCHIVE_ENTRIES.map((entry) => entry.subjectKey);
+const fiveArchive = applyArchiveProgress(stats(), archiveKeys.slice(0, 5), archiveKeys);
+assert.equal(fiveArchive.auraBonus, 250);
+assert(fiveArchive.newlyClaimedMilestones.includes(5));
+const repeatArchive = applyArchiveProgress(fiveArchive.updatedStats, archiveKeys.slice(0, 5), archiveKeys);
+assert.equal(repeatArchive.auraBonus, 0);
+const twentyArchive = applyArchiveProgress(fiveArchive.updatedStats, archiveKeys.slice(0, 20), archiveKeys);
+assert(twentyArchive.updatedStats.unlockedTitles.includes('Archive Curator'));
+const fullArchive = applyArchiveProgress({ ...twentyArchive.updatedStats, archiveMilestonesClaimed: [5, 10, 20] }, archiveKeys, archiveKeys);
+assert(fullArchive.updatedStats.unlockedCosmetics.includes('theme_archive_chrome'));
 
 console.log('core tests: PASS');

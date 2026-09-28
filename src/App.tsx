@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { GameMode, Question, QuizSessionState, UserStats } from './types';
 import { QUESTIONS_DB } from './data/questions';
 import { getLocalMediaAsset } from './data/media';
-import { loadUserStats, saveUserStats, recordGameCompletion, evaluateStreakState } from './utils/storage';
+import { applyArchiveProgress, loadUserStats, saveUserStats, recordGameCompletion, evaluateStreakState } from './utils/storage';
 import { soundManager } from './utils/audio';
 import { appendRecentQuestionIds, buildChallengeQuestions, prepareQuizQuestions } from './utils/shuffle';
 import { getDailyQuestions, getDateKey, seededRandom } from './utils/daily';
 import { evaluateAchievements, evaluateTitles } from './utils/progression';
 import { ACHIEVEMENT_DEFINITIONS } from './data/achievements';
+import { ARCHIVE_ENTRIES } from './data/archive';
+import { getThemeConfig } from './data/themes';
 import { Header } from './components/Header';
 import { BrainrotBackground } from './components/BrainrotBackground';
 import { ModeSelector } from './components/ModeSelector';
@@ -33,6 +35,8 @@ export default function App() {
   const [isCollectionOpen, setIsCollectionOpen] = useState<boolean>(false);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
   const [achievementToast, setAchievementToast] = useState<string | null>(null);
+  const [archiveToast, setArchiveToast] = useState<string | null>(null);
+  const theme = getThemeConfig(stats.equippedTheme);
 
   // Sync sound setting on mount
   useEffect(() => {
@@ -93,7 +97,9 @@ export default function App() {
     const isCorrect = finalSession.correctCount;
     const isWrong = finalSession.wrongCount;
     const isDailyPerfect = finalSession.mode === 'daily' && !finalSession.isPracticeRun && finalSession.questions.length > 0 && finalSession.correctCount === finalSession.questions.length && finalSession.wrongCount === 0;
-    const earnedAura = finalSession.earnedAura;
+    const isPerfect = finalSession.questions.length > 0 && finalSession.correctCount === finalSession.questions.length && finalSession.wrongCount === 0;
+    const perfectAuraBonus = isPerfect && finalSession.mode !== 'daily' ? 250 : 0;
+    const earnedAura = finalSession.earnedAura + perfectAuraBonus;
     const extraScore = finalSession.mode === 'rush' ? finalSession.score : finalSession.mode === 'challenge' ? finalSession.highestChallengeWave : finalSession.currentIndex + 1;
     const wasRushHighScore = finalSession.mode === 'rush' && finalSession.score > stats.highestRushScore;
 
@@ -119,12 +125,29 @@ export default function App() {
       },
       discoveredSubjects: [...new Set([...updatedStats.discoveredSubjects, ...finalSession.answeredSubjectKeys])],
     };
-    withRecentQuestions.unlockedTitles = evaluateTitles(withRecentQuestions);
-    withRecentQuestions.unlockedAchievements = evaluateAchievements(withRecentQuestions, finalSession);
-    saveUserStats(withRecentQuestions);
-    setStats(withRecentQuestions);
+    const archiveProgress = applyArchiveProgress(
+      withRecentQuestions,
+      withRecentQuestions.discoveredSubjects,
+      ARCHIVE_ENTRIES.map((entry) => entry.subjectKey),
+    );
+    const progressedStats = archiveProgress.updatedStats;
+    progressedStats.unlockedTitles = evaluateTitles(progressedStats);
+    progressedStats.unlockedAchievements = evaluateAchievements(progressedStats, finalSession);
+    saveUserStats(progressedStats);
+    setStats(progressedStats);
+    if (archiveProgress.newlyDiscovered.length > 0) {
+      const entry = ARCHIVE_ENTRIES.find((item) => item.subjectKey === archiveProgress.newlyDiscovered[0]);
+      setArchiveToast(entry ? `${entry.name.toUpperCase()} DISCOVERED` : 'NEW ARCHIVE ENTRY');
+      window.setTimeout(() => setArchiveToast(null), 3000);
+    }
+    if (archiveProgress.newlyClaimedMilestones.length > 0) {
+      const milestone = archiveProgress.newlyClaimedMilestones[0];
+      const milestoneLabel = milestone === 100 ? 'COMPLETE' : `${milestone} ENTRIES`;
+      setAchievementToast(`ARCHIVE ${milestoneLabel} • +${archiveProgress.auraBonus} AURA`);
+      window.setTimeout(() => setAchievementToast(null), 3200);
+    }
     setStreakExtendedAlert(finalSession.mode === 'daily' && streakExtended);
-    const newlyUnlocked = withRecentQuestions.unlockedAchievements.filter((id) => !stats.unlockedAchievements.includes(id));
+    const newlyUnlocked = progressedStats.unlockedAchievements.filter((id) => !stats.unlockedAchievements.includes(id));
     if (newlyUnlocked.length > 0) {
       const achievement = ACHIEVEMENT_DEFINITIONS.find((definition) => definition.id === newlyUnlocked[0]);
       setAchievementToast(newlyUnlocked.length > 1
@@ -134,7 +157,7 @@ export default function App() {
     }
     setCompletedSession({
       ...finalSession,
-      earnedAura: finalSession.earnedAura + result.dailyPerfectBonus,
+      earnedAura: finalSession.earnedAura + result.dailyPerfectBonus + perfectAuraBonus,
       dailyPerfect: isDailyPerfect,
       isNewHighScore: wasRushHighScore,
     });
@@ -155,13 +178,14 @@ export default function App() {
   };
 
   return (
-    <div className={`relative min-h-screen bg-black text-white font-sans flex flex-col justify-between select-none ${
+    <div data-theme={theme.id} style={{ '--theme-accent': theme.accent, '--theme-secondary': theme.secondary, '--theme-glow': theme.glow, '--theme-background': theme.background } as React.CSSProperties} className={`theme-shell relative min-h-screen bg-black text-white font-sans flex flex-col justify-between select-none ${theme.rootClass} ${
       isScreenShaking ? 'brainrot-shake' : ''
     }`}>
       {/* Background with CRT Scanlines */}
       <BrainrotBackground
         crtEnabled={stats.crtEnabled}
         scanlinesEnabled={stats.scanlinesEnabled}
+        theme={theme}
       />
 
       {/* Main Content Area */}
@@ -239,6 +263,12 @@ export default function App() {
         <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 border-yellow-400 bg-zinc-950/95 px-4 py-3 text-center shadow-[0_0_30px_rgba(250,204,21,0.35)]" role="status">
           <div className="text-[10px] font-mono font-black text-yellow-300">ACHIEVEMENT UNLOCKED</div>
           <div className="mt-1 text-xs font-bold text-white">{achievementToast}</div>
+        </div>
+      )}
+      {archiveToast && (
+        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 border-cyan-400 bg-zinc-950/95 px-4 py-3 text-center shadow-[0_0_30px_rgba(34,211,238,0.35)]" role="status">
+          <div className="text-[10px] font-mono font-black text-cyan-300">NEW ARCHIVE ENTRY</div>
+          <div className="mt-1 text-xs font-bold text-white">{archiveToast}</div>
         </div>
       )}
     </div>

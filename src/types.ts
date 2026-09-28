@@ -118,6 +118,7 @@ export interface UserStats {
   equippedCardStyle: string;
   equippedEffect: string;
   discoveredSubjects: string[];
+  archiveMilestonesClaimed: number[];
   crtEnabled: boolean;
   scanlinesEnabled: boolean;
   screenShakeEnabled: boolean;

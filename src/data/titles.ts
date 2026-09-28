@@ -16,4 +16,6 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
   { id: 'speed', title: 'Speed Demon Rizzler', description: 'Score 5,000 in Rush.', condition: (stats) => stats.highestRushScore >= 5_000 },
   { id: 'mogger', title: 'Giga Chad Mogger', description: 'Complete 50 quizzes.', condition: (stats) => stats.quizzesCompleted >= 50 },
   { id: 'terminal', title: 'Supreme Brainrot God', description: 'Reach a 30-day Daily streak.', condition: (stats) => stats.streak >= 30 },
+  { id: 'archive-curator', title: 'Archive Curator', description: 'Discover 20 Archive subjects.', condition: (stats) => stats.archiveMilestonesClaimed.includes(20) },
+  { id: 'archive-completionist', title: 'The Feed Is Mine', description: 'Complete the Brainrot Archive.', condition: (stats) => stats.archiveMilestonesClaimed.includes(100) },
 ];

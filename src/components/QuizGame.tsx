@@ -6,7 +6,7 @@ import { MemeArt } from './MemeArt';
 import { getLocalMediaAsset } from '../data/media';
 import { fisherYates } from '../utils/shuffle';
 import { soundManager } from '../utils/audio';
-import { calculateNormalScore, calculateRushScore, comboMultiplier } from '../utils/scoring';
+import { calculateAuraGain, calculateNormalScore, calculateRushScore } from '../utils/scoring';
 
 interface QuizGameProps {
   mode: GameMode;
@@ -64,11 +64,14 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isSpeakingVoice, setIsSpeakingVoice] = useState(false);
   const [scoreFlash, setScoreFlash] = useState('');
+  const [rushBadges, setRushBadges] = useState<string[]>([]);
+  const [answerEffectKey, setAnswerEffectKey] = useState<string | null>(null);
   const [waveAnnouncement, setWaveAnnouncement] = useState<number | null>(null);
   const mediaTimeoutRef = useRef<number | null>(null);
   const advanceTimeoutRef = useRef<number | null>(null);
   const didFinishRef = useRef(false);
   const rushEndsAtRef = useRef<number | null>(session.rushEndsAt);
+  const lastAnswerSoundAtRef = useRef(0);
 
   const currentQ = session.questions[session.currentIndex] ?? session.questions[0];
 
@@ -177,6 +180,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
 
     if (changedWave) {
       setWaveAnnouncement(nextWave);
+      if (nextWave === 6) soundManager.play('illuminati');
       window.setTimeout(commitNext, 650);
     } else {
       commitNext();
@@ -202,16 +206,23 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
       if (mode === 'rush') {
         const speedBonus = answerTimeMs < 1_000 ? 75 : answerTimeMs < 2_000 ? 50 : 0;
         scoreDelta = calculateRushScore(currentQ.difficulty, nextCombo, answerTimeMs, true);
-        scoreEvent = speedBonus > 0 ? `+${scoreDelta} FAST` : `+${scoreDelta}`;
-        if (nextCombo >= 3) scoreEvent = `${scoreEvent} • x${comboMultiplier(nextCombo).toFixed(1)} COMBO`;
+        scoreEvent = `+${scoreDelta}`;
+        setRushBadges([speedBonus > 0 ? `FAST +${speedBonus}` : '', nextCombo >= 3 ? `${nextCombo}x COMBO` : ''].filter(Boolean));
       } else {
         scoreDelta = calculateNormalScore(nextCombo, true);
         scoreEvent = `+${scoreDelta}`;
+        setRushBadges([]);
       }
-      soundManager.play(nextCombo >= 3 ? 'airhorn' : 'correct');
+      const now = performance.now();
+      if (now - lastAnswerSoundAtRef.current > 160) {
+        soundManager.play(nextCombo >= 8 ? 'airhorn' : nextCombo >= 5 ? 'level_up' : 'correct');
+        lastAnswerSoundAtRef.current = now;
+      }
+      setAnswerEffectKey(`${currentQ.id}-${session.questionsAnswered}`);
     } else {
       triggerScreenShake();
       soundManager.play('wrong');
+      setRushBadges([]);
     }
 
     const category = currentQ.category ?? currentQ.mode;
@@ -227,7 +238,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
       combo: nextCombo,
       highestCombo,
       lives: nextLives,
-      earnedAura: session.earnedAura + (isCorrect ? 100 + nextCombo * 25 : 0),
+      earnedAura: session.earnedAura + calculateAuraGain(currentQ.difficulty, nextCombo, isCorrect),
       questionTimesMs: [...session.questionTimesMs, answerTimeMs],
       questionsAnswered: session.questionsAnswered + 1,
       scoreEvents: scoreEvent ? [...session.scoreEvents, scoreEvent] : session.scoreEvents,
@@ -249,7 +260,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
         setSession((previous) => ({ ...previous, isFinished: true }));
       }, 650);
     } else if (mode === 'rush') {
-      advanceTimeoutRef.current = window.setTimeout(() => advanceQuestion(updatedSession), 450);
+      advanceTimeoutRef.current = window.setTimeout(() => advanceQuestion(updatedSession), 350);
     }
   };
 
@@ -310,7 +321,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
         </div>
       </div>
 
-      <motion.div key={currentQ.id} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="relative bg-zinc-950/90 border-2 border-pink-500/60 rounded-2xl p-4 sm:p-6 shadow-[0_0_25px_rgba(236,72,153,0.2)] overflow-hidden">
+      <motion.div key={currentQ.id} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className={`relative bg-zinc-950/90 border-2 rounded-2xl p-4 sm:p-6 shadow-[0_0_25px_rgba(236,72,153,0.2)] overflow-hidden ${session.challengeWave === 6 ? 'border-indigo-300 shadow-[0_0_35px_rgba(129,140,248,0.5)]' : stats.equippedCardStyle === 'card_holo' ? 'card-cosmetic-holo' : stats.equippedCardStyle === 'card_gold' ? 'card-cosmetic-gold' : 'border-pink-500/60'}`}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <span className="max-w-[75%] truncate text-[10px] font-mono font-bold tracking-widest text-pink-400 uppercase bg-pink-950/60 px-2.5 py-1 rounded-md border border-pink-800">{currentQ.subtitle || 'VIRAL CULTURE TEST'}</span>
           <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded ${currentQ.difficulty === 'sigma' ? 'bg-purple-600 text-white' : currentQ.difficulty === 'hard' ? 'bg-red-600 text-white' : currentQ.difficulty === 'medium' ? 'bg-yellow-500 text-black' : 'bg-green-600 text-white'}`}>{currentQ.difficulty}</span>
@@ -353,7 +364,8 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
               {session.isAnswered && <div>{isCorrectAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-2" />}{isSelected && !isCorrectAnswer && <XCircle className="w-5 h-5 text-red-400 ml-2" />}</div>}
             </motion.button>;
           })}
-          <AnimatePresence>{scoreFlash && <motion.div initial={{ opacity: 0, y: 10, scale: 0.8 }} animate={{ opacity: 1, y: -12, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute right-2 top-0 text-sm font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"><Zap className="inline w-4 h-4 fill-yellow-300" /> {scoreFlash}</motion.div>}</AnimatePresence>
+          <AnimatePresence>{scoreFlash && <motion.div initial={{ opacity: 0, y: 10, scale: 0.8 }} animate={{ opacity: 1, y: -12, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute right-2 top-0 text-sm font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"><Zap className="inline w-4 h-4 fill-yellow-300" /> {scoreFlash}<span className="ml-2 text-[10px] text-cyan-300">{rushBadges.join(' • ')}</span></motion.div>}</AnimatePresence>
+          <AnimatePresence>{answerEffectKey && <motion.div key={answerEffectKey} initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.7 }} className={stats.equippedEffect === 'effect_pixel' ? 'answer-effect-pixel' : stats.equippedEffect === 'effect_fire' ? 'answer-effect-fire' : 'pointer-events-none absolute inset-0'} aria-hidden="true" />}</AnimatePresence>
         </div>
 
         <AnimatePresence>

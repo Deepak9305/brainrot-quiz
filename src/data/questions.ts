@@ -3,7 +3,7 @@ import { EXPANDED_QUESTIONS, MODERN_QUESTIONS } from './modernQuestions';
 import { RUSH_VARIANTS } from './rushVariants';
 import { getLocalMediaAsset } from './media';
 
-export const QUESTION_DATABASE_VERSION = '2026.09.27';
+export const QUESTION_DATABASE_VERSION = '2026.09.28';
 
 const LEGACY_QUESTIONS_DB: Question[] = [
   // ==================== 1. IMAGE MODE ====================
@@ -780,7 +780,10 @@ function normalizeQuestion(question: Question): Question {
   const localKey = question.subjectKey ?? question.visualContent ?? question.imageAsset;
   const localAsset = category === 'italian_brainrot' ? getLocalMediaAsset(localKey) : undefined;
   const imageVariant = question.imageVariant ?? (localAsset
-    ? (['standard', 'crop', 'detail', 'silhouette'] as const)[question.id.length % 4]
+    ? question.difficulty === 'easy' ? 'standard'
+      : question.difficulty === 'medium' ? 'crop'
+        : question.difficulty === 'hard' ? 'detail'
+          : 'silhouette'
     : undefined);
   const inferredChallengeWave = question.challengeWave ?? (question.mode === 'challenge'
     ? Math.min(6, Number(question.id.match(/(?:chg|challenge)[_-]?(\d+)/i)?.[1] ?? 1))

@@ -1,18 +1,21 @@
 import React from 'react';
+import { ThemeConfig } from '../data/themes';
 
 interface BrainrotBackgroundProps {
   crtEnabled: boolean;
   scanlinesEnabled: boolean;
+  theme: ThemeConfig;
 }
 
 export const BrainrotBackground: React.FC<BrainrotBackgroundProps> = ({
   crtEnabled,
   scanlinesEnabled,
+  theme,
 }) => {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
       {/* Dynamic Cyber Grid Floor */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-zinc-950 to-black" />
+      <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at top, ${theme.glow} 0%, ${theme.background} 46%, #000 100%)` }} />
 
       {/* Floating Retro Brainrot Glyphs */}
       <div className="absolute inset-0 opacity-15 overflow-hidden">
@@ -30,7 +33,7 @@ export const BrainrotBackground: React.FC<BrainrotBackgroundProps> = ({
       <div 
         className="absolute bottom-0 left-0 right-0 h-64 opacity-25"
         style={{
-          backgroundImage: `linear-gradient(to right, #ec4899 1px, transparent 1px), linear-gradient(to bottom, #06b6d4 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(to right, ${theme.gridPrimary} 1px, transparent 1px), linear-gradient(to bottom, ${theme.gridSecondary} 1px, transparent 1px)`,
           backgroundSize: '40px 40px',
           transform: 'perspective(400px) rotateX(60deg)',
           transformOrigin: 'bottom center',

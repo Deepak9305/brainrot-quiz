@@ -1,6 +1,7 @@
 import { RewardCycle, StreakStatus, UserStats } from '../types';
 import { evaluateAchievements, evaluateTitles } from './progression';
-import { getCosmetic } from '../data/cosmetics';
+import { COSMETICS, CosmeticType, getCosmetic } from '../data/cosmetics';
+import { ACHIEVEMENT_DEFINITIONS } from '../data/achievements';
 
 export const SAVE_SCHEMA_VERSION = 3;
 export const MAX_STREAK_FREEZES = 3;
@@ -53,6 +54,7 @@ export const INITIAL_USER_STATS: UserStats = {
   equippedCardStyle: 'card_default',
   equippedEffect: 'effect_default',
   discoveredSubjects: [],
+  archiveMilestonesClaimed: [],
   crtEnabled: true,
   scanlinesEnabled: true,
   screenShakeEnabled: true,
@@ -94,7 +96,19 @@ function sanitizeRewardCycle(data: Partial<UserStats>): RewardCycle {
   };
 }
 
-function sanitizeStats(data: Partial<UserStats>): UserStats {
+export function sanitizeStats(data: Partial<UserStats>): UserStats {
+  const validCosmeticIds = new Set(COSMETICS.map((cosmetic) => cosmetic.id));
+  const unlockedCosmetics = [...new Set([
+    ...INITIAL_USER_STATS.unlockedCosmetics,
+    ...(Array.isArray(data.unlockedCosmetics) ? data.unlockedCosmetics : []),
+  ].filter((id) => validCosmeticIds.has(id)))];
+  const equippedFor = (type: CosmeticType, value: unknown): string => {
+    const fallback = COSMETICS.find((cosmetic) => cosmetic.type === type && cosmetic.cost === 0 && !cosmetic.exclusive)?.id;
+    return typeof value === 'string' && unlockedCosmetics.includes(value) && getCosmetic(value)?.type === type
+      ? value
+      : fallback ?? (type === 'theme' ? 'theme_default' : type === 'card' ? 'card_default' : 'effect_default');
+  };
+  const validAchievementIds = new Set(ACHIEVEMENT_DEFINITIONS.map((achievement) => achievement.id));
   const stats: UserStats = {
     ...INITIAL_USER_STATS,
     ...data,
@@ -106,15 +120,16 @@ function sanitizeStats(data: Partial<UserStats>): UserStats {
     unlockedTitles: Array.isArray(data.unlockedTitles) && data.unlockedTitles.length > 0
       ? [...new Set(data.unlockedTitles.filter(Boolean))]
       : INITIAL_USER_STATS.unlockedTitles,
-    unlockedAchievements: Array.isArray(data.unlockedAchievements) ? [...new Set(data.unlockedAchievements.filter(Boolean))] : [],
+    unlockedAchievements: Array.isArray(data.unlockedAchievements) ? [...new Set(data.unlockedAchievements.filter((id) => typeof id === 'string' && validAchievementIds.has(id)))] : [],
     personalBests: data.personalBests && typeof data.personalBests === 'object' ? data.personalBests : {},
-    unlockedCosmetics: Array.isArray(data.unlockedCosmetics) && data.unlockedCosmetics.length > 0
-      ? [...new Set(data.unlockedCosmetics.filter(Boolean))]
-      : INITIAL_USER_STATS.unlockedCosmetics,
-    equippedTheme: typeof data.equippedTheme === 'string' ? data.equippedTheme : INITIAL_USER_STATS.equippedTheme,
-    equippedCardStyle: typeof data.equippedCardStyle === 'string' ? data.equippedCardStyle : INITIAL_USER_STATS.equippedCardStyle,
-    equippedEffect: typeof data.equippedEffect === 'string' ? data.equippedEffect : INITIAL_USER_STATS.equippedEffect,
+    unlockedCosmetics,
+    equippedTheme: equippedFor('theme', data.equippedTheme),
+    equippedCardStyle: equippedFor('card', data.equippedCardStyle),
+    equippedEffect: equippedFor('effect', data.equippedEffect),
     discoveredSubjects: Array.isArray(data.discoveredSubjects) ? [...new Set(data.discoveredSubjects.filter(Boolean))] : [],
+    archiveMilestonesClaimed: Array.isArray(data.archiveMilestonesClaimed)
+      ? [...new Set(data.archiveMilestonesClaimed.filter((milestone) => [5, 10, 20, 100].includes(Number(milestone))).map(Number))]
+      : [],
     correctByCategory: data.correctByCategory && typeof data.correctByCategory === 'object' ? data.correctByCategory : {},
     claimedDays: Array.isArray(data.claimedDays) ? data.claimedDays.filter((day) => day >= 1 && day <= 7) : [],
     rewardCycle: sanitizeRewardCycle(data),
@@ -367,4 +382,39 @@ export function equipCosmetic(currentStats: UserStats, cosmeticId: string): User
   });
   saveUserStats(updatedStats);
   return updatedStats;
+}
+
+export interface ArchiveProgressResult {
+  updatedStats: UserStats;
+  newlyDiscovered: string[];
+  newlyClaimedMilestones: number[];
+  auraBonus: number;
+}
+
+export function applyArchiveProgress(currentStats: UserStats, discoveredSubjects: string[], archiveSubjectKeys: string[]): ArchiveProgressResult {
+  const previous = new Set(currentStats.discoveredSubjects);
+  const nextSubjects = [...new Set([...currentStats.discoveredSubjects, ...discoveredSubjects].filter(Boolean))];
+  const archiveKeys = new Set(archiveSubjectKeys);
+  const newlyDiscovered = nextSubjects.filter((subjectKey) => archiveKeys.has(subjectKey) && !previous.has(subjectKey));
+  const archiveCount = nextSubjects.filter((subjectKey) => archiveKeys.has(subjectKey)).length;
+  const claimed = new Set(currentStats.archiveMilestonesClaimed);
+  const milestones = [5, 10, 20];
+  const newlyClaimedMilestones = milestones.filter((milestone) => archiveCount >= milestone && !claimed.has(milestone));
+  if (archiveKeys.size > 0 && archiveCount >= archiveKeys.size && !claimed.has(100)) newlyClaimedMilestones.push(100);
+  const auraBonus = newlyClaimedMilestones.reduce((total, milestone) => total + (milestone === 5 ? 250 : milestone === 10 ? 500 : 0), 0);
+  const unlockedTitles = [...currentStats.unlockedTitles];
+  if (newlyClaimedMilestones.includes(20) && !unlockedTitles.includes('Archive Curator')) unlockedTitles.push('Archive Curator');
+  if (newlyClaimedMilestones.includes(100) && !unlockedTitles.includes('The Feed Is Mine')) unlockedTitles.push('The Feed Is Mine');
+  const unlockedCosmetics = [...currentStats.unlockedCosmetics];
+  if (archiveKeys.size > 0 && archiveCount >= archiveKeys.size && !unlockedCosmetics.includes('theme_archive_chrome')) unlockedCosmetics.push('theme_archive_chrome');
+  const updatedStats = sanitizeStats({
+    ...currentStats,
+    discoveredSubjects: nextSubjects,
+    archiveMilestonesClaimed: [...new Set([...claimed, ...newlyClaimedMilestones])],
+    auraPoints: currentStats.auraPoints + auraBonus,
+    unlockedTitles,
+    unlockedCosmetics,
+  });
+  saveUserStats(updatedStats);
+  return { updatedStats, newlyDiscovered, newlyClaimedMilestones, auraBonus };
 }
