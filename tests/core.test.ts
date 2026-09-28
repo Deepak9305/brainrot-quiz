@@ -74,6 +74,9 @@ assert(QUESTIONS_DB.filter((question) => question.mode === 'rush' && question.ca
 const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType === 'image');
 const imageSession = prepareQuizQuestions(imageQuestions, { limit: 10, uniqueSubjects: true, random: () => 0.4 });
 assert.equal(new Set(imageSession.map((question) => question.subjectKey)).size, imageSession.length);
+assert(imageQuestions.every((question) => question.useMediaAsQuestion === true));
+assert(Object.values(LOCAL_MEDIA).every((asset) => asset.assetType === 'public_domain' && asset.sourceUrl && asset.licenseName && asset.licenseUrl));
+assert(new Set(imageQuestions.map((question) => question.subjectKey)).size >= 15);
 const challenge = buildChallengeQuestions(QUESTIONS_DB.filter((question) => question.mode === 'challenge'), () => 0.42);
 assert.deepEqual(challenge.map((question) => question.challengeWave), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
 

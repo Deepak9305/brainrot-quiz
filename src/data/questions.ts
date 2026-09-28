@@ -778,8 +778,9 @@ function normalizeQuestion(question: Question): Question {
     question.visualType === 'emoji' ? 'emoji_decode' :
     'standard'
   );
-  const localKey = question.subjectKey ?? question.visualContent ?? question.imageAsset;
-  const localAsset = category === 'italian_brainrot' ? getLocalMediaAsset(localKey) : undefined;
+  const mediaRequested = question.visualType === 'image' || question.useMediaAsQuestion === true;
+  const localKey = question.visualContent ?? question.imageAsset ?? (mediaRequested ? question.subjectKey : undefined);
+  const localAsset = mediaRequested ? getLocalMediaAsset(localKey) : undefined;
   const imageVariant = question.imageVariant ?? (localAsset
     ? question.difficulty === 'easy' ? 'standard'
       : question.difficulty === 'medium' ? 'crop'
@@ -793,7 +794,8 @@ function normalizeQuestion(question: Question): Question {
   return {
     ...question,
     category,
-    questionType: localAsset ? 'image_identification' : inferredType,
+    useMediaAsQuestion: mediaRequested,
+    questionType: inferredType,
     visualType: localAsset ? 'image' : question.visualType,
     visualContent: localAsset ? localKey : question.visualContent,
     imageAsset: localAsset ? localKey : question.imageAsset,

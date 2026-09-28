@@ -102,6 +102,7 @@ export interface Question {
   // Visual content for image or emoji modes
   visualType?: 'image' | 'emoji' | 'ascii' | 'sound_test' | 'voice_clip';
   visualContent?: string; // image url/svg identifier, emoji string, ascii art, sound trigger key, etc.
+  useMediaAsQuestion?: boolean; // Explicit opt-in; owning media does not automatically make a question visual.
   imageUrl?: string; // Legacy field; bundled media uses imageAsset instead.
   imageAsset?: string;
   imageVariant?: 'standard' | 'crop' | 'detail' | 'silhouette';

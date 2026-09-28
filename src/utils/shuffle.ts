@@ -29,10 +29,11 @@ interface PrepareOptions {
   random?: RandomSource;
   avoidSubjects?: string[];
   uniqueSubjects?: boolean;
-  balance?: 'mix';
+  balance?: 'mix' | 'image';
 }
 
 type MixTrait = 'italian' | 'current' | 'classic' | 'gaming' | 'platform' | 'slang' | 'visual' | 'wildcard';
+type ImageTrait = 'italian' | 'classic' | 'nostalgia' | 'gaming' | 'viral' | 'platform' | 'wildcard';
 
 const MIX_TARGETS: Record<MixTrait, number> = {
   italian: 1,
@@ -60,6 +61,25 @@ function getMixTraits(question: Question): MixTrait[] {
   return [...traits];
 }
 
+function getImageTrait(question: Question): ImageTrait {
+  switch (question.category) {
+    case 'italian_brainrot': return 'italian';
+    case 'classic_memes':
+    case 'meme_formats':
+    case 'reaction_memes': return 'classic';
+    case 'digital_nostalgia': return 'nostalgia';
+    case 'gaming_culture': return 'gaming';
+    case 'viral_videos': return 'viral';
+    case 'social_media':
+    case 'internet_history':
+    case 'internet_tech':
+    case 'youtube':
+    case 'streaming':
+    case 'creator_culture': return 'platform';
+    default: return 'wildcard';
+  }
+}
+
 function difficultyTarget(index: number, total: number): Question['difficulty'][] {
   const ratio = total <= 1 ? 0 : index / (total - 1);
   if (ratio < 0.2) return ['easy', 'medium'];
@@ -82,6 +102,7 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
   const categoryCounts = new Map<string, number>();
   const eraCounts = new Map<string, number>();
   const mixTraitCounts = new Map<MixTrait, number>();
+  const imageTraitCounts = new Map<ImageTrait, number>();
   const subjectCounts = new Map<string, number>();
   const avoidSubjects = new Set(options.avoidSubjects ?? []);
 
@@ -112,13 +133,19 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
       const era = question.era ?? 'unknown';
       const eraCount = eraCounts.get(era) ?? 0;
       const eraPenalty = options.balance === 'mix' && eraCount >= 3 ? 120 + eraCount * 20 : 0;
+      const imageTrait = getImageTrait(question);
+      const imageTraitCount = imageTraitCounts.get(imageTrait) ?? 0;
+      const imageCategoryPenalty = options.balance === 'image'
+        ? imageTraitCount * 70 + (imageTraitCount >= 4 ? 140 : 0)
+        : 0;
+      const imageEraPenalty = options.balance === 'image' && eraCount >= 4 ? 100 + eraCount * 20 : 0;
       const mixPenalty = options.balance === 'mix'
         ? getMixTraits(question).reduce((penalty, trait) => {
           const traitCount = mixTraitCounts.get(trait) ?? 0;
           return penalty + (traitCount >= MIX_TARGETS[trait] ? 95 + traitCount * 20 : 0);
         }, 0)
         : 0;
-      return { question, score: recencyPenalty + categoryPenalty + subjectPenalty + avoidPenalty + difficultyPenalty + eraPenalty + mixPenalty + random() * 18 };
+      return { question, score: recencyPenalty + categoryPenalty + subjectPenalty + avoidPenalty + difficultyPenalty + eraPenalty + imageCategoryPenalty + imageEraPenalty + mixPenalty + random() * 18 };
     });
 
     scored.sort((a, b) => a.score - b.score);
@@ -133,6 +160,8 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
     subjectCounts.set(subject, (subjectCounts.get(subject) ?? 0) + 1);
     eraCounts.set(era, (eraCounts.get(era) ?? 0) + 1);
     getMixTraits(chosen).forEach((trait) => mixTraitCounts.set(trait, (mixTraitCounts.get(trait) ?? 0) + 1));
+    const imageTrait = getImageTrait(chosen);
+    imageTraitCounts.set(imageTrait, (imageTraitCounts.get(imageTrait) ?? 0) + 1);
   }
 
   return selected;

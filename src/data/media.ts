@@ -1,7 +1,15 @@
+import { QuestionCategory, QuestionEra } from '../types';
+
+export type MediaAssetType = 'public_domain' | 'licensed' | 'original_clue' | 'reference';
+
 export interface LocalMediaAsset {
   src: string;
   alt: string;
   label: string;
+  assetType: MediaAssetType;
+  category?: QuestionCategory;
+  era?: QuestionEra;
+  createdForApp?: boolean;
   sourceUrl?: string;
   licenseName?: string;
   licenseUrl?: string;
@@ -17,7 +25,7 @@ export interface LocalMediaAsset {
  * The quiz never falls back to a random stock URL. These references are bundled
  * locally so the visual clue remains available offline and can be audited.
  */
-export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
+const LOCAL_MEDIA_DEFINITIONS: Record<string, Omit<LocalMediaAsset, 'assetType'> & { assetType?: MediaAssetType }> = {
   tralalero_tralala: {
     src: '/media/brainrot/tralalero-tralala.webp',
     alt: 'Tralalero Tralala, a blue three-legged shark wearing sneakers',
@@ -230,6 +238,15 @@ export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
     crop: { x: 50, y: 50, scale: 1.2 },
   },
 };
+
+export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = Object.fromEntries(
+  Object.entries(LOCAL_MEDIA_DEFINITIONS).map(([key, asset]) => [key, {
+    ...asset,
+    assetType: asset.assetType ?? 'public_domain',
+    category: asset.category ?? 'italian_brainrot',
+    era: asset.era ?? '2025',
+  }]),
+) as Record<string, LocalMediaAsset>;
 
 export function getLocalMediaAsset(key?: string): LocalMediaAsset | undefined {
   return key ? LOCAL_MEDIA[key] : undefined;

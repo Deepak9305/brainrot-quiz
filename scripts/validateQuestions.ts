@@ -17,6 +17,7 @@ const validEras = new Set([
 ]);
 const validFreshness = new Set(['evergreen', 'current', 'seasonal']);
 const validQuestionTypes = new Set(['standard', 'image_identification', 'image_crop', 'image_detail', 'silhouette', 'emoji_decode', 'sound_recreation', 'quote_identification', 'complete_phrase', 'origin', 'true_or_cap', 'odd_one_out', 'platform_matching', 'timeline', 'meme_evolution', 'format_recognition']);
+const validAssetTypes = new Set(['public_domain', 'licensed', 'original_clue', 'reference']);
 const errors: string[] = [];
 const warnings: string[] = [];
 const ids = new Set<string>();
@@ -77,9 +78,13 @@ for (const entry of ARCHIVE_ENTRIES) {
 const mediaSources = new Map<string, string>();
 Object.entries(LOCAL_MEDIA).forEach(([mediaKey, asset]) => {
   if (!/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(mediaKey)) errors.push(`non-canonical media key: ${mediaKey}`);
-  if (!asset.sourceUrl?.trim()) errors.push(`missing source URL: ${mediaKey}`);
+  if (!validAssetTypes.has(asset.assetType)) errors.push(`invalid asset type: ${mediaKey}`);
+  if (!asset.category || !validCategories.has(asset.category)) errors.push(`invalid media category: ${mediaKey}`);
+  if (!asset.era || !validEras.has(asset.era)) errors.push(`invalid media era: ${mediaKey}`);
+  if (asset.assetType === 'original_clue' && asset.createdForApp !== true) errors.push(`original asset must be marked createdForApp: ${mediaKey}`);
+  if (asset.assetType !== 'original_clue' && (!asset.sourceUrl?.trim() || !asset.licenseName?.trim() || !asset.licenseUrl?.trim())) errors.push(`incomplete rights metadata: ${mediaKey}`);
   const previousKey = mediaSources.get(asset.src);
-  if (previousKey) warnings.push(`duplicate media file: ${mediaKey} and ${previousKey} both use ${asset.src}`);
+  if (previousKey) errors.push(`duplicate media file: ${mediaKey} and ${previousKey} both use ${asset.src}`);
   mediaSources.set(asset.src, mediaKey);
   const referencedByQuestion = QUESTIONS_DB.some((question) => question.subjectKey === mediaKey || question.visualContent === mediaKey || question.imageAsset === mediaKey);
   const referencedByArchive = archiveMediaIds.has(mediaKey);
@@ -97,8 +102,9 @@ const categories = countBy(QUESTIONS_DB.map((question) => question.category ?? '
 const eras = countBy(QUESTIONS_DB.map((question) => question.era ?? 'unknown'));
 const topics = countBy(QUESTIONS_DB.map((question) => question.topic ?? 'untagged'));
 const questionTypes = countBy(QUESTIONS_DB.map((question) => question.questionType ?? 'standard'));
-const visualCount = QUESTIONS_DB.filter((question) => question.visualType === 'image').length;
-const uniqueVisualSubjects = new Set(QUESTIONS_DB.filter((question) => question.visualType === 'image').map((question) => question.subjectKey)).size;
+const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType === 'image');
+const visualCount = imageQuestions.length;
+const uniqueVisualSubjects = new Set(imageQuestions.map((question) => question.subjectKey)).size;
 const uniqueSubjects = new Set(QUESTIONS_DB.map((question) => question.subjectKey)).size;
 if (QUESTIONS_DB.length < 200) errors.push(`question pool too small: ${QUESTIONS_DB.length}`);
 if (QUESTIONS_DB.filter((question) => question.mode === 'rush').length < 100) errors.push('dedicated Rush pool is below 100');
@@ -107,6 +113,10 @@ if (((difficulty.hard ?? 0) + (difficulty.sigma ?? 0)) / QUESTIONS_DB.length < 0
 const rushQuestions = QUESTIONS_DB.filter((question) => question.mode === 'rush');
 const rushVocabulary = rushQuestions.filter((question) => /what does|what is|what do/i.test(question.question)).length;
 if (rushQuestions.length > 0 && rushVocabulary / rushQuestions.length > 0.7) warnings.push('Rush variety: vocabulary-style prompts dominate the pool');
+if (uniqueVisualSubjects >= 25) {
+  const italianVisualShare = imageQuestions.filter((question) => question.category === 'italian_brainrot').length / Math.max(imageQuestions.length, 1);
+  if (italianVisualShare > 0.5) warnings.push(`visual breadth: Italian Brainrot is ${(italianVisualShare * 100).toFixed(1)}% of Image Mode questions`);
+}
 const generalPool = QUESTIONS_DB.filter((question) => !['rush', 'daily', 'challenge'].includes(question.mode));
 const generalCategoryCount = (names: string[]) => generalPool.filter((question) => names.includes(question.category ?? '')).length;
 const generalItalianShare = generalCategoryCount(['italian_brainrot']) / Math.max(generalPool.length, 1);
@@ -129,7 +139,7 @@ Object.entries(subjectCounts).forEach(([subject, count]) => {
   if (count > 4) warnings.push(`duplicate concept: ${subject} appears in ${count} questions`);
 });
 if (warnings.length > 0) console.warn(`data validation warnings: ${warnings.length}\n${warnings.slice(0, 20).join('\n')}`);
-console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, uniqueVisualSubjects, uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
+console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, uniqueVisualSubjects, imageCategories: countBy(imageQuestions.map((question) => question.category ?? 'unknown')), imageEras: countBy(imageQuestions.map((question) => question.era ?? 'unknown')), uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
 if (errors.length > 0) {
   console.error(`data validation failed: ${errors.length}\n${errors.join('\n')}`);
   process.exit(1);

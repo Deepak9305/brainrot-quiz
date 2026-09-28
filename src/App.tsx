@@ -120,7 +120,7 @@ export default function App() {
         limit,
         recentIds: mode === 'daily' ? [] : stats.recentQuestionIds,
         uniqueSubjects: mode === 'image',
-        balance: mode === 'mix' ? 'mix' : undefined,
+        balance: mode === 'mix' ? 'mix' : mode === 'image' ? 'image' : undefined,
         random: mode === 'daily' ? seededRandom(`daily-session:${getDateKey()}`) : Math.random,
       });
 
