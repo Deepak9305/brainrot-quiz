@@ -176,7 +176,7 @@ export function buildChallengeQuestions(questions: Question[], random: RandomSou
     const wave = index + 1;
     const wavePool = questions.filter((question) => (question.challengeWave ?? inferChallengeWave(question)) === wave && !used.has(question.id));
     const fallback = questions.filter((question) => !used.has(question.id) && question.difficulty !== 'easy');
-    const picked = prepareQuizQuestions(wavePool.length >= target ? wavePool : fallback, { limit: target, random });
+    const picked = prepareQuizQuestions(wavePool.length >= target ? wavePool : fallback, { limit: target, uniqueSubjects: true, random });
     picked.forEach((question) => {
       used.add(question.id);
       selected.push({ ...question, challengeWave: wave });

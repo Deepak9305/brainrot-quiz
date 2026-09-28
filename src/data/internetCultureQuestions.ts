@@ -16,7 +16,36 @@ type ItemOptions = {
   eligibleForDaily?: boolean;
   freshness?: Question['freshness'];
   tags?: string[];
+  memeContext?: string;
+  sourceLabel?: string;
 };
+
+const editorialSourceByCategory: Partial<Record<QuestionCategory, string>> = {
+  classic_memes: 'Classic meme and format history',
+  meme_formats: 'Meme format history',
+  reaction_memes: 'Reaction meme history',
+  social_media: 'Platform feature and launch history',
+  internet_history: 'Internet chronology',
+  internet_tech: 'Internet technology history',
+  digital_nostalgia: 'Early web and digital nostalgia history',
+  gaming_culture: 'Gaming release and meme history',
+  youtube: 'YouTube creator and feature history',
+  streaming: 'Streaming culture history',
+  creator_culture: 'Creator format history',
+  viral_videos: 'Viral video history',
+  internet_slang: 'Internet language reference',
+};
+
+function defaultMemeContext(category: QuestionCategory, topic: string): string {
+  if (['classic_memes', 'meme_formats', 'reaction_memes'].includes(category)) return `This clue belongs to the ${topic} layer of meme culture and is commonly remixed across platforms.`;
+  if (['social_media', 'internet_history', 'internet_tech'].includes(category)) return `The ${topic} detail helps place this reference in the wider history of how people used the web.`;
+  if (category === 'digital_nostalgia') return `The ${topic} reference comes from an earlier web era of personal pages, portals, and browser culture.`;
+  if (category === 'gaming_culture') return `The ${topic} reference escaped its original game and became part of wider online culture.`;
+  if (['youtube', 'streaming', 'creator_culture'].includes(category)) return `The ${topic} format shows how creators and audiences shaped the platform around it.`;
+  if (category === 'viral_videos') return `The ${topic} moment spread through remixing, reposts, and recognizable participation.`;
+  if (['internet_slang', 'slang'].includes(category)) return `Usage varies by community, but this clue tests the common ${topic} sense.`;
+  return `This clue tests a recognizable ${topic} reference from internet culture.`;
+}
 
 function item(id: string, options: ItemOptions): Question {
   const {
@@ -35,6 +64,8 @@ function item(id: string, options: ItemOptions): Question {
     eligibleForDaily = true,
     freshness = 'evergreen',
     tags = [topic, category],
+    memeContext,
+    sourceLabel,
   } = options;
 
   return {
@@ -50,12 +81,12 @@ function item(id: string, options: ItemOptions): Question {
     options: [answer, ...distractors],
     correctAnswer: 0,
     explanation,
-    memeContext: 'Internet culture is remixable by design; this clue points to the commonly recognized format or moment.',
+    memeContext: memeContext ?? defaultMemeContext(category, topic),
     difficulty,
     eligibleForRush,
     eligibleForDaily,
     freshness,
-    sourceLabel: 'Editorial reference: documented internet culture history',
+    sourceLabel: sourceLabel ?? editorialSourceByCategory[category] ?? 'Editorial reference: documented internet culture history',
   };
 }
 

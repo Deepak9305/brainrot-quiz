@@ -65,7 +65,7 @@ export function getDailyQuestions(questions: Question[], date = new Date()): Que
   // shape: visual, classic, current, language, gaming/creator, platform/history,
   // then four balanced wildcards. Italian Brainrot can appear as one visual or
   // wildcard pick, but it is never the Daily's editorial anchor anymore.
-  pick((question) => question.visualType === 'image' || question.visualType === 'emoji' || question.category === 'emoji');
+  pick((question) => question.visualType === 'image' || question.visualType === 'emoji');
   pick((question) => ['classic_memes', 'meme_formats', 'reaction_memes'].includes(question.category ?? '') || question.era === 'classic' || question.era === 'early_web');
   pick((question) => question.category === 'modern_memes' || question.category === 'modern' || question.freshness === 'current' || ['current', '2025', '2026'].includes(question.era ?? ''));
   pick((question) => question.category === 'slang' || question.category === 'internet_slang' || question.mode === 'slang');

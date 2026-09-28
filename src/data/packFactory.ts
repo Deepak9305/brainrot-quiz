@@ -21,15 +21,15 @@ export function makeQuestion(id: string, seed: Seed, defaults: Partial<Question>
 }
 
 export function italian(id: string, question: string, visualContent: string, subjectKey: string, answer: string, distractors: string[], difficulty: Question['difficulty'] = 'medium'): Question {
-  return makeQuestion(id, { question, subtitle: 'ITALIAN BRAINROT / COMMUNITY LORE', visualType: 'emoji', visualContent, questionType: 'emoji_decode', era: 'italian_brainrot', category: 'italian_brainrot', tags: ['italian brainrot', 'community lore'], subjectKey, options: [answer, ...distractors], correctAnswer: 0, explanation: `${answer} is the commonly used name for this community-made reference. Fan edits can vary, so the clue points to the recognizable version.`, memeContext: 'Italian Brainrot characters are remixable internet creations rather than one official canon.', difficulty }, { mode: 'emoji' });
+  return makeQuestion(id, { question, subtitle: 'ITALIAN BRAINROT / COMMUNITY LORE', visualType: 'emoji', visualContent, questionType: 'emoji_decode', era: 'italian_brainrot', category: 'italian_brainrot', tags: ['italian brainrot', 'community lore'], subjectKey, options: [answer, ...distractors], correctAnswer: 0, explanation: `${answer} is the commonly used name for this community-made reference. Fan edits can vary, so the clue points to the recognizable version.`, memeContext: `${answer} belongs to a remixable community-made character set; fan edits can vary from version to version.`, difficulty }, { mode: 'emoji' });
 }
 
 export function slang(id: string, question: string, visualContent: string, answer: string, distractors: string[], difficulty: Question['difficulty'] = 'medium'): Question {
-  return makeQuestion(id, { question, subtitle: 'CURRENT SLANG / CONTEXT CHECK', visualType: 'ascii', visualContent, category: 'slang', era: 'current', tags: ['slang', 'short-form culture'], options: [answer, ...distractors], correctAnswer: 0, explanation: `${answer} is a common playful meaning in online short-form communities, although usage varies by context.`, memeContext: 'Online slang moves quickly, so these definitions are common usage rather than universal law.', difficulty }, { mode: 'slang' });
+  return makeQuestion(id, { question, subtitle: 'CURRENT SLANG / CONTEXT CHECK', visualType: 'ascii', visualContent, category: 'slang', era: 'current', tags: ['slang', 'short-form culture'], options: [answer, ...distractors], correctAnswer: 0, explanation: `${answer} is a common playful meaning in online short-form communities, although usage varies by context.`, memeContext: `Usage varies by platform, but this clue tests the common short-form sense of ${answer}.`, difficulty }, { mode: 'slang' });
 }
 
 export function classic(id: string, question: string, answer: string, distractors: string[], explanation: string, difficulty: Question['difficulty'] = 'medium'): Question {
-  return makeQuestion(id, { question, subtitle: 'CLASSIC MEME HISTORY / RECEIPTS', category: 'classic_memes', era: 'classic', tags: ['classic memes', 'internet history'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: 'Classic formats are remixed constantly and rarely have one owner or one meaning.', difficulty });
+  return makeQuestion(id, { question, subtitle: 'CLASSIC MEME HISTORY / RECEIPTS', category: 'classic_memes', era: 'classic', tags: ['classic memes', 'internet history'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: `${answer} is a recognizable classic format that has been remixed across platforms and eras.`, difficulty });
 }
 
 export function emoji(id: string, question: string, visualContent: string, answer: string, distractors: string[], explanation: string, difficulty: Question['difficulty'] = 'easy'): Question {
@@ -41,7 +41,7 @@ export function quote(id: string, question: string, answer: string, distractors:
 }
 
 export function rush(id: string, question: string, answer: string, distractors: string[], explanation = 'A short, commonly used internet-culture reference.', difficulty: Question['difficulty'] = 'easy', extras: Partial<Question> = {}): Question {
-  return makeQuestion(id, { question, subtitle: 'RUSH / QUICK FIRE', category: 'rush', tags: ['rush', 'quick answer'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: 'Rush clues are short so speed tests recognition instead of reading endurance.', difficulty, ...extras }, { mode: 'rush', eligibleForRush: true, eligibleForDaily: false });
+  return makeQuestion(id, { question, subtitle: 'RUSH / QUICK FIRE', category: 'rush', tags: ['rush', 'quick answer'], options: [answer, ...distractors], correctAnswer: 0, explanation, memeContext: `Rush anchor: recognize ${answer} quickly from a compact clue.`, difficulty, ...extras }, { mode: 'rush', eligibleForRush: true, eligibleForDaily: false });
 }
 
 export function challenge(id: string, wave: number, question: string, answer: string, distractors: string[], explanation: string, difficulty: Question['difficulty']): Question {

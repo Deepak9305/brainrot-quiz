@@ -27,6 +27,7 @@ const imageSubjects = new Set(imageQuestions.map((question) => question.subjectK
 const imageCategories = countBy(imageQuestions.map((question) => question.category ?? 'unknown'));
 const imageEras = countBy([...new Set(imageQuestions.map((question) => `${question.era ?? 'unknown'}:${question.subjectKey ?? question.id}`))].map((key) => key.split(':')[0]));
 const mediaTypes = countBy(Object.values(LOCAL_MEDIA).map((asset) => asset.assetType));
+const challengeQuestions = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
 
 console.log(`BRAINROT QUIZ CONTENT REPORT · v${QUESTION_DATABASE_VERSION}`);
 console.log(`Total questions: ${QUESTIONS_DB.length}`);
@@ -41,6 +42,18 @@ printSection('By difficulty', topEntries(difficulties, Object.keys(difficulties)
 printSection('Image questions by category', topEntries(imageCategories, Object.keys(imageCategories).length));
 printSection('Image subjects by era', topEntries(imageEras, Object.keys(imageEras).length));
 printSection('Local media by asset type', topEntries(mediaTypes, Object.keys(mediaTypes).length));
+console.log('\nChallenge report');
+for (let wave = 1; wave <= 6; wave += 1) {
+  const waveQuestions = challengeQuestions.filter((question) => question.challengeWave === wave);
+  const waveDifficulties = Object.entries(countBy(waveQuestions.map((question) => question.difficulty)))
+    .map(([difficulty, count]) => `${difficulty}:${count}`).join(', ');
+  const waveCategories = [...new Set(waveQuestions.map((question) => question.category ?? 'unknown'))].join(', ');
+  console.log(`  Wave ${wave}: ${waveQuestions.length} candidates | ${waveDifficulties || 'none'} | ${waveCategories || 'no categories'}`);
+}
+const repeatedChallengeSubjects = Object.entries(countBy(challengeQuestions.map((question) => question.subjectKey ?? question.id)))
+  .filter(([, count]) => count > 1);
+console.log(`  Final Boss pool: ${challengeQuestions.filter((question) => question.challengeWave === 6).length} candidates`);
+console.log(`  Reused Challenge subjects: ${repeatedChallengeSubjects.length ? repeatedChallengeSubjects.map(([subject, count]) => `${subject}:${count}`).join(', ') : 'none'}`);
 const systemTopicLabels = new Set(['modern', 'modern_memes', 'italian_brainrot', 'slang', 'internet_slang', 'classic_memes', 'meme_formats', 'reaction_memes', 'emoji', 'quote', 'sound', 'social_media', 'internet_history', 'internet_tech', 'gaming_culture', 'youtube', 'streaming', 'creator_culture', 'viral_videos', 'digital_nostalgia', 'challenge', 'rush', 'image', 'voice', 'daily']);
 printSection('Top editorial topics', topEntries(Object.fromEntries(Object.entries(topics).filter(([topic]) => !systemTopicLabels.has(topic))), 20));
 printSection('Top subjects / concept reuse', topEntries(subjects, 20));

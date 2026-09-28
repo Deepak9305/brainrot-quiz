@@ -41,6 +41,7 @@ export type QuestionType =
   | 'odd_one_out'
   | 'platform_matching'
   | 'timeline'
+  | 'era_identification'
   | 'meme_evolution'
   | 'format_recognition';
 

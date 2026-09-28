@@ -41,7 +41,7 @@ const dailyB = getDailyQuestions(QUESTIONS_DB, date);
 assert.equal(dailyA.length, 10);
 assert.deepEqual(dailyA.map((question) => question.id), dailyB.map((question) => question.id));
 assert.equal(getDailyChallengeNumber(date), getDailyChallengeNumber(date));
-for (let day = 0; day < 30; day += 1) {
+for (let day = 0; day < 90; day += 1) {
   const sampleDate = new Date(date);
   sampleDate.setDate(sampleDate.getDate() + day);
   const daily = getDailyQuestions(QUESTIONS_DB, sampleDate);
@@ -81,6 +81,12 @@ assert(Object.values(LOCAL_MEDIA).every((asset) => asset.assetType === 'public_d
 assert(new Set(imageQuestions.map((question) => question.subjectKey)).size >= 15);
 const challenge = buildChallengeQuestions(QUESTIONS_DB.filter((question) => question.mode === 'challenge'), () => 0.42);
 assert.deepEqual(challenge.map((question) => question.challengeWave), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
+const challengePool = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
+assert(challengePool.length >= 30);
+for (let wave = 1; wave <= 6; wave += 1) assert(challengePool.filter((question) => question.challengeWave === wave).length >= 4);
+assert(challengePool.filter((question) => question.challengeWave === 6).length >= 3);
+assert.equal(new Set(challenge.map((question) => question.subjectKey)).size, challenge.length);
+assert(challengePool.filter((question) => question.challengeWave === 6).every((question) => question.difficulty === 'hard' || question.difficulty === 'sigma'));
 assert(challenge.some((question) => question.question.includes('subreddits')));
 assert(challenge.some((question) => question.question.includes('Victory Royale')));
 assert(challenge.some((question) => question.question.includes('FINAL BOSS')));

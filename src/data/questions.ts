@@ -2,6 +2,7 @@ import { Question } from '../types';
 import { EXPANDED_QUESTIONS, MODERN_QUESTIONS } from './modernQuestions';
 import { RUSH_VARIANTS } from './rushVariants';
 import { INTERNET_CULTURE_QUESTIONS } from './internetCultureQuestions';
+import { CHALLENGE_QUESTIONS } from './challengeQuestions';
 import { getLocalMediaAsset } from './media';
 
 export const QUESTION_DATABASE_VERSION = '2026.09.28';
@@ -619,7 +620,7 @@ const LEGACY_QUESTIONS_DB: Question[] = [
   {
     id: 'rsh_8',
     mode: 'rush',
-    question: 'What number of Aura points do you lose for waving back at someone who wasn\'t waving at you?',
+    question: 'How much Aura do you lose for a fake wave?',
     subtitle: 'Rush Speedrun #8',
     options: ['+10,000 Aura', '-1,000,000 Aura', '0 Aura', '+50 Aura'],
     correctAnswer: 1, // B
@@ -830,7 +831,9 @@ const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
     correctAnswer: 0,
     explanation: 'Subreddits are topic-based Reddit communities with their own feeds, rules, and moderators.',
     memeContext: 'The format of internet culture changes when a platform changes how communities gather.',
-    difficulty: 'easy',
+    difficulty: 'medium',
+    category: 'social_media',
+    era: '2000s',
   },
   chg_2: {
     question: 'Challenge Wave 1: Which platform launched in 2005 and became a home for creator-uploaded video?',
@@ -839,7 +842,9 @@ const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
     correctAnswer: 0,
     explanation: 'YouTube launched in 2005 and made creator-uploaded video a central part of online culture.',
     memeContext: 'A platform-history clue should reward recognition of an era, not a vocabulary definition.',
-    difficulty: 'easy',
+    difficulty: 'medium',
+    category: 'youtube',
+    era: 'mid_2000s',
     challengeWave: 1,
   },
   chg_3: {
@@ -850,6 +855,8 @@ const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
     explanation: 'Vine made six-second loops a distinctive comedy format before the service shut down.',
     memeContext: 'The short-loop grammar later echoed through other video platforms.',
     difficulty: 'medium',
+    category: 'social_media',
+    era: 'early_2010s',
     challengeWave: 2,
   },
   chg_4: {
@@ -860,6 +867,8 @@ const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
     explanation: 'Discord servers are persistent communities organized around shared interests or friend groups.',
     memeContext: 'Platform literacy is part of internet history: the interface shapes the culture.',
     difficulty: 'medium',
+    category: 'social_media',
+    era: 'early_2010s',
     challengeWave: 2,
   },
   chg_5: {
@@ -869,18 +878,23 @@ const CHALLENGE_CONTENT_OVERRIDES: Record<string, Partial<Question>> = {
     correctAnswer: 0,
     explanation: 'Newgrounds helped popularize user-submitted Flash cartoons, games, and music online.',
     memeContext: 'Early web culture was often interactive, messy, and built around browser plugins.',
-    difficulty: 'medium',
+    difficulty: 'hard',
+    category: 'digital_nostalgia',
+    era: 'early_web',
     challengeWave: 3,
   },
   chg_6: {
-    question: 'FINAL BOSS OF GAMING CULTURE: What does “Victory Royale” announce?',
-    subtitle: 'FINAL BOSS: GAMING CULTURE',
-    options: ['A Fortnite battle-royale win', 'A Minecraft building award', 'An Among Us emergency meeting', 'A Roblox friend request'],
+    question: 'FINAL BOSS: Which platform timeline is correctly ordered?',
+    subtitle: 'FINAL BOSS: CROSS-ERA CHRONOLOGY',
+    options: ['AIM -> Myspace -> YouTube -> TikTok', 'YouTube -> AIM -> TikTok -> Myspace', 'Myspace -> AIM -> TikTok -> YouTube', 'TikTok -> YouTube -> Myspace -> AIM'],
     correctAnswer: 0,
-    explanation: 'Victory Royale is Fortnite’s banner for winning a battle-royale match.',
-    memeContext: 'Gaming phrases become internet-wide references when clips and reactions carry them outside the game.',
+    explanation: 'AIM belongs to the late-1990s web, Myspace to the early 2000s, YouTube to 2005, and TikTok to the later short-video era.',
+    memeContext: 'The final boss tests the shape of four platform eras rather than one isolated launch fact.',
     difficulty: 'sigma',
+    category: 'viral_videos',
+    era: 'current',
     challengeWave: 6,
+    questionType: 'timeline',
   },
 };
 
@@ -890,6 +904,7 @@ export const QUESTIONS_DB: Question[] = [
   ...RUSH_VARIANTS,
   ...EXPANDED_QUESTIONS,
   ...INTERNET_CULTURE_QUESTIONS,
+  ...CHALLENGE_QUESTIONS,
 ].map(normalizeQuestion).map((question) => {
   const contentOverride = CHALLENGE_CONTENT_OVERRIDES[question.id] ?? {};
   return {

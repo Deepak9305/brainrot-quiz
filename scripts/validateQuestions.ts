@@ -16,7 +16,7 @@ const validEras = new Set([
   'early_2010s', 'mid_2010s', 'late_2010s', 'early_2020s', '2025', '2026', 'italian_brainrot', 'current',
 ]);
 const validFreshness = new Set(['evergreen', 'current', 'seasonal']);
-const validQuestionTypes = new Set(['standard', 'image_identification', 'image_crop', 'image_detail', 'silhouette', 'emoji_decode', 'sound_recreation', 'quote_identification', 'complete_phrase', 'origin', 'true_or_cap', 'odd_one_out', 'platform_matching', 'timeline', 'meme_evolution', 'format_recognition']);
+const validQuestionTypes = new Set(['standard', 'image_identification', 'image_crop', 'image_detail', 'silhouette', 'emoji_decode', 'sound_recreation', 'quote_identification', 'complete_phrase', 'origin', 'true_or_cap', 'odd_one_out', 'platform_matching', 'timeline', 'era_identification', 'meme_evolution', 'format_recognition']);
 const validAssetTypes = new Set(['public_domain', 'licensed', 'original_clue', 'reference']);
 const errors: string[] = [];
 const warnings: string[] = [];
@@ -113,6 +113,34 @@ if (((difficulty.hard ?? 0) + (difficulty.sigma ?? 0)) / QUESTIONS_DB.length < 0
 const rushQuestions = QUESTIONS_DB.filter((question) => question.mode === 'rush');
 const rushVocabulary = rushQuestions.filter((question) => /what does|what is|what do/i.test(question.question)).length;
 if (rushQuestions.length > 0 && rushVocabulary / rushQuestions.length > 0.7) warnings.push('Rush variety: vocabulary-style prompts dominate the pool');
+const longRushQuestions = rushQuestions.filter((question) => question.question.length > 90).length;
+if (longRushQuestions > 0) warnings.push(`Rush readability: ${longRushQuestions} prompts exceed 90 characters`);
+const longStandardQuestions = QUESTIONS_DB.filter((question) => question.mode !== 'rush' && question.question.length > 180).length;
+if (longStandardQuestions > 0) warnings.push(`mobile readability: ${longStandardQuestions} non-Rush prompts exceed 180 characters`);
+const contextCounts = countBy(QUESTIONS_DB.map((question) => question.memeContext.trim()));
+const repeatedContexts = Object.entries(contextCounts).filter(([, count]) => count >= 20);
+if (repeatedContexts.length > 0) warnings.push(`generic context reuse: ${repeatedContexts.map(([, count]) => `${count}x`).join(', ')} exact contexts repeat 20+ times`);
+const optionPatterns = countBy(QUESTIONS_DB.map((question) => question.options.map(normalize).join(' | ')));
+const repeatedOptionPatterns = Object.values(optionPatterns).filter((count) => count > 1).length;
+if (repeatedOptionPatterns > 0) warnings.push(`option quality: ${repeatedOptionPatterns} option sets are reused across questions`);
+const challengeQuestions = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
+const challengeByWave = (wave: number) => challengeQuestions.filter((question) => question.challengeWave === wave);
+if (challengeQuestions.length < 30) warnings.push(`Challenge pool: only ${challengeQuestions.length} candidates; target at least 30`);
+for (let wave = 1; wave <= 6; wave += 1) {
+  const waveQuestions = challengeByWave(wave);
+  if (waveQuestions.length < 4) warnings.push(`Challenge Wave ${wave}: only ${waveQuestions.length} candidates`);
+  if (wave >= 5 && waveQuestions.some((question) => question.difficulty === 'easy')) warnings.push(`Challenge Wave ${wave}: Easy question weakens the late-game curve`);
+}
+const finalBossQuestions = challengeByWave(6);
+if (finalBossQuestions.some((question) => question.difficulty === 'easy' || question.difficulty === 'medium')) warnings.push('Challenge Final Boss: Easy/Medium question in Final Boss pool');
+if (finalBossQuestions.some((question) => question.difficulty !== 'hard' && question.difficulty !== 'sigma')) warnings.push('Challenge Final Boss: question is not Hard or Sigma');
+if (finalBossQuestions.some((question) => /^FINAL BOSS:\s*What does .* mean/i.test(question.question))) warnings.push('Challenge Final Boss: basic slang-definition prompt detected');
+const challengeSubjectCounts = countBy(challengeQuestions.map((question) => question.subjectKey ?? question.id));
+const repeatedChallengeSubjects = Object.entries(challengeSubjectCounts).filter(([, count]) => count > 1);
+if (repeatedChallengeSubjects.length > 0) warnings.push(`Challenge subject reuse: ${repeatedChallengeSubjects.map(([subject, count]) => `${subject}x${count}`).join(', ')}`);
+const challengeCategoryCounts = countBy(challengeQuestions.map((question) => question.category ?? 'unknown'));
+const dominantChallengeCategory = Math.max(...Object.values(challengeCategoryCounts), 0);
+if (challengeQuestions.length > 0 && dominantChallengeCategory / challengeQuestions.length > 0.55) warnings.push('Challenge category balance: one category exceeds 55% of the pool');
 if (uniqueVisualSubjects >= 25) {
   const italianVisualShare = imageQuestions.filter((question) => question.category === 'italian_brainrot').length / Math.max(imageQuestions.length, 1);
   if (italianVisualShare > 0.5) warnings.push(`visual breadth: Italian Brainrot is ${(italianVisualShare * 100).toFixed(1)}% of Image Mode questions`);
