@@ -2,11 +2,16 @@ import { AchievementContext, ACHIEVEMENT_DEFINITIONS } from '../data/achievement
 import { TITLE_DEFINITIONS } from '../data/titles';
 import { QuizSessionState, UserStats } from '../types';
 
-export function evaluateTitles(stats: UserStats): string[] {
-  const unlocked = TITLE_DEFINITIONS
+export function evaluateTitleConditions(stats: UserStats): string[] {
+  return TITLE_DEFINITIONS
     .filter((definition) => definition.condition(stats))
     .map((definition) => definition.title);
-  return [...new Set(unlocked)];
+}
+
+/** Titles are historical unlocks. A condition may stop being true later, but
+ * an earned title remains available for the player to equip. */
+export function evaluateTitles(stats: UserStats): string[] {
+  return [...new Set(['Brainrot NPC', ...stats.unlockedTitles, ...evaluateTitleConditions(stats)])];
 }
 
 export function evaluateAchievementConditions(stats: UserStats, session?: QuizSessionState): string[] {

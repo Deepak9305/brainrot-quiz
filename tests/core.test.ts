@@ -6,7 +6,7 @@ import { getDailyChallengeNumber, getDailyQuestions } from '../src/utils/daily';
 import { evaluateAchievementConditions, evaluateAchievements, evaluateTitles } from '../src/utils/progression';
 import { buildChallengeQuestions, fisherYates, prepareQuizQuestions, shuffleQuestion } from '../src/utils/shuffle';
 import { calculateAuraGain, calculateNormalScore, calculateRushScore } from '../src/utils/scoring';
-import { applyArchiveProgress, INITIAL_USER_STATS, buyStreakFreeze, claimDailyReward, evaluateStreakState, recordGameCompletion, sanitizeStats } from '../src/utils/storage';
+import { applyArchiveProgress, INITIAL_USER_STATS, buyStreakFreeze, claimDailyReward, equipCosmetic, evaluateStreakState, purchaseCosmetic, recordGameCompletion, sanitizeStats } from '../src/utils/storage';
 
 const date = new Date('2026-09-27T12:00:00');
 const stats = (overrides: Partial<typeof INITIAL_USER_STATS> = {}) => ({ ...INITIAL_USER_STATS, ...overrides });
@@ -41,12 +41,26 @@ const dailyB = getDailyQuestions(QUESTIONS_DB, date);
 assert.equal(dailyA.length, 10);
 assert.deepEqual(dailyA.map((question) => question.id), dailyB.map((question) => question.id));
 assert.equal(getDailyChallengeNumber(date), getDailyChallengeNumber(date));
+for (let day = 0; day < 30; day += 1) {
+  const sampleDate = new Date(date);
+  sampleDate.setDate(sampleDate.getDate() + day);
+  const daily = getDailyQuestions(QUESTIONS_DB, sampleDate);
+  assert.equal(daily.length, 10);
+  assert.equal(new Set(daily.map((question) => question.id)).size, daily.length);
+  assert.equal(new Set(daily.map((question) => question.subjectKey)).size, daily.length);
+  assert(daily.some((question) => question.visualType === 'image' || question.visualType === 'emoji'));
+  assert(daily.every((question) => question.mode !== 'sound' && question.mode !== 'voice'));
+  assert(new Set(daily.map((question) => question.category)).size >= 2);
+}
 const sample = QUESTIONS_DB[0];
 const shuffled = shuffleQuestion(sample, () => 0.1);
 assert.equal(shuffled.options[shuffled.correctAnswer], sample.options[sample.correctAnswer]);
 assert.deepEqual(fisherYates([1, 2, 3], () => 0), [2, 3, 1]);
 const prepared = prepareQuizQuestions(QUESTIONS_DB.filter((question) => question.category === 'italian_brainrot'), { limit: 10, random: () => 0.4 });
 assert.equal(new Set(prepared.map((question) => question.subjectKey)).size, prepared.length);
+const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType === 'image');
+const imageSession = prepareQuizQuestions(imageQuestions, { limit: 10, uniqueSubjects: true, random: () => 0.4 });
+assert.equal(new Set(imageSession.map((question) => question.subjectKey)).size, imageSession.length);
 const challenge = buildChallengeQuestions(QUESTIONS_DB.filter((question) => question.mode === 'challenge'), () => 0.42);
 assert.deepEqual(challenge.map((question) => question.challengeWave), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
 
@@ -81,11 +95,21 @@ assert.equal(migratedV2.equippedTheme, 'theme_default');
 assert.equal(migratedV2.equippedCardStyle, 'card_gold');
 assert.equal(migratedV2.equippedEffect, 'effect_default');
 assert.equal(migratedV2.rewardCycle.completedDays, 0);
+assert.deepEqual(sanitizeStats({}).unlockedTitles, ['Brainrot NPC']);
+assert.equal(recordGameCompletion(sanitizeStats({}), 1, 0, 30, 'mix', 1, false, {}, false, date).updatedStats.unlockedTitles.includes('Skibidi Cadet'), true);
+assert.equal(sanitizeStats({ unlockedTitles: ['Aura Farmer'], currentTitle: 'Aura Farmer', auraPoints: 300 }).unlockedTitles.includes('Aura Farmer'), true);
+assert.equal(sanitizeStats({ unlockedTitles: ['Mewing Master'], currentTitle: 'Mewing Master', streak: 0 }).unlockedTitles.includes('Mewing Master'), true);
+assert.equal(sanitizeStats({ unlockedTitles: ['Aura Farmer'], currentTitle: 'Not A Real Title' }).currentTitle, 'Brainrot NPC');
 
 assert.equal(new Set(ARCHIVE_ENTRIES.map((entry) => entry.subjectKey)).size, ARCHIVE_ENTRIES.length);
 assert.equal(new Set(ARCHIVE_ENTRIES.map((entry) => entry.name)).size, ARCHIVE_ENTRIES.length);
 ARCHIVE_ENTRIES.forEach((entry) => { if (entry.mediaKey) assert(LOCAL_MEDIA[entry.mediaKey]); });
+assert(ARCHIVE_ENTRIES.every((entry) => QUESTIONS_DB.some((question) => question.subjectKey === entry.subjectKey)));
 const archiveKeys = ARCHIVE_ENTRIES.map((entry) => entry.subjectKey);
+const firstArchive = applyArchiveProgress(stats(), ['tralalero_tralala'], archiveKeys);
+assert.deepEqual(firstArchive.newlyDiscovered, ['tralalero_tralala']);
+assert(firstArchive.updatedStats.discoveredSubjects.includes('tralalero_tralala'));
+assert.deepEqual(applyArchiveProgress(firstArchive.updatedStats, ['tralalero_tralala'], archiveKeys).newlyDiscovered, []);
 const fiveArchive = applyArchiveProgress(stats(), archiveKeys.slice(0, 5), archiveKeys);
 assert.equal(fiveArchive.auraBonus, 250);
 assert(fiveArchive.newlyClaimedMilestones.includes(5));
@@ -95,5 +119,8 @@ const twentyArchive = applyArchiveProgress(fiveArchive.updatedStats, archiveKeys
 assert(twentyArchive.updatedStats.unlockedTitles.includes('Archive Curator'));
 const fullArchive = applyArchiveProgress({ ...twentyArchive.updatedStats, archiveMilestonesClaimed: [5, 10, 20] }, archiveKeys, archiveKeys);
 assert(fullArchive.updatedStats.unlockedCosmetics.includes('theme_archive_chrome'));
+assert.equal(purchaseCosmetic(stats({ unlockedCosmetics: ['theme_default', 'card_default', 'effect_default'] }), 'theme_archive_chrome').ok, false);
+const equippedArchiveTheme = equipCosmetic(fullArchive.updatedStats, 'theme_archive_chrome');
+assert.equal(equippedArchiveTheme.equippedTheme, 'theme_archive_chrome');
 
 console.log('core tests: PASS');

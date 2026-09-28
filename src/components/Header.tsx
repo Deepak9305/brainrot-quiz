@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Flame, Zap, Volume2, VolumeX, Monitor, Shield, Music, Trophy, Settings } from 'lucide-react';
 import { UserStats } from '../types';
 import { soundManager } from '../utils/audio';
@@ -8,7 +8,7 @@ interface HeaderProps {
   onUpdateStats: (newStats: Partial<UserStats>) => void;
   onOpenStreakModal: () => void;
   onOpenSoundboard: () => void;
-  onOpenCollection: () => void;
+  onOpenCollection: (initialTab?: 'achievements' | 'archive' | 'shop' | 'stats' | 'credits') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +19,21 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCollection,
 }) => {
   const [isUtilityOpen, setIsUtilityOpen] = useState(false);
+  useEffect(() => {
+    if (!isUtilityOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsUtilityOpen(false);
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('[data-utility-menu]')) setIsUtilityOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isUtilityOpen]);
   const toggleSound = () => {
     const next = !stats.soundEnabled;
     soundManager.setMuted(!next);
@@ -35,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="relative z-30 w-full max-w-5xl mx-auto px-4 pt-4 pb-3">
+    <header data-utility-menu className="relative z-30 w-full max-w-5xl mx-auto px-4 pt-4 pb-3">
       <div className="theme-accent-border flex flex-wrap items-center justify-between gap-3 bg-zinc-900/90 backdrop-blur-md border-2 rounded-2xl p-3 sm:p-4 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
         {/* Logo and Rank */}
         <div className="flex items-center gap-3">
@@ -54,9 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-300 font-mono">
               <span className="text-pink-400 font-bold">TITLE:</span>
-              <span className="bg-zinc-800 text-yellow-300 font-bold px-2 py-0.5 rounded border border-zinc-700">
+              <button onClick={() => onOpenCollection('stats')} className="bg-zinc-800 text-yellow-300 font-bold px-2 py-0.5 rounded border border-zinc-700 hover:border-[var(--theme-accent)] hover:text-white transition-colors cursor-pointer" title="Open Profile and Titles">
                 {stats.currentTitle}
-              </span>
+              </button>
             </div>
           </div>
         </div>
@@ -74,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Open Daily Streak Calendar"
           >
             <Flame className="w-4 h-4 text-orange-400 fill-orange-400 animate-bounce" />
-            <span className="font-mono text-sm tracking-wider font-extrabold">{stats.streak} DAY{stats.streak > 1 ? 'S' : ''}</span>
+            <span className="font-mono text-sm tracking-wider font-extrabold">{stats.streak} {stats.streak === 1 ? 'DAY' : 'DAYS'}</span>
             {stats.streakStatus === 'protected' && <span className="text-[9px] font-black text-cyan-200 bg-cyan-950/80 border border-cyan-500 px-1 rounded">SAFE</span>}
             {stats.streakStatus === 'expired' && <span className="text-[9px] font-black text-red-200 bg-red-950/80 border border-red-500 px-1 rounded">RESET</span>}
             {stats.streakFreezes > 0 && (

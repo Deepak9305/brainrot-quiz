@@ -70,7 +70,10 @@ export function getDailyQuestions(questions: Question[], date = new Date()): Que
   pick((question) => question.difficulty === 'medium' || question.difficulty === 'hard' || question.difficulty === 'sigma');
 
   while (selected.length < 10 && pool.length > 0) {
-    const candidate = pool.splice(Math.floor(random() * pool.length), 1)[0];
+    const unseenSubjects = pool.filter((question) => !selected.some((picked) => picked.subjectKey && picked.subjectKey === question.subjectKey));
+    const candidatePool = unseenSubjects.length >= 10 - selected.length ? unseenSubjects : pool;
+    const candidate = candidatePool[Math.floor(random() * candidatePool.length)];
+    pool.splice(pool.indexOf(candidate), 1);
     if (!selected.some((question) => question.id === candidate.id)) selected.push(candidate);
   }
 

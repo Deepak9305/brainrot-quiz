@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Timer, Volume2, Play, CheckCircle2, XCircle, ArrowRight, Flame, HelpCircle, RotateCcw, Zap } from 'lucide-react';
 import { GameMode, Question, QuizSessionState, UserStats } from '../types';
 import { MemeArt } from './MemeArt';
+import { AnswerEffect } from './AnswerEffect';
 import { getLocalMediaAsset } from '../data/media';
 import { fisherYates } from '../utils/shuffle';
 import { soundManager } from '../utils/audio';
@@ -215,7 +216,8 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
       }
       const now = performance.now();
       if (now - lastAnswerSoundAtRef.current > 160) {
-        soundManager.play(nextCombo >= 8 ? 'airhorn' : nextCombo >= 5 ? 'level_up' : 'correct');
+        const sound = nextCombo === 8 || nextCombo === 15 ? 'airhorn' : nextCombo === 5 ? 'level_up' : 'correct';
+        soundManager.play(sound);
         lastAnswerSoundAtRef.current = now;
       }
       setAnswerEffectKey(`${currentQ.id}-${session.questionsAnswered}`);
@@ -321,9 +323,9 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
         </div>
       </div>
 
-      <motion.div key={currentQ.id} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className={`relative bg-zinc-950/90 border-2 rounded-2xl p-4 sm:p-6 shadow-[0_0_25px_rgba(236,72,153,0.2)] overflow-hidden ${session.challengeWave === 6 ? 'border-indigo-300 shadow-[0_0_35px_rgba(129,140,248,0.5)]' : stats.equippedCardStyle === 'card_holo' ? 'card-cosmetic-holo' : stats.equippedCardStyle === 'card_gold' ? 'card-cosmetic-gold' : 'border-pink-500/60'}`}>
+      <motion.div key={currentQ.id} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className={`relative bg-zinc-950/90 border-2 rounded-2xl p-4 sm:p-6 shadow-[0_0_25px_rgba(236,72,153,0.2)] overflow-hidden ${session.challengeWave === 6 ? 'border-indigo-300 shadow-[0_0_35px_rgba(129,140,248,0.5)]' : stats.equippedCardStyle === 'card_holo' ? 'card-cosmetic-holo' : stats.equippedCardStyle === 'card_gold' ? 'card-cosmetic-gold' : 'theme-primary-border'}`}>
         <div className="flex items-center justify-between gap-2 mb-3">
-          <span className="max-w-[75%] truncate text-[10px] font-mono font-bold tracking-widest text-pink-400 uppercase bg-pink-950/60 px-2.5 py-1 rounded-md border border-pink-800">{currentQ.subtitle || 'VIRAL CULTURE TEST'}</span>
+          <span className="theme-chip max-w-[75%] truncate rounded-md border px-2.5 py-1 text-[10px] font-mono font-bold tracking-widest uppercase">{currentQ.subtitle || 'VIRAL CULTURE TEST'}</span>
           <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded ${currentQ.difficulty === 'sigma' ? 'bg-purple-600 text-white' : currentQ.difficulty === 'hard' ? 'bg-red-600 text-white' : currentQ.difficulty === 'medium' ? 'bg-yellow-500 text-black' : 'bg-green-600 text-white'}`}>{currentQ.difficulty}</span>
         </div>
 
@@ -364,8 +366,8 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
               {session.isAnswered && <div>{isCorrectAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-2" />}{isSelected && !isCorrectAnswer && <XCircle className="w-5 h-5 text-red-400 ml-2" />}</div>}
             </motion.button>;
           })}
-          <AnimatePresence>{scoreFlash && <motion.div initial={{ opacity: 0, y: 10, scale: 0.8 }} animate={{ opacity: 1, y: -12, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute right-2 top-0 text-sm font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"><Zap className="inline w-4 h-4 fill-yellow-300" /> {scoreFlash}<span className="ml-2 text-[10px] text-cyan-300">{rushBadges.join(' • ')}</span></motion.div>}</AnimatePresence>
-          <AnimatePresence>{answerEffectKey && <motion.div key={answerEffectKey} initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.7 }} className={stats.equippedEffect === 'effect_pixel' ? 'answer-effect-pixel' : stats.equippedEffect === 'effect_fire' ? 'answer-effect-fire' : 'pointer-events-none absolute inset-0'} aria-hidden="true" />}</AnimatePresence>
+          <AnimatePresence>{scoreFlash && <motion.div initial={{ opacity: 0, y: 10, scale: 0.8 }} animate={{ opacity: 1, y: -12, scale: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute right-0 top-0 flex max-w-[75%] flex-wrap justify-end gap-1 text-[10px] font-black drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"><span className="rounded-full bg-yellow-400 px-2 py-1 text-black"><Zap className="mr-0.5 inline h-3 w-3 fill-black" />{scoreFlash}</span>{rushBadges.map((badge) => <span key={badge} className="rounded-full border border-cyan-400/70 bg-cyan-950/90 px-2 py-1 text-cyan-200">{badge}</span>)}</motion.div>}</AnimatePresence>
+          <AnswerEffect effectId={stats.equippedEffect} triggerKey={answerEffectKey} />
         </div>
 
         <AnimatePresence>
@@ -375,7 +377,7 @@ export const QuizGame: React.FC<QuizGameProps> = ({ mode, questions, stats, isPr
           </motion.div>}
         </AnimatePresence>
 
-        {session.isAnswered && mode !== 'rush' && session.lives > 0 && <div className="mt-4 flex justify-end"><button onClick={() => advanceQuestion()} className="min-h-11 flex items-center gap-2 bg-gradient-to-r from-pink-500 to-yellow-400 text-black font-black text-sm px-6 py-3 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(236,72,153,0.5)] active:scale-95"><span>{session.currentIndex + 1 >= session.questions.length ? 'FINISH QUIZ' : 'NEXT QUESTION'}</span><ArrowRight className="w-4 h-4" /></button></div>}
+        {session.isAnswered && mode !== 'rush' && session.lives > 0 && <div className="mt-4 flex justify-end"><button onClick={() => advanceQuestion()} className="theme-button min-h-11 flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black shadow-[0_0_15px_rgba(236,72,153,0.5)] cursor-pointer active:scale-95"><span>{session.currentIndex + 1 >= session.questions.length ? 'FINISH QUIZ' : 'NEXT QUESTION'}</span><ArrowRight className="w-4 h-4" /></button></div>}
       </motion.div>
 
       <AnimatePresence>{waveAnnouncement !== null && <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"><div className="rounded-3xl border-2 border-indigo-400 bg-indigo-950/95 px-8 py-6 text-center shadow-[0_0_50px_rgba(99,102,241,0.6)]"><div className="text-xs font-mono text-indigo-300">CHALLENGE PROGRESSION</div><div className="mt-1 text-4xl font-black text-white">{waveAnnouncement === 6 ? 'FINAL BOSS' : `WAVE ${waveAnnouncement}`}</div><div className="mt-2 text-xs font-mono text-indigo-200">{waveAnnouncement >= 5 ? 'DEEP LORE DETECTED' : 'NEXT TIER LOADED'}</div></div></motion.div>}</AnimatePresence>

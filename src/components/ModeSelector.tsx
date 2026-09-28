@@ -210,13 +210,13 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg sm:text-xl font-black italic tracking-wide text-white flex items-center gap-2">
-            <Star className="w-5 h-5 text-pink-400 fill-pink-400" />
+            <Star className="theme-primary-text w-5 h-5 fill-current" />
             SELECT GAME MODE
           </h3>
           <p className="text-zinc-400 text-xs font-mono">9 CHAOTIC TEST MODES • PURE RETRO ARCADE</p>
         </div>
         <div className="text-right font-mono text-xs text-zinc-400">
-          COMPLETED: <span className="text-pink-400 font-bold">{stats.quizzesCompleted}</span> QUIZZES
+          COMPLETED: <span className="theme-secondary-text font-bold">{stats.quizzesCompleted}</span> QUIZZES
         </div>
       </div>
 
@@ -244,7 +244,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
                 </span>
               </div>
 
-              <h4 className="text-base font-black text-white group-hover:text-pink-300 transition-colors tracking-tight">
+              <h4 className="theme-primary-text text-base font-black text-white group-hover:text-white transition-colors tracking-tight">
                 {mode.title}
               </h4>
               <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
@@ -257,7 +257,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
               <span className="text-zinc-400 group-hover:text-white transition-colors">
                 {mode.highlight}
               </span>
-              <span className="text-pink-400 font-black group-hover:translate-x-1 transition-transform">
+              <span className="theme-primary-text font-black group-hover:translate-x-1 transition-transform">
                 START →
               </span>
             </div>

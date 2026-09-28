@@ -19,6 +19,27 @@ import { StreakModal } from './components/StreakModal';
 import { SoundboardDrawer } from './components/SoundboardDrawer';
 import { CollectionModal } from './components/CollectionModal';
 
+type ProgressionNotification = {
+  kind: 'archive' | 'milestone' | 'achievement' | 'title';
+  title: string;
+  detail: string;
+  tone: 'cyan' | 'yellow' | 'pink' | 'emerald';
+};
+
+const notificationToneClasses = {
+  cyan: 'border-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.35)]',
+  yellow: 'border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.35)]',
+  pink: 'border-pink-400 shadow-[0_0_30px_rgba(244,114,182,0.35)]',
+  emerald: 'border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.35)]',
+} as const;
+
+const notificationLabelClasses = {
+  cyan: 'text-cyan-300',
+  yellow: 'text-yellow-300',
+  pink: 'text-pink-300',
+  emerald: 'text-emerald-300',
+} as const;
+
 export default function App() {
   const [stats, setStats] = useState<UserStats>(() => {
     const loaded = loadUserStats();
@@ -33,10 +54,24 @@ export default function App() {
   const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
   const [isSoundboardOpen, setIsSoundboardOpen] = useState<boolean>(false);
   const [isCollectionOpen, setIsCollectionOpen] = useState<boolean>(false);
+  const [collectionInitialTab, setCollectionInitialTab] = useState<'achievements' | 'archive' | 'shop' | 'stats' | 'credits'>('achievements');
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
-  const [achievementToast, setAchievementToast] = useState<string | null>(null);
-  const [archiveToast, setArchiveToast] = useState<string | null>(null);
+  const [notificationQueue, setNotificationQueue] = useState<ProgressionNotification[]>([]);
+  const [activeNotification, setActiveNotification] = useState<ProgressionNotification | null>(null);
   const theme = getThemeConfig(stats.equippedTheme);
+
+  useEffect(() => {
+    if (!activeNotification && notificationQueue.length > 0) {
+      setActiveNotification(notificationQueue[0]);
+      setNotificationQueue((queue) => queue.slice(1));
+    }
+  }, [activeNotification, notificationQueue]);
+
+  useEffect(() => {
+    if (!activeNotification) return undefined;
+    const timeout = window.setTimeout(() => setActiveNotification(null), 2300);
+    return () => window.clearTimeout(timeout);
+  }, [activeNotification]);
 
   // Sync sound setting on mount
   useEffect(() => {
@@ -84,6 +119,8 @@ export default function App() {
       : prepareQuizQuestions(qList, {
         limit,
         recentIds: mode === 'daily' ? [] : stats.recentQuestionIds,
+        uniqueSubjects: mode === 'image',
+        balance: mode === 'mix' ? 'mix' : undefined,
         random: mode === 'daily' ? seededRandom(`daily-session:${getDateKey()}`) : Math.random,
       });
 
@@ -116,50 +153,65 @@ export default function App() {
     );
     const { updatedStats, streakExtended } = result;
 
-    const withRecentQuestions = {
-      ...updatedStats,
+    const archiveProgress = applyArchiveProgress(
+      updatedStats,
+      finalSession.answeredSubjectKeys,
+      ARCHIVE_ENTRIES.map((entry) => entry.subjectKey),
+    );
+    const progressedStats = {
+      ...archiveProgress.updatedStats,
       recentQuestionIds: appendRecentQuestionIds(updatedStats.recentQuestionIds, finalSession.questions),
       personalBests: {
         ...updatedStats.personalBests,
         combo: Math.max(updatedStats.personalBests.combo ?? 0, finalSession.highestCombo),
       },
-      discoveredSubjects: [...new Set([...updatedStats.discoveredSubjects, ...finalSession.answeredSubjectKeys])],
     };
-    const archiveProgress = applyArchiveProgress(
-      withRecentQuestions,
-      withRecentQuestions.discoveredSubjects,
-      ARCHIVE_ENTRIES.map((entry) => entry.subjectKey),
-    );
-    const progressedStats = archiveProgress.updatedStats;
     progressedStats.unlockedTitles = evaluateTitles(progressedStats);
     progressedStats.unlockedAchievements = evaluateAchievements(progressedStats, finalSession);
     saveUserStats(progressedStats);
     setStats(progressedStats);
-    if (archiveProgress.newlyDiscovered.length > 0) {
-      const entry = ARCHIVE_ENTRIES.find((item) => item.subjectKey === archiveProgress.newlyDiscovered[0]);
-      setArchiveToast(entry ? `${entry.name.toUpperCase()} DISCOVERED` : 'NEW ARCHIVE ENTRY');
-      window.setTimeout(() => setArchiveToast(null), 3000);
-    }
-    if (archiveProgress.newlyClaimedMilestones.length > 0) {
-      const milestone = archiveProgress.newlyClaimedMilestones[0];
-      const milestoneLabel = milestone === 100 ? 'COMPLETE' : `${milestone} ENTRIES`;
-      setAchievementToast(`ARCHIVE ${milestoneLabel} • +${archiveProgress.auraBonus} AURA`);
-      window.setTimeout(() => setAchievementToast(null), 3200);
-    }
     setStreakExtendedAlert(finalSession.mode === 'daily' && streakExtended);
+    const notifications: ProgressionNotification[] = [];
+    if (archiveProgress.newlyDiscovered.length > 0) {
+      const names = archiveProgress.newlyDiscovered
+        .map((subjectKey) => ARCHIVE_ENTRIES.find((entry) => entry.subjectKey === subjectKey)?.name)
+        .filter(Boolean) as string[];
+      notifications.push({
+        kind: 'archive',
+        title: names.length === 1 ? 'NEW ARCHIVE ENTRY' : `${names.length} NEW ARCHIVE ENTRIES`,
+        detail: names.length <= 3 ? names.join(' • ') : `${names.length} NEW SUBJECTS DISCOVERED`,
+        tone: 'cyan',
+      });
+    }
+    const archiveCount = progressedStats.discoveredSubjects.filter((subjectKey) => ARCHIVE_ENTRIES.some((entry) => entry.subjectKey === subjectKey)).length;
+    archiveProgress.newlyClaimedMilestones.forEach((milestone) => {
+      if (milestone === 100) {
+        notifications.push({ kind: 'milestone', title: 'ARCHIVE COMPLETE', detail: 'THE FEED IS MINE • ARCHIVE CHROME UNLOCKED', tone: 'yellow' });
+      } else if (milestone === 20) {
+        notifications.push({ kind: 'milestone', title: 'ARCHIVE MILESTONE', detail: `${archiveCount} / ${ARCHIVE_ENTRIES.length} DISCOVERED • ARCHIVE CURATOR TITLE UNLOCKED`, tone: 'yellow' });
+      } else {
+        const reward = milestone === 5 ? 250 : 500;
+        notifications.push({ kind: 'milestone', title: 'ARCHIVE MILESTONE', detail: `${archiveCount} / ${ARCHIVE_ENTRIES.length} DISCOVERED • +${reward} AURA`, tone: 'yellow' });
+      }
+    });
+    const newlyUnlockedTitles = progressedStats.unlockedTitles.filter((title) => !stats.unlockedTitles.includes(title) && !['Archive Curator', 'The Feed Is Mine'].includes(title));
+    newlyUnlockedTitles.forEach((title) => notifications.push({ kind: 'title', title: 'TITLE UNLOCKED', detail: title, tone: 'pink' }));
     const newlyUnlocked = progressedStats.unlockedAchievements.filter((id) => !stats.unlockedAchievements.includes(id));
     if (newlyUnlocked.length > 0) {
       const achievement = ACHIEVEMENT_DEFINITIONS.find((definition) => definition.id === newlyUnlocked[0]);
-      setAchievementToast(newlyUnlocked.length > 1
-        ? `${newlyUnlocked.length} ACHIEVEMENTS UNLOCKED`
-        : achievement ? `${achievement.title} • ${achievement.description}` : 'Achievement unlocked');
-      window.setTimeout(() => setAchievementToast(null), 3200);
+      notifications.push({ kind: 'achievement', title: newlyUnlocked.length > 1 ? `${newlyUnlocked.length} ACHIEVEMENTS UNLOCKED` : 'ACHIEVEMENT UNLOCKED', detail: achievement?.title ?? 'NEW RECEIPT ADDED', tone: 'emerald' });
     }
+    if (notifications.length > 0) setNotificationQueue((queue) => [...queue, ...notifications]);
     setCompletedSession({
       ...finalSession,
-      earnedAura: finalSession.earnedAura + result.dailyPerfectBonus + perfectAuraBonus,
+      earnedAura: finalSession.earnedAura + result.dailyPerfectBonus + perfectAuraBonus + archiveProgress.auraBonus,
       dailyPerfect: isDailyPerfect,
       isNewHighScore: wasRushHighScore,
+      auraBreakdown: {
+        answers: finalSession.earnedAura,
+        perfectBonus: result.dailyPerfectBonus + perfectAuraBonus,
+        archiveBonus: archiveProgress.auraBonus,
+      },
     });
   };
 
@@ -186,6 +238,7 @@ export default function App() {
         crtEnabled={stats.crtEnabled}
         scanlinesEnabled={stats.scanlinesEnabled}
         theme={theme}
+        isRush={activeMode === 'rush'}
       />
 
       {/* Main Content Area */}
@@ -195,7 +248,10 @@ export default function App() {
           onUpdateStats={handleUpdateStats}
           onOpenStreakModal={() => setIsStreakModalOpen(true)}
           onOpenSoundboard={() => setIsSoundboardOpen(true)}
-          onOpenCollection={() => setIsCollectionOpen(true)}
+          onOpenCollection={(initialTab = 'achievements') => {
+            setCollectionInitialTab(initialTab);
+            setIsCollectionOpen(true);
+          }}
         />
 
         <main className="flex-1 flex flex-col justify-center py-2">
@@ -254,21 +310,16 @@ export default function App() {
       {isCollectionOpen && (
         <CollectionModal
           stats={stats}
+          initialTab={collectionInitialTab}
           onClose={() => setIsCollectionOpen(false)}
           onUpdateStats={handleUpdateStats}
         />
       )}
 
-      {achievementToast && (
-        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 border-yellow-400 bg-zinc-950/95 px-4 py-3 text-center shadow-[0_0_30px_rgba(250,204,21,0.35)]" role="status">
-          <div className="text-[10px] font-mono font-black text-yellow-300">ACHIEVEMENT UNLOCKED</div>
-          <div className="mt-1 text-xs font-bold text-white">{achievementToast}</div>
-        </div>
-      )}
-      {archiveToast && (
-        <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 border-cyan-400 bg-zinc-950/95 px-4 py-3 text-center shadow-[0_0_30px_rgba(34,211,238,0.35)]" role="status">
-          <div className="text-[10px] font-mono font-black text-cyan-300">NEW ARCHIVE ENTRY</div>
-          <div className="mt-1 text-xs font-bold text-white">{archiveToast}</div>
+      {activeNotification && (
+        <div className={`fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-2xl border-2 bg-zinc-950/95 px-4 py-3 text-center ${notificationToneClasses[activeNotification.tone]}`} role="status" aria-live="polite">
+          <div className={`text-[10px] font-mono font-black ${notificationLabelClasses[activeNotification.tone]}`}>{activeNotification.title}</div>
+          <div className="mt-1 text-xs font-bold text-white">{activeNotification.detail}</div>
         </div>
       )}
     </div>

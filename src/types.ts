@@ -161,4 +161,9 @@ export interface QuizSessionState {
   dailyPerfect: boolean;
   correctByCategory: Record<string, number>;
   answeredSubjectKeys: string[];
+  auraBreakdown?: {
+    answers: number;
+    perfectBonus: number;
+    archiveBonus: number;
+  };
 }

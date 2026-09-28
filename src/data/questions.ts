@@ -688,12 +688,12 @@ const LEGACY_QUESTIONS_DB: Question[] = [
   {
     id: 'chg_1',
     mode: 'challenge',
-    question: 'Challenge Wave 1: Which Russian musician and model is the famous face behind the "Gigachad" physique memes?',
+    question: 'Challenge Wave 1: Which person is commonly associated with the edited "GigaChad" physique memes?',
     subtitle: 'BOSS WAVE: THE FOUNDATIONS OF MOGGING',
     options: ['Pavel Durov', 'Arnie Schwarzenegger', 'Ernest Khalimov', 'Dmitry Klokov'],
     correctAnswer: 2, // C
-    explanation: 'Ernest Khalimov is the model photographed by Krista Sudmalis for the art project "Sleek\'N\'Tears", giving birth to GigaChad.',
-    memeContext: '"Average Fan vs Average Enjoyer" solidified him as internet royalty.',
+    explanation: 'Ernest Khalimov is the name most commonly associated with the edited GigaChad images; attribution around the art project and reposts is often discussed rather than a single official canon.',
+    memeContext: 'The imagery became a recurring template in "Average Fan vs Average Enjoyer" and other physique edits.',
     difficulty: 'medium',
   },
   {
@@ -737,7 +737,7 @@ const LEGACY_QUESTIONS_DB: Question[] = [
   {
     id: 'chg_5',
     mode: 'challenge',
-    question: 'Challenge Wave 5: In the Brazilian Phonk drift edits, which actor\'s film characters are most frequently featured?',
+    question: 'Challenge Wave 5: In Brazilian Phonk drift edits, which actor\'s film characters are often featured?',
     subtitle: 'BOSS WAVE: SIGMA CINEMA',
     options: ['Christian Bale (American Psycho)', 'Leonardo DiCaprio (Inception)', 'Tom Cruise (Top Gun)', 'Keanu Reeves (Matrix)'],
     correctAnswer: 0, // A
@@ -748,12 +748,12 @@ const LEGACY_QUESTIONS_DB: Question[] = [
   {
     id: 'chg_6',
     mode: 'challenge',
-    question: 'FINAL BOSS OF OHIO: What year did the "Ohio vs the World" meme campaign officially begin with a bus stop sign?',
+    question: 'FINAL BOSS OF OHIO: Which year is commonly associated with the early "Ohio will be eliminated" bus-sign meme?',
     subtitle: 'FINAL BOSS: THE ELDRITCH MIDWEST ORIGIN',
     options: ['2023 (TikTok algorithm)', '2016 ("Ohio will be eliminated")', '2019 (Area 51 raid)', '2012 (Mayan calendar)'],
     correctAnswer: 1, // B
-    explanation: 'In 2016, a viral Tumblr image of an electronic bus display reading "Ohio will be eliminated" sparked the long-running conspiracy that Ohio is an anomaly.',
-    memeContext: 'It evolved over 8 years into "Wait, it\'s all Ohio? Always has been 👨‍🚀🔫👨‍🚀".',
+    explanation: '2016 is commonly linked to a viral image of an electronic bus display reading "Ohio will be eliminated"; meme origins and repost timelines are not a single official canon.',
+    memeContext: 'The reference later evolved through reposts into "Wait, it\'s all Ohio? Always has been 👨‍🚀🔫👨‍🚀".',
     difficulty: 'sigma',
   },
 ];

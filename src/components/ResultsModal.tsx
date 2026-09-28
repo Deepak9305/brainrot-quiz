@@ -103,7 +103,7 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
       <motion.div
         initial={{ scale: 0.85, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className={`relative w-full max-w-lg bg-zinc-950 border-4 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(250,204,21,0.4)] text-center overflow-hidden ${stats.equippedCardStyle === 'card_holo' ? 'card-cosmetic-holo' : stats.equippedCardStyle === 'card_gold' ? 'card-cosmetic-gold' : 'border-yellow-400'}`}
+        className={`theme-panel-glow relative w-full max-w-lg bg-zinc-950 border-4 rounded-3xl p-6 sm:p-7 text-center overflow-hidden ${stats.equippedCardStyle === 'card_holo' ? 'card-cosmetic-holo' : stats.equippedCardStyle === 'card_gold' ? 'card-cosmetic-gold' : 'theme-primary-border'}`}
       >
         {/* Retro Header Tag */}
         <div className="inline-block bg-yellow-400 text-black font-black text-[11px] px-3 py-1 rounded-full uppercase tracking-wider mb-2">
@@ -165,6 +165,16 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
           </div>
         </div>
 
+        {session.auraBreakdown && (
+          <div className="mb-3 rounded-xl border border-yellow-500/30 bg-yellow-950/20 px-3 py-2 text-[10px] font-mono text-yellow-200">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+              <span>ANSWERS +{session.auraBreakdown.answers}</span>
+              {session.auraBreakdown.perfectBonus > 0 && <span className="font-black text-emerald-300">{session.dailyPerfect ? 'PERFECT DAILY' : 'PERFECT RUN'} +{session.auraBreakdown.perfectBonus} BONUS AURA</span>}
+              {session.auraBreakdown.archiveBonus > 0 && <span className="text-cyan-300">ARCHIVE +{session.auraBreakdown.archiveBonus}</span>}
+            </div>
+          </div>
+        )}
+
         <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-xs font-mono text-zinc-300">
           {session.mode === 'rush' && <span>RUSH: {session.questionsAnswered} rapid answers • personal best {stats.highestRushScore.toLocaleString()} pts</span>}
           {session.mode === 'challenge' && <span className={session.challengeVictory ? 'text-emerald-300' : 'text-red-300'}>{session.challengeVictory ? 'CHALLENGE CLEARED • FINAL BOSS DEFEATED' : session.highestChallengeWave === 6 ? 'FINAL BOSS SURVIVED' : `DEFEATED — WAVE ${session.highestChallengeWave}`} • {session.lives} heart{session.lives === 1 ? '' : 's'} left</span>}
@@ -179,7 +189,7 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
               soundManager.play('level_up');
               onPlayAgain();
             }}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-400 hover:to-yellow-300 text-black font-black text-sm py-3 px-4 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(236,72,153,0.4)] transition-transform active:scale-95"
+            className="theme-button flex-1 flex items-center justify-center gap-2 font-black text-sm py-3 px-4 rounded-xl cursor-pointer transition-transform active:scale-95"
           >
             <RotateCcw className="w-4 h-4" />
             PLAY AGAIN

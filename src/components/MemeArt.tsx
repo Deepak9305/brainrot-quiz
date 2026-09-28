@@ -38,8 +38,10 @@ export const MemeArt: React.FC<MemeArtProps> = ({ type, altText, variant = 'stan
       : variant === 'silhouette'
         ? 'object-contain brightness-0 opacity-90'
         : asset.fit === 'cover' ? 'object-cover' : 'object-contain';
-    const scale = variant === 'crop'
-      ? crop?.scale ?? 1.55
+    const scale = variant === 'silhouette'
+      ? crop?.scale ?? 1
+      : variant === 'crop'
+        ? crop?.scale ?? 1.55
       : variant === 'detail'
         ? (crop?.scale ?? 1.55) + 0.25
         : 1;

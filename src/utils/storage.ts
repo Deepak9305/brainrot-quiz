@@ -2,6 +2,7 @@ import { RewardCycle, StreakStatus, UserStats } from '../types';
 import { evaluateAchievements, evaluateTitles } from './progression';
 import { COSMETICS, CosmeticType, getCosmetic } from '../data/cosmetics';
 import { ACHIEVEMENT_DEFINITIONS } from '../data/achievements';
+import { TITLE_DEFINITIONS } from '../data/titles';
 
 export const SAVE_SCHEMA_VERSION = 3;
 export const MAX_STREAK_FREEZES = 3;
@@ -45,7 +46,7 @@ export const INITIAL_USER_STATS: UserStats = {
   highestChallengeWave: 0,
   challengeWins: 0,
   finalBossWins: 0,
-  unlockedTitles: ['Brainrot NPC', 'Skibidi Cadet'],
+  unlockedTitles: ['Brainrot NPC'],
   currentTitle: 'Brainrot NPC',
   unlockedAchievements: [],
   personalBests: {},
@@ -109,6 +110,7 @@ export function sanitizeStats(data: Partial<UserStats>): UserStats {
       : fallback ?? (type === 'theme' ? 'theme_default' : type === 'card' ? 'card_default' : 'effect_default');
   };
   const validAchievementIds = new Set(ACHIEVEMENT_DEFINITIONS.map((achievement) => achievement.id));
+  const validTitleNames = new Set(TITLE_DEFINITIONS.map((definition) => definition.title));
   const stats: UserStats = {
     ...INITIAL_USER_STATS,
     ...data,
@@ -118,7 +120,7 @@ export function sanitizeStats(data: Partial<UserStats>): UserStats {
     challengeWins: Math.max(0, Number(data.challengeWins) || 0),
     finalBossWins: Math.max(0, Number(data.finalBossWins) || 0),
     unlockedTitles: Array.isArray(data.unlockedTitles) && data.unlockedTitles.length > 0
-      ? [...new Set(data.unlockedTitles.filter(Boolean))]
+      ? [...new Set(data.unlockedTitles.filter((title) => typeof title === 'string' && validTitleNames.has(title)))]
       : INITIAL_USER_STATS.unlockedTitles,
     unlockedAchievements: Array.isArray(data.unlockedAchievements) ? [...new Set(data.unlockedAchievements.filter((id) => typeof id === 'string' && validAchievementIds.has(id)))] : [],
     personalBests: data.personalBests && typeof data.personalBests === 'object' ? data.personalBests : {},
@@ -136,6 +138,9 @@ export function sanitizeStats(data: Partial<UserStats>): UserStats {
     streakStatus: data.streakStatus === 'protected' || data.streakStatus === 'expired' ? data.streakStatus : 'active',
     protectedMissedDays: Math.max(0, Number(data.protectedMissedDays) || 0),
   };
+
+  stats.unlockedTitles = evaluateTitles(stats);
+  stats.currentTitle = stats.unlockedTitles.includes(stats.currentTitle) ? stats.currentTitle : 'Brainrot NPC';
 
   if (!stats.lastDailyCompletedDate && stats.quizzesCompleted === 0) {
     stats.streak = 0;
@@ -296,7 +301,7 @@ export function recordGameCompletion(
     updatedStats.currentTitle = updatedStats.unlockedTitles[updatedStats.unlockedTitles.length - 1] ?? 'Brainrot NPC';
   }
 
-  saveUserStats(updatedStats);
+  // The caller owns persistence for this pure progression result.
   return { updatedStats, streakExtended, usedFreeze, dailyPerfectBonus };
 }
 
@@ -360,6 +365,7 @@ export function buyStreakFreeze(currentStats: UserStats, cost = 400): { updatedS
 export function purchaseCosmetic(currentStats: UserStats, cosmeticId: string): { updatedStats: UserStats; message: string; ok: boolean } {
   const cosmetic = getCosmetic(cosmeticId);
   if (!cosmetic) return { updatedStats: currentStats, message: 'Cosmetic unavailable.', ok: false };
+  if (cosmetic.exclusive) return { updatedStats: currentStats, message: 'This cosmetic is unlocked through the Archive.', ok: false };
   if (currentStats.unlockedCosmetics.includes(cosmeticId)) return { updatedStats: currentStats, message: 'Already unlocked.', ok: false };
   if (currentStats.auraPoints < cosmetic.cost) return { updatedStats: currentStats, message: 'Not enough Aura. Keep cooking.', ok: false };
   const updatedStats = sanitizeStats({
@@ -367,7 +373,6 @@ export function purchaseCosmetic(currentStats: UserStats, cosmeticId: string): {
     auraPoints: currentStats.auraPoints - cosmetic.cost,
     unlockedCosmetics: [...currentStats.unlockedCosmetics, cosmeticId],
   });
-  saveUserStats(updatedStats);
   return { updatedStats, message: `${cosmetic.name} unlocked!`, ok: true };
 }
 
@@ -380,7 +385,6 @@ export function equipCosmetic(currentStats: UserStats, cosmeticId: string): User
     ...(cosmetic.type === 'card' ? { equippedCardStyle: cosmeticId } : {}),
     ...(cosmetic.type === 'effect' ? { equippedEffect: cosmeticId } : {}),
   });
-  saveUserStats(updatedStats);
   return updatedStats;
 }
 
@@ -415,6 +419,5 @@ export function applyArchiveProgress(currentStats: UserStats, discoveredSubjects
     unlockedTitles,
     unlockedCosmetics,
   });
-  saveUserStats(updatedStats);
   return { updatedStats, newlyDiscovered, newlyClaimedMilestones, auraBonus };
 }

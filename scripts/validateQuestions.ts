@@ -12,6 +12,7 @@ const ids = new Set<string>();
 const prompts = new Map<string, string>();
 const archiveIds = new Set<string>();
 const archiveMediaIds = new Set<string>();
+const activeSubjectKeys = new Set(QUESTIONS_DB.map((question) => question.subjectKey));
 
 function normalize(value: string): string {
   const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
@@ -51,13 +52,20 @@ for (const question of QUESTIONS_DB) {
 for (const entry of ARCHIVE_ENTRIES) {
   if (archiveIds.has(entry.subjectKey)) errors.push(`duplicate archive subject: ${entry.subjectKey}`);
   archiveIds.add(entry.subjectKey);
+  if (!activeSubjectKeys.has(entry.subjectKey)) errors.push(`archive ${entry.subjectKey}: no active question can discover this entry`);
   if (entry.mediaKey) {
     archiveMediaIds.add(entry.mediaKey);
     if (!getLocalMediaAsset(entry.mediaKey)) errors.push(`archive ${entry.subjectKey}: invalid mediaKey ${entry.mediaKey}`);
   }
 }
 
+const mediaSources = new Map<string, string>();
 Object.entries(LOCAL_MEDIA).forEach(([mediaKey, asset]) => {
+  if (!/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(mediaKey)) errors.push(`non-canonical media key: ${mediaKey}`);
+  if (!asset.sourceUrl?.trim()) errors.push(`missing source URL: ${mediaKey}`);
+  const previousKey = mediaSources.get(asset.src);
+  if (previousKey) warnings.push(`duplicate media file: ${mediaKey} and ${previousKey} both use ${asset.src}`);
+  mediaSources.set(asset.src, mediaKey);
   const referencedByQuestion = QUESTIONS_DB.some((question) => question.subjectKey === mediaKey || question.visualContent === mediaKey || question.imageAsset === mediaKey);
   const referencedByArchive = archiveMediaIds.has(mediaKey);
   if (!referencedByQuestion && !referencedByArchive) warnings.push(`orphan media: ${mediaKey} is not used by questions or Archive`);
@@ -82,7 +90,7 @@ const rushQuestions = QUESTIONS_DB.filter((question) => question.mode === 'rush'
 const rushVocabulary = rushQuestions.filter((question) => /what does|what is|what do/i.test(question.question)).length;
 if (rushQuestions.length > 0 && rushVocabulary / rushQuestions.length > 0.7) warnings.push('Rush variety: vocabulary-style prompts dominate the pool');
 if (warnings.length > 0) console.warn(`data validation warnings: ${warnings.length}\n${warnings.slice(0, 20).join('\n')}`);
-console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, visualCount, uniqueVisualSubjects, uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length });
+console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, visualCount, uniqueVisualSubjects, uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
 if (errors.length > 0) {
   console.error(`data validation failed: ${errors.length}\n${errors.join('\n')}`);
   process.exit(1);

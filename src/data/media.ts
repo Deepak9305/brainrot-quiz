@@ -29,6 +29,12 @@ export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
     attributionRequired: false,
     notes: 'Source page records this AI-generated reference as public domain.',
     crop: { x: 50, y: 50, scale: 1.65 },
+    variants: {
+      standard: { x: 50, y: 50, scale: 1 },
+      crop: { x: 50, y: 70, scale: 1.55 },
+      detail: { x: 50, y: 84, scale: 2.25 },
+      silhouette: { x: 50, y: 52, scale: 1.05 },
+    },
   },
   bombardiro_crocodilo: {
     src: '/media/brainrot/bombardiro-crocodilo.jpg',
@@ -41,6 +47,12 @@ export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
     attributionRequired: false,
     notes: 'Source page records this AI-generated reference as public domain.',
     crop: { x: 52, y: 48, scale: 1.55 },
+    variants: {
+      standard: { x: 52, y: 48, scale: 1 },
+      crop: { x: 52, y: 50, scale: 1.55 },
+      detail: { x: 62, y: 46, scale: 1.95 },
+      silhouette: { x: 52, y: 48, scale: 1.05 },
+    },
   },
   tung_tung_tung_sahur: {
     src: '/media/brainrot/tung-tung-tung-sahur.webp',
@@ -53,6 +65,12 @@ export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
     attributionRequired: false,
     notes: 'Source page records this AI-generated reference as public domain.',
     crop: { x: 50, y: 42, scale: 1.7 },
+    variants: {
+      standard: { x: 50, y: 42, scale: 1 },
+      crop: { x: 50, y: 62, scale: 1.55 },
+      detail: { x: 48, y: 78, scale: 2.05 },
+      silhouette: { x: 50, y: 42, scale: 1.05 },
+    },
   },
   brr_brr_patapim: {
     src: '/media/brainrot/brr-brr-patapim.jpg',
@@ -77,6 +95,12 @@ export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
     attributionRequired: false,
     notes: 'Source page records this AI-generated reference as public domain.',
     crop: { x: 50, y: 48, scale: 1.35 },
+    variants: {
+      standard: { x: 50, y: 48, scale: 1 },
+      crop: { x: 50, y: 40, scale: 1.45 },
+      detail: { x: 50, y: 24, scale: 1.95 },
+      silhouette: { x: 50, y: 48, scale: 1.05 },
+    },
   },
   bombombini_gusini: {
     src: '/media/brainrot/bombini-gusini.webp',
@@ -101,6 +125,12 @@ export const LOCAL_MEDIA: Record<string, LocalMediaAsset> = {
     attributionRequired: false,
     notes: 'Source page records this AI-generated reference as public domain.',
     crop: { x: 50, y: 50, scale: 1.3 },
+    variants: {
+      standard: { x: 50, y: 50, scale: 1 },
+      crop: { x: 50, y: 58, scale: 1.45 },
+      detail: { x: 52, y: 72, scale: 1.9 },
+      silhouette: { x: 50, y: 50, scale: 1.05 },
+    },
   },
   lirili_larila: {
     src: '/media/brainrot/liril-larila.webp',

@@ -28,6 +28,8 @@ interface PrepareOptions {
   recentIds?: string[];
   random?: RandomSource;
   avoidSubjects?: string[];
+  uniqueSubjects?: boolean;
+  balance?: 'mix';
 }
 
 function difficultyTarget(index: number, total: number): Question['difficulty'][] {
@@ -60,7 +62,12 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
       const lastSubject = selected[selected.length - 1]?.subjectKey ?? selected[selected.length - 1]?.visualContent;
       return subject !== lastSubject || remaining.length === 1;
     });
-    const pool = candidates.length > 0 ? candidates : remaining;
+    const availableSubjects = new Set(remaining.map((question) => question.subjectKey ?? question.visualContent ?? question.id));
+    const unseenSubjectCandidates = candidates.filter((question) => !subjectCounts.has(question.subjectKey ?? question.visualContent ?? question.id));
+    const canKeepSubjectsUnique = options.uniqueSubjects && availableSubjects.size >= limit - selected.length;
+    const pool = canKeepSubjectsUnique && unseenSubjectCandidates.length > 0
+      ? unseenSubjectCandidates
+      : candidates.length > 0 ? candidates : remaining;
 
     const scored = pool.map((question) => {
       const category = question.category ?? question.mode;
@@ -71,7 +78,30 @@ export function prepareQuizQuestions(questions: Question[], options: PrepareOpti
       const subjectPenalty = (subjectCounts.get(subject) ?? 0) * 90;
       const avoidPenalty = avoidSubjects.has(subject) ? 120 : 0;
       const difficultyPenalty = targetDifficulties.includes(question.difficulty) ? 0 : 30;
-      return { question, score: recencyPenalty + categoryPenalty + subjectPenalty + avoidPenalty + difficultyPenalty + random() * 18 };
+      const mixKind = question.visualType === 'image' || question.visualType === 'emoji'
+        ? 'visual'
+        : question.category === 'classic_memes'
+          ? 'classic'
+          : question.mode === 'sound' || question.mode === 'voice'
+            ? 'audio'
+            : question.mode === 'slang' || question.category === 'slang' || question.category === 'quote'
+              ? 'text'
+              : 'wildcard';
+      const mixCount = selected.filter((picked) => {
+        const pickedKind = picked.visualType === 'image' || picked.visualType === 'emoji'
+          ? 'visual'
+          : picked.category === 'classic_memes'
+            ? 'classic'
+            : picked.mode === 'sound' || picked.mode === 'voice'
+              ? 'audio'
+              : picked.mode === 'slang' || picked.category === 'slang' || picked.category === 'quote'
+                ? 'text'
+                : 'wildcard';
+        return pickedKind === mixKind;
+      }).length;
+      const mixTarget = { visual: 3.5, text: 2.5, classic: 1.5, audio: 1, wildcard: 2 }[mixKind];
+      const mixPenalty = options.balance === 'mix' && mixCount >= mixTarget ? 110 + mixCount * 15 : 0;
+      return { question, score: recencyPenalty + categoryPenalty + subjectPenalty + avoidPenalty + difficultyPenalty + mixPenalty + random() * 18 };
     });
 
     scored.sort((a, b) => a.score - b.score);
