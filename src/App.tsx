@@ -108,7 +108,11 @@ export default function App() {
     } else if (mode === 'mix') {
       qList = QUESTIONS_DB.filter((question) => question.mode !== 'challenge' && question.mode !== 'daily' && question.mode !== 'rush');
     } else if (mode === 'image') {
-      qList = QUESTIONS_DB.filter((question) => question.visualType === 'image' && Boolean(getLocalMediaAsset(question.visualContent)));
+      qList = QUESTIONS_DB.filter((question) => {
+        if (question.mode !== 'image') return false;
+        if (question.visualType === 'image') return Boolean(getLocalMediaAsset(question.visualContent));
+        return question.visualType === 'ascii' && question.useMediaAsQuestion === true && Boolean(question.visualContent?.trim());
+      });
     } else {
       qList = QUESTIONS_DB.filter((question) => question.mode === mode);
     }

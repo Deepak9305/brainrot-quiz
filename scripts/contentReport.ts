@@ -1,5 +1,6 @@
 import { QUESTIONS_DB, QUESTION_DATABASE_VERSION } from '../src/data/questions';
 import { LOCAL_MEDIA } from '../src/data/media';
+import { REJECTED_VISUAL_CANDIDATES, VISUAL_CANDIDATE_MANIFEST } from '../src/data/visualCandidates';
 
 const countBy = (values: string[]) => values.reduce((counts, value) => {
   counts[value] = (counts[value] ?? 0) + 1;
@@ -21,13 +22,15 @@ const types = countBy(QUESTIONS_DB.map((question) => question.questionType ?? 's
 const difficulties = countBy(QUESTIONS_DB.map((question) => question.difficulty));
 const topics = countBy(QUESTIONS_DB.map((question) => question.topic ?? 'untagged'));
 const subjects = countBy(QUESTIONS_DB.map((question) => question.subjectKey ?? question.id));
-const visualSubjects = new Set(QUESTIONS_DB.filter((question) => question.visualType === 'image' || question.visualType === 'emoji').map((question) => question.subjectKey ?? question.id));
-const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType === 'image');
-const imageSubjects = new Set(imageQuestions.map((question) => question.subjectKey ?? question.id));
-const imageCategories = countBy(imageQuestions.map((question) => question.category ?? 'unknown'));
-const imageEras = countBy([...new Set(imageQuestions.map((question) => `${question.era ?? 'unknown'}:${question.subjectKey ?? question.id}`))].map((key) => key.split(':')[0]));
-const imageLicenses = countBy(imageQuestions.map((question) => LOCAL_MEDIA[question.visualContent ?? '']?.licenseName ?? 'unknown'));
-const repeatedImageSubjects = Object.entries(countBy(imageQuestions.map((question) => question.subjectKey ?? question.id)))
+const visualQuestions = QUESTIONS_DB.filter((question) => question.mode === 'image' && (question.visualType === 'image' || question.visualType === 'ascii'));
+const imageQuestions = visualQuestions.filter((question) => question.visualType === 'image');
+const textVisualQuestions = visualQuestions.filter((question) => question.visualType === 'ascii');
+const visualSubjects = new Set(visualQuestions.map((question) => question.subjectKey ?? question.id));
+const visualSubjectMetadata = [...new Map(visualQuestions.map((question) => [question.subjectKey ?? question.id, question])).values()];
+const visualCategories = countBy(visualSubjectMetadata.map((question) => question.category ?? 'unknown'));
+const visualEras = countBy(visualSubjectMetadata.map((question) => question.era ?? 'unknown'));
+const visualLicenses = countBy(visualSubjectMetadata.map((question) => question.visualType === 'ascii' ? 'Text-rendered / no binary asset' : LOCAL_MEDIA[question.visualContent ?? '']?.licenseName ?? 'unknown'));
+const repeatedImageSubjects = Object.entries(countBy(visualQuestions.map((question) => question.subjectKey ?? question.id)))
   .filter(([, count]) => count > 1);
 const mediaTypes = countBy(Object.values(LOCAL_MEDIA).map((asset) => asset.assetType));
 const challengeQuestions = QUESTIONS_DB.filter((question) => question.mode === 'challenge');
@@ -35,23 +38,29 @@ const challengeQuestions = QUESTIONS_DB.filter((question) => question.mode === '
 console.log(`BRAINROT QUIZ CONTENT REPORT · v${QUESTION_DATABASE_VERSION}`);
 console.log(`Total questions: ${QUESTIONS_DB.length}`);
 console.log(`Visual subjects: ${visualSubjects.size}`);
-console.log(`Image questions: ${imageQuestions.length}`);
-console.log(`Image subjects: ${imageSubjects.size}`);
+console.log(`Visual questions: ${visualQuestions.length}`);
+console.log(`Binary image questions: ${imageQuestions.length}`);
+console.log(`Text-rendered visual questions: ${textVisualQuestions.length}`);
 
 console.log('\nVISUAL MODE');
-console.log(`  Total image questions: ${imageQuestions.length}`);
-console.log(`  Unique visual subjects: ${imageSubjects.size}`);
-printSection('  Subjects by category', topEntries(imageCategories, Object.keys(imageCategories).length));
-printSection('  Subjects by era', topEntries(imageEras, Object.keys(imageEras).length));
-printSection('  Subjects by license', topEntries(imageLicenses, Object.keys(imageLicenses).length));
+console.log(`  TOTAL VISUAL SUBJECTS: ${visualSubjects.size}`);
+console.log(`  TOTAL VISUAL QUESTIONS: ${visualQuestions.length}`);
+const italianVisualSubjects = visualSubjectMetadata.filter((question) => question.category === 'italian_brainrot').length;
+console.log(`  ITALIAN BRAINROT PERCENT: ${((italianVisualSubjects / Math.max(visualSubjects.size, 1)) * 100).toFixed(1)}%`);
+console.log(`  NON-BRAINROT PERCENT: ${(((visualSubjects.size - italianVisualSubjects) / Math.max(visualSubjects.size, 1)) * 100).toFixed(1)}%`);
+printSection('  Visual subjects by category', topEntries(visualCategories, Object.keys(visualCategories).length));
+printSection('  Visual subjects by era', topEntries(visualEras, Object.keys(visualEras).length));
+printSection('  Visual subjects by license', topEntries(visualLicenses, Object.keys(visualLicenses).length));
 console.log(`  Repeated image subjects: ${repeatedImageSubjects.length ? repeatedImageSubjects.map(([subject, count]) => `${subject}:${count}`).join(', ') : 'none'}`);
+console.log(`  Candidate manifest: ${VISUAL_CANDIDATE_MANIFEST.length} candidates | added: ${VISUAL_CANDIDATE_MANIFEST.filter((candidate) => candidate.status === 'added').length} | rejected: ${REJECTED_VISUAL_CANDIDATES.length}`);
+const rejectionReasons = countBy(REJECTED_VISUAL_CANDIDATES.map((candidate) => candidate.rejectionReason ?? 'unspecified'));
+printSection('  Top rejected-candidate reasons', topEntries(rejectionReasons, 8));
 
 printSection('By category', topEntries(categories, Object.keys(categories).length));
 printSection('By era', topEntries(eras, Object.keys(eras).length));
 printSection('By question type', topEntries(types, Object.keys(types).length));
 printSection('By difficulty', topEntries(difficulties, Object.keys(difficulties).length));
-printSection('Image questions by category', topEntries(imageCategories, Object.keys(imageCategories).length));
-printSection('Image subjects by era', topEntries(imageEras, Object.keys(imageEras).length));
+printSection('Visual questions by type', topEntries(countBy(visualQuestions.map((question) => question.visualType ?? 'unknown')), 10));
 printSection('Local media by asset type', topEntries(mediaTypes, Object.keys(mediaTypes).length));
 console.log('\nACTIVE CHALLENGE QUESTIONS');
 for (let wave = 1; wave <= 6; wave += 1) {
@@ -66,6 +75,6 @@ const repeatedChallengeSubjects = Object.entries(countBy(challengeQuestions.map(
   .filter(([, count]) => count > 1);
 console.log(`  Final Boss pool: ${challengeQuestions.filter((question) => question.challengeWave === 6).length} candidates`);
 console.log(`  Reused Challenge subjects: ${repeatedChallengeSubjects.length ? repeatedChallengeSubjects.map(([subject, count]) => `${subject}:${count}`).join(', ') : 'none'}`);
-const systemTopicLabels = new Set(['modern', 'modern_memes', 'italian_brainrot', 'slang', 'internet_slang', 'classic_memes', 'meme_formats', 'reaction_memes', 'emoji', 'quote', 'sound', 'social_media', 'internet_history', 'internet_tech', 'gaming_culture', 'youtube', 'streaming', 'creator_culture', 'viral_videos', 'digital_nostalgia', 'challenge', 'rush', 'image', 'voice', 'daily']);
+const systemTopicLabels = new Set(['modern', 'modern_memes', 'italian_brainrot', 'slang', 'internet_slang', 'classic_memes', 'rage_comics', 'advice_animals', 'viral_internet', 'meme_formats', 'reaction_memes', 'emoji', 'quote', 'sound', 'social_media', 'internet_history', 'internet_tech', 'gaming_culture', 'youtube', 'streaming', 'creator_culture', 'viral_videos', 'digital_nostalgia', 'challenge', 'rush', 'image', 'voice', 'daily']);
 printSection('Top editorial topics', topEntries(Object.fromEntries(Object.entries(topics).filter(([topic]) => !systemTopicLabels.has(topic))), 20));
 printSection('Top subjects / concept reuse', topEntries(subjects, 20));

@@ -51,12 +51,12 @@ function getMixTraits(question: Question): MixTrait[] {
   const traits = new Set<MixTrait>();
 
   if (category === 'italian_brainrot' || question.era === 'italian_brainrot') traits.add('italian');
-  if (category === 'classic_memes' || category === 'meme_formats' || category === 'reaction_memes' || question.era === 'classic' || question.era === 'early_web') traits.add('classic');
+  if (category === 'classic_memes' || category === 'rage_comics' || category === 'advice_animals' || category === 'meme_formats' || category === 'reaction_memes' || question.era === 'classic' || question.era === 'early_web') traits.add('classic');
   if (category === 'gaming_culture') traits.add('gaming');
   if (category === 'social_media' || category === 'internet_history' || category === 'internet_tech' || category === 'youtube' || category === 'streaming' || category === 'creator_culture') traits.add('platform');
   if (category === 'slang' || category === 'internet_slang') traits.add('slang');
   if (question.visualType === 'image' || question.visualType === 'emoji' || category === 'emoji') traits.add('visual');
-  if (category === 'modern' || category === 'modern_memes' || question.era === 'current' || question.era === '2025' || question.era === '2026' || question.freshness === 'current') traits.add('current');
+  if (category === 'modern' || category === 'modern_memes' || category === 'viral_internet' || question.era === 'current' || question.era === '2025' || question.era === '2026' || question.freshness === 'current') traits.add('current');
   if (traits.size === 0) traits.add('wildcard');
   return [...traits];
 }
@@ -65,11 +65,14 @@ function getImageTrait(question: Question): ImageTrait {
   switch (question.category) {
     case 'italian_brainrot': return 'italian';
     case 'classic_memes':
+    case 'rage_comics':
+    case 'advice_animals':
     case 'meme_formats':
     case 'reaction_memes': return 'classic';
     case 'digital_nostalgia': return 'nostalgia';
     case 'gaming_culture': return 'gaming';
-    case 'viral_videos': return 'viral';
+    case 'viral_videos':
+    case 'viral_internet': return 'viral';
     case 'social_media':
     case 'internet_history':
     case 'internet_tech':
@@ -211,6 +214,6 @@ export function appendRecentQuestionIds(existing: string[], questions: Question[
   return [...new Set(ids)].slice(0, max);
 }
 
-export function appendRecentSubjectKeys(existing: string[], subjectKeys: string[], max = 20): string[] {
+export function appendRecentSubjectKeys(existing: string[], subjectKeys: string[], max = 50): string[] {
   return [...new Set([...subjectKeys.filter(Boolean), ...existing])].slice(0, max);
 }

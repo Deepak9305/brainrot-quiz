@@ -119,7 +119,7 @@ export function sanitizeStats(data: Partial<UserStats>): UserStats {
     streakFreezes: Math.min(MAX_STREAK_FREEZES, Math.max(0, Number(data.streakFreezes ?? INITIAL_USER_STATS.streakFreezes) || 0)),
     recentQuestionIds: Array.isArray(data.recentQuestionIds) ? data.recentQuestionIds.filter(Boolean).slice(0, 100) : [],
     recentVisualSubjectKeys: Array.isArray(data.recentVisualSubjectKeys)
-      ? [...new Set(data.recentVisualSubjectKeys.filter(Boolean))].slice(0, 20)
+      ? [...new Set(data.recentVisualSubjectKeys.filter(Boolean))].slice(0, 50)
       : [],
     challengeWins: Math.max(0, Number(data.challengeWins) || 0),
     finalBossWins: Math.max(0, Number(data.finalBossWins) || 0),

@@ -1,4 +1,5 @@
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { QUESTIONS_DB, QUESTION_DATABASE_VERSION } from '../src/data/questions';
 import { LOCAL_MEDIA, getLocalMediaAsset } from '../src/data/media';
@@ -7,13 +8,13 @@ import { ARCHIVE_ENTRIES } from '../src/data/archive';
 const validModes = new Set(['mix', 'image', 'emoji', 'slang', 'sound', 'voice', 'rush', 'daily', 'challenge']);
 const validCategories = new Set([
   'modern', 'modern_memes', 'italian_brainrot', 'slang', 'internet_slang', 'classic_memes',
-  'meme_formats', 'reaction_memes', 'emoji', 'quote', 'sound', 'social_media', 'internet_history',
+  'meme_formats', 'rage_comics', 'advice_animals', 'viral_internet', 'reaction_memes', 'emoji', 'quote', 'sound', 'social_media', 'internet_history',
   'internet_tech', 'gaming_culture', 'youtube', 'streaming', 'creator_culture', 'viral_videos',
   'digital_nostalgia', 'challenge', 'rush',
 ]);
 const validEras = new Set([
   'classic', 'early_web', '1990s', '2000s', 'early_2000s', 'mid_2000s', 'late_2000s',
-  'early_2010s', 'mid_2010s', 'late_2010s', 'early_2020s', '2025', '2026', 'italian_brainrot', 'current',
+  'early_2010s', '2010s', 'mid_2010s', 'late_2010s', 'early_2020s', '2025', '2026', 'italian_brainrot', 'current',
 ]);
 const validFreshness = new Set(['evergreen', 'current', 'seasonal']);
 const validQuestionTypes = new Set(['standard', 'image_identification', 'image_crop', 'image_detail', 'silhouette', 'emoji_decode', 'sound_recreation', 'quote_identification', 'complete_phrase', 'origin', 'true_or_cap', 'odd_one_out', 'platform_matching', 'timeline', 'era_identification', 'meme_evolution', 'format_recognition']);
@@ -80,6 +81,28 @@ for (const entry of ARCHIVE_ENTRIES) {
 }
 
 const mediaSources = new Map<string, string>();
+const mediaHashes = new Map<string, string>();
+
+function readImageDimensions(buffer: Buffer): { width: number; height: number } | undefined {
+  if (buffer.length >= 24 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+  if (buffer.length >= 4 && buffer[0] === 0xff && buffer[1] === 0xd8) {
+    let offset = 2;
+    while (offset + 9 < buffer.length) {
+      if (buffer[offset] !== 0xff) { offset += 1; continue; }
+      const marker = buffer[offset + 1];
+      const length = buffer.readUInt16BE(offset + 2);
+      if (length < 2) break;
+      if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+        return { width: buffer.readUInt16BE(offset + 7), height: buffer.readUInt16BE(offset + 5) };
+      }
+      offset += 2 + length;
+    }
+  }
+  return undefined;
+}
+
 Object.entries(LOCAL_MEDIA).forEach(([mediaKey, asset]) => {
   if (!/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(mediaKey)) errors.push(`non-canonical media key: ${mediaKey}`);
   if (!validAssetTypes.has(asset.assetType)) errors.push(`invalid asset type: ${mediaKey}`);
@@ -95,6 +118,19 @@ Object.entries(LOCAL_MEDIA).forEach(([mediaKey, asset]) => {
   if (!referencedByQuestion && !referencedByArchive) warnings.push(`orphan media: ${mediaKey} is not used by questions or Archive`);
   const filePath = resolve(process.cwd(), 'public', asset.src.replace(/^\//, ''));
   if (!existsSync(filePath)) errors.push(`missing media file: ${mediaKey} -> ${asset.src}`);
+  else {
+    const file = readFileSync(filePath);
+    const size = statSync(filePath).size;
+    if (size === 0) errors.push(`empty media file: ${mediaKey}`);
+    if (size > 2_000_000) warnings.push(`large media file: ${mediaKey} is ${(size / 1_000_000).toFixed(2)} MB`);
+    const hash = createHash('sha256').update(file).digest('hex');
+    const duplicateKey = mediaHashes.get(hash);
+    if (duplicateKey) errors.push(`duplicate media bytes: ${mediaKey} and ${duplicateKey}`);
+    mediaHashes.set(hash, mediaKey);
+    const dimensions = readImageDimensions(file);
+    if (dimensions && (dimensions.width < 64 || dimensions.height < 64)) warnings.push(`small media dimensions: ${mediaKey} is ${dimensions.width}x${dimensions.height}`);
+    if (!dimensions && !/\.webp$/i.test(asset.src)) warnings.push(`unreadable image header: ${mediaKey}`);
+  }
   if (asset.attributionRequired && (!asset.author || !asset.licenseName || !asset.licenseUrl || !asset.sourceUrl)) errors.push(`incomplete media credits: ${mediaKey}`);
 });
 
@@ -106,9 +142,14 @@ const categories = countBy(QUESTIONS_DB.map((question) => question.category ?? '
 const eras = countBy(QUESTIONS_DB.map((question) => question.era ?? 'unknown'));
 const topics = countBy(QUESTIONS_DB.map((question) => question.topic ?? 'untagged'));
 const questionTypes = countBy(QUESTIONS_DB.map((question) => question.questionType ?? 'standard'));
-const imageQuestions = QUESTIONS_DB.filter((question) => question.visualType === 'image');
-const visualCount = imageQuestions.length;
-const uniqueVisualSubjects = new Set(imageQuestions.map((question) => question.subjectKey)).size;
+const visualQuestions = QUESTIONS_DB.filter((question) => question.mode === 'image' && (question.visualType === 'image' || question.visualType === 'ascii'));
+const imageQuestions = visualQuestions.filter((question) => question.visualType === 'image');
+const textVisualQuestions = visualQuestions.filter((question) => question.visualType === 'ascii');
+const visualCount = visualQuestions.length;
+const uniqueVisualSubjects = new Set(visualQuestions.map((question) => question.subjectKey)).size;
+visualQuestions.forEach((question) => {
+  if (question.visualType === 'ascii' && (!question.useMediaAsQuestion || !question.visualContent?.trim())) errors.push(`${question.id}: text visual requires useMediaAsQuestion and visualContent`);
+});
 const uniqueSubjects = new Set(QUESTIONS_DB.map((question) => question.subjectKey)).size;
 if (QUESTIONS_DB.length < 200) errors.push(`question pool too small: ${QUESTIONS_DB.length}`);
 if (QUESTIONS_DB.filter((question) => question.mode === 'rush').length < 100) errors.push('dedicated Rush pool is below 100');
@@ -143,7 +184,7 @@ const challengeCategoryCounts = countBy(challengeQuestions.map((question) => que
 const dominantChallengeCategory = Math.max(...Object.values(challengeCategoryCounts), 0);
 if (challengeQuestions.length > 0 && dominantChallengeCategory / challengeQuestions.length > 0.55) warnings.push('Challenge category balance: one category exceeds 55% of the pool');
 if (uniqueVisualSubjects >= 25) {
-  const italianVisualShare = imageQuestions.filter((question) => question.category === 'italian_brainrot').length / Math.max(imageQuestions.length, 1);
+  const italianVisualShare = visualQuestions.filter((question) => question.category === 'italian_brainrot').length / Math.max(visualQuestions.length, 1);
   if (italianVisualShare > 0.5) warnings.push(`visual breadth: Italian Brainrot is ${(italianVisualShare * 100).toFixed(1)}% of Image Mode questions`);
 }
 const generalPool = QUESTIONS_DB.filter((question) => !['rush', 'daily', 'challenge'].includes(question.mode));
@@ -168,7 +209,7 @@ Object.entries(subjectCounts).forEach(([subject, count]) => {
   if (count > 4) warnings.push(`duplicate concept: ${subject} appears in ${count} questions`);
 });
 if (warnings.length > 0) console.warn(`data validation warnings: ${warnings.length}\n${warnings.slice(0, 20).join('\n')}`);
-console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, uniqueVisualSubjects, imageCategories: countBy(imageQuestions.map((question) => question.category ?? 'unknown')), imageEras: countBy(imageQuestions.map((question) => question.era ?? 'unknown')), uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
+console.log(`validated ${QUESTIONS_DB.length} questions`, { contentVersion: QUESTION_DATABASE_VERSION, modes, difficulty, categories, eras, questionTypes, visualCount, imageCount: imageQuestions.length, textVisualCount: textVisualQuestions.length, uniqueVisualSubjects, imageCategories: countBy(visualQuestions.map((question) => question.category ?? 'unknown')), imageEras: countBy(visualQuestions.map((question) => question.era ?? 'unknown')), uniqueSubjects, archiveEntries: ARCHIVE_ENTRIES.length, mediaAssets: Object.keys(LOCAL_MEDIA).length });
 if (errors.length > 0) {
   console.error(`data validation failed: ${errors.length}\n${errors.join('\n')}`);
   process.exit(1);
