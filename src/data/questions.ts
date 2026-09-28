@@ -3,7 +3,6 @@ import { EXPANDED_QUESTIONS, MODERN_QUESTIONS } from './modernQuestions';
 import { RUSH_VARIANTS } from './rushVariants';
 import { INTERNET_CULTURE_QUESTIONS } from './internetCultureQuestions';
 import { CHALLENGE_QUESTIONS } from './challengeQuestions';
-import { MEME_VISUAL_QUESTIONS } from './memeVisualQuestions';
 import { getLocalMediaAsset } from './media';
 
 export const QUESTION_DATABASE_VERSION = '2026.09.28';
@@ -830,7 +829,6 @@ export const QUESTIONS_DB: Question[] = [
   ...RUSH_VARIANTS,
   ...EXPANDED_QUESTIONS.filter((question) => question.mode !== 'challenge'),
   ...INTERNET_CULTURE_QUESTIONS,
-  ...MEME_VISUAL_QUESTIONS,
   ...CHALLENGE_QUESTIONS,
 ].map(normalizeQuestion).map((question) => ({
   ...question,

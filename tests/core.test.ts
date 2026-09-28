@@ -86,7 +86,7 @@ assert(visualQuestions.every((question) => question.visualType === 'image'));
 assert(visualQuestions.every((question) => question.subtitle === 'VISUAL MODE / IDENTIFY THE IMAGE'));
 assert(imageQuestions.every((question) => question.useMediaAsQuestion === true));
 assert(Object.values(LOCAL_MEDIA).every((asset) => asset.assetType === 'public_domain' || (asset.sourceUrl && asset.licenseName && asset.licenseUrl && asset.author)));
-assert(new Set(imageQuestions.map((question) => question.subjectKey)).size >= 22);
+assert(new Set(imageQuestions.map((question) => question.subjectKey)).size >= 15);
 assert(imageQuestions.every((question) => question.visualContent && LOCAL_MEDIA[question.visualContent]));
 const recentVisualSubjects = [...new Set(imageQuestions.map((question) => question.subjectKey).filter((subjectKey): subjectKey is string => Boolean(subjectKey)))].slice(0, 5);
 const cooledImageSession = prepareQuizQuestions(imageQuestions, { limit: 5, uniqueSubjects: true, avoidSubjects: recentVisualSubjects, random: () => 0.4 });

@@ -42,13 +42,6 @@ const ARCHIVE_ENTRIES_BASE: ArchiveEntry[] = [
   { subjectKey: 'slg_deep_04', name: 'Ratio', emoji: '📊', description: 'A reply receives more engagement than the original post.', era: 'Current', category: 'Slang' },
   { subjectKey: 'slg_deep_13', name: 'Crash Out', emoji: '💥', description: 'An impulsive emotional blow-up or reckless reaction.', era: 'Current', category: 'Slang' },
   { subjectKey: 'slg_deep_24', name: 'IJBOL', emoji: '😂', description: 'Internet shorthand for suddenly bursting out laughing.', era: 'Current', category: 'Slang' },
-  { subjectKey: 'doge_meme', name: 'Doge Image Macro', emoji: '\u{1F415}', description: 'The recognizable Shiba Inu image macro used for deliberately silly inner monologue captions.', era: 'OG', category: 'Classic Memes', mediaKey: 'doge_meme_example' },
-  { subjectKey: 'grumpy_cat', name: 'Grumpy Cat', emoji: '\u{1F408}', description: 'The permanently unimpressed reaction cat that became a defining 2010s meme.', era: '2010s', category: 'Reaction Memes', mediaKey: 'grumpy_cat_classic' },
-  { subjectKey: 'overly_attached_girlfriend', name: 'Overly Attached Girlfriend', emoji: '\u{1F440}', description: 'The wide-eyed creator image that became an early-2010s advice-animal character.', era: '2010s', category: 'Advice Animals', mediaKey: 'overly_attached_girlfriend' },
-  { subjectKey: 'scumbag_steve', name: 'Scumbag Steve', emoji: '\u{1F9E2}', description: 'The sideways-cap character used for selfish or obnoxious behavior captions.', era: '2010s', category: 'Advice Animals', mediaKey: 'scumbag_steve' },
-  { subjectKey: 'hide_the_pain_harold', name: 'Hide the Pain Harold Portrait', emoji: '\u{1F642}', description: 'The licensed portrait of the real person behind the strained smile reaction character.', era: '2010s', category: 'Reaction Memes', mediaKey: 'hide_the_pain_harold' },
-  { subjectKey: 'o_rly', name: 'O RLY?', emoji: '\u{1F989}', description: 'The early-web owl macro used for exaggerated disbelief.', era: '2000s', category: 'Classic Memes', mediaKey: 'o_rly' },
-  { subjectKey: 'this_is_fine', name: 'This Is Fine Source Photo', emoji: '\u{1F525}', description: 'A licensed photograph featuring the recognizable dog-in-chaos reaction visual.', era: '2010s', category: 'Classic Memes', mediaKey: 'this_is_fine' },
 ];
 
 export const ARCHIVE_ENTRIES: ArchiveEntry[] = ARCHIVE_ENTRIES_BASE;

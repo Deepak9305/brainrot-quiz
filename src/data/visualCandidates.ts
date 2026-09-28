@@ -64,13 +64,6 @@ function addedImage(name: string, category: string, era: string, mediaKey: strin
 }
 
 const addedImageCandidates: VisualCandidate[] = [
-  addedImage('Doge', 'classic_memes', 'classic', 'doge_meme_example', 'https://commons.wikimedia.org/wiki/File:Doge_meme_example.jpg', 'likeaduck', 'CC BY 2.0', 'https://creativecommons.org/licenses/by/2.0/', true),
-  addedImage('Grumpy Cat', 'reaction_memes', 'early_2010s', 'grumpy_cat_classic', 'https://commons.wikimedia.org/wiki/File:Grumpy_Cat_by_Gage_Skidmore.jpg', 'Gage Skidmore', 'CC BY-SA 3.0', 'https://creativecommons.org/licenses/by-sa/3.0/', true),
-  addedImage('Overly Attached Girlfriend', 'advice_animals', 'early_2010s', 'overly_attached_girlfriend', 'https://commons.wikimedia.org/wiki/File:Laina_Morris_by_Gage_Skidmore.jpg', 'Gage Skidmore', 'CC BY-SA 3.0', 'https://creativecommons.org/licenses/by-sa/3.0/', true),
-  addedImage('Scumbag Steve', 'advice_animals', 'early_2010s', 'scumbag_steve', 'https://commons.wikimedia.org/wiki/File:Scumbag_Steve_at_South_by_Southwest_2013_(8597138551).jpg', 'David Berkowitz', 'CC BY 2.0', 'https://creativecommons.org/licenses/by/2.0/', true),
-  addedImage('Hide the Pain Harold', 'reaction_memes', '2010s', 'hide_the_pain_harold', 'https://commons.wikimedia.org/wiki/File:Arat%C3%B3_Andr%C3%A1s.jpg', 'Eifert János', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0/', true),
-  addedImage('O RLY?', 'classic_memes', '2000s', 'o_rly', 'https://commons.wikimedia.org/wiki/File:O_RLY.jpg', 'SPUI', 'Public domain', 'https://commons.wikimedia.org/wiki/File:O_RLY.jpg', false),
-  addedImage('This Is Fine', 'classic_memes', '2010s', 'this_is_fine', 'https://commons.wikimedia.org/wiki/File:%22THIS_IS_FINE%22_(32502717715).jpg', 'James McNellis', 'CC BY 2.0', 'https://creativecommons.org/licenses/by/2.0/', true),
 ];
 
 const textCandidates: VisualCandidate[] = TEXT_VISUAL_SUBJECTS.map((subject) => ({
